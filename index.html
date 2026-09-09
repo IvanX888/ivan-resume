@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Иван Серко — беру задачу от идеи до результата</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav class="navbar" aria-label="Основная навигация">
+    <a href="#hero" class="nav-logo">СЕРКО<span>.</span></a>
+
+    <div class="nav-links">
+        <a href="#scenarios">Сценарии</a>
+        <a href="#projects">Проекты</a>
+        <a href="#roles">Роли</a>
+        <a href="#about">Обо мне</a>
+        <a href="#contact">Контакты</a>
+    </div>
+
+    <div class="nav-contact-top">
+        <a href="tel:+375333742917" class="phone">+375 33 374-29-17</a>
+        <a href="mailto:333742917@mail.ru">Email</a>
+    </div>
+
+    <button class="mobile-menu-btn" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Открыть меню">☰</button>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <a href="#scenarios">Сценарии</a>
+        <a href="#projects">Проекты</a>
+        <a href="#roles">Роли</a>
+        <a href="#about">Обо мне</a>
+        <a href="#contact">Контакты</a>
+        <a href="tel:+375333742917" class="phone">+375 33 374-29-17</a>
+        <a href="mailto:333742917@mail.ru">333742917@mail.ru</a>
+    </div>
+</nav>
+
+<section class="hero" id="hero">
+    <canvas class="hero-canvas" aria-hidden="true"></canvas>
+    <div class="hero-content">
+        <div class="hero-badge">Открыт к найму и проектной работе</div>
+        <h1 class="hero-title">Не нанимайте 5 человек.<br>Наймите <span class="accent">одного специалиста.</span></h1>
+        <p class="hero-sub">
+            <strong>Иван Серко</strong> — универсальный специалист: проектирую процессы, автоматизирую рутину, создаю цифровые продукты, решаю юридические вопросы — и всё это связываю в единую систему. Официальное оформление: <strong>трудовой договор</strong> или <strong>договор подряда</strong> — как удобнее вашей компании.
+        </p>
+        <div class="hero-cta">
+            <a href="#contact" class="btn btn-primary">Обсудить проект</a>
+            <a href="#scenarios" class="btn btn-secondary">Что я могу для вас</a>
+        </div>
+        <div class="hero-facts">
+            <div class="hero-fact">
+                <span class="num">18+</span>
+                <span class="label">лет опыта</span>
+            </div>
+            <div class="hero-fact">
+                <span class="num">7+</span>
+                <span class="label">проектов под ключ</span>
+            </div>
+            <div class="hero-fact">
+                <span class="num">5</span>
+                <span class="label">профессий в одном</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="scenarios" id="scenarios">
+    <div class="section-header fade-in">
+        <h2>Что я могу сделать для <span style="color:var(--accent)">вашего</span> бизнеса</h2>
+        <p>Выберите тип предприятия — и увидите конкретные задачи, которые я закрою</p>
+        <div class="line"></div>
+    </div>
+    <div class="scenario-tabs fade-in" role="tablist">
+        <button class="scenario-tab active" type="button">⚙️ Промышленное производство</button>
+        <button class="scenario-tab" type="button">🥛 Продовольственное производство</button>
+        <button class="scenario-tab" type="button">🏗️ Строительство</button>
+        <button class="scenario-tab" type="button">🏢 Любая компания</button>
+    </div>
+    <div class="scenario-card fade-in" id="scenarioCard">
+        <h3><span class="emoji">⚙️</span> Промышленное производство — типичные задачи и мои решения</h3>
+        <ul class="scenario-list">
+            <li><strong>Автоматизировать учёт смен и техники</strong> — создам систему, где мастер в пару кликов формирует наряды, а программа считает часы и трудозатраты автоматически</li>
+            <li><strong>Провести тендер или закупку</strong> — подготовлю документацию, найду поставщиков, сопровожу от заявки до контракта</li>
+            <li><strong>Обновить или наладить оборудование</strong> — разберусь в проблеме, найду решение, внедрю: от диагностики до запуска</li>
+            <li><strong>Крутить гайки и варить</strong> — знаю производство изнутри: сварка, монтаж, ремонт. Разбираюсь в технике не по бумажкам, а по делу</li>
+            <li><strong>Написать ПО под ваш процесс</strong> — веб-приложение, PWA или Telegram-бот для конкретной задачи вашего цеха</li>
+            <li><strong>Продавать и продвигать продукцию</strong> — сайт, реклама, соцсети, прямые продажи: выстрою канал, который работает</li>
+            <li><strong>Новаторство и оптимизация</strong> — не боюсь внедрять новое: найду, где процесс тормозит, и предложу решение, которое реально работает</li>
+            <li><strong>Юридически защитить сделки</strong> — договоры, претензии, суды с контрагентами и поставщиками</li>
+        </ul>
+    </div>
+</section>
+
+<section class="projects" id="projects">
+    <div class="section-header fade-in">
+        <h2>Работающие системы, созданные с нуля</h2>
+        <p>Не теория — реальные продукты, которые экономят время и деньги</p>
+        <div class="line"></div>
+    </div>
+    <div class="projects-grid">
+        <div class="project-card fade-in">
+            <span class="tag">Производство</span>
+            <h3>⚙️ Система учёта смен и техники для ДРСУ</h3>
+            <p>Веб-приложение для мастера: выбор сотрудников, техники, объектов → автоматический расчёт часов и трудозатрат → печать готовых нарядов.</p>
+            <div class="project-stats">
+                <div class="project-stat"><div class="val">в разы</div><div class="lab">сокращение отчётности</div></div>
+                <div class="project-stat"><div class="val">0</div><div class="lab">ошибок в подсчётах</div></div>
+            </div>
+            <a href="https://серко.рф/drsujournal" target="_blank" rel="noopener" class="project-link">Открыть проект →</a>
+        </div>
+        <div class="project-card fade-in">
+            <span class="tag tag-green">Продажи</span>
+            <h3>💻 Экосистема привлечения клиентов</h3>
+            <p>Лендинг с ценами + живой блог + Яндекс Директ + Telegram-бот. Клиенты приходят, читают, фильтруются — вы получаете только готовых к оплате.</p>
+            <div class="project-stats">
+                <div class="project-stat"><div class="val">стабильно</div><div class="lab">поток заявок</div></div>
+                <div class="project-stat"><div class="val">100%</div><div class="lab">самостоятельно создано</div></div>
+            </div>
+            <a href="https://серко.рф/lexconsult" target="_blank" rel="noopener" class="project-link">Открыть проект →</a>
+        </div>
+        <div class="project-card fade-in">
+            <span class="tag tag-steel">Автоматизация</span>
+            <h3>🤖 Telegram-бот юридических консультаций</h3>
+            <p>Автоматизированный помощник с кнопками, быстрыми ответами и плавным переводом на живого специалиста.</p>
+            <a href="https://t.me/ConsullexBot" target="_blank" rel="noopener" class="project-link">Открыть бота →</a>
+        </div>
+        <div class="project-card fade-in">
+            <span class="tag tag-emerald">Безопасность</span>
+            <h3>🛡️ Анонимайзер документов</h3>
+            <p>Инструмент для автоматического удаления персональных данных из файлов перед передачей третьим лицам.</p>
+            <a href="https://серко.рф/serko-anonymize/" target="_blank" rel="noopener" class="project-link">Открыть проект →</a>
+        </div>
+        <div class="project-card fade-in">
+            <span class="tag">Портфолио</span>
+            <h3>🌐 Основной сайт serko.рф</h3>
+            <p>Центральный хаб всех проектов: юридические услуги, автоматизация, блог, инструменты — всё в одном месте.</p>
+            <a href="https://серко.рф" target="_blank" rel="noopener" class="project-link">Открыть сайт →</a>
+        </div>
+        <div class="project-card fade-in">
+            <span class="tag tag-steel">ИИ / Автоматизация</span>
+            <h3>🧠 Lawyer Assistant</h3>
+            <p>Интеллектуальный помощник для юридической работы: консультации, анализ документов, работа с законодательством — быстрые ответы там, где раньше нужен был час поиска.</p>
+            <a href="https://серко.рф/lawyer_assistant_v3/" target="_blank" rel="noopener" class="project-link">Открыть проект →</a>
+        </div>
+    </div>
+</section>
+
+<section class="roles" id="roles">
+    <div class="section-header fade-in">
+        <h2>Кем я могу быть полезен</h2>
+        <p>Одна штатная должность — или несколько задач по договору подряда. Формат обсудим.</p>
+        <div class="line"></div>
+    </div>
+    <div class="roles-grid">
+        <div class="role-card fade-in"><span class="emoji">📊</span><h3>Менеджер проектов</h3><p>Внедрение, развитие, запуск новых направлений — от идеи до результата</p></div>
+        <div class="role-card fade-in"><span class="emoji">⚙️</span><h3>Инженер по автоматизации</h3><p>Цифровизация учёта, отчётности, документооборота — без дорогих лицензий</p></div>
+        <div class="role-card fade-in"><span class="emoji">⚖️</span><h3>Юрист</h3><p>Договоры, суды, консультации, лицензии, НПА — разберу, найду решение, внедрю</p></div>
+        <div class="role-card fade-in"><span class="emoji">📋</span><h3>Специалист по закупкам</h3><p>Тендеры, документация, работа с поставщиками — от заявки до контракта</p></div>
+        <div class="role-card fade-in"><span class="emoji">📈</span><h3>Маркетолог / продвижение</h3><p>Реклама, сайты, соцсети, привлечение клиентов — настраиваю и веду</p></div>
+        <div class="role-card fade-in"><span class="emoji">💻</span><h3>Разработчик / создатель ПО</h3><p>Сайты, PWA, боты, автоматизация — под ваш процесс, не шаблонно</p></div>
+        <div class="role-card fade-in"><span class="emoji">🔧</span><h3>Инженер ПТО / конструктор</h3><p>Читаю проекты и чертежи, конструирую и варю металлоконструкции — от эскиза до готового узла</p></div>
+    </div>
+</section>
+
+<section class="about" id="about">
+    <div class="section-header fade-in">
+        <h2>Кто я</h2>
+        <p>Не классический путь — но он сделал меня универсальным</p>
+        <div class="line"></div>
+    </div>
+    <div class="about-grid">
+        <div class="about-photo fade-in">
+            <img src="serko.jpg" alt="Иван Серко" loading="lazy" onload="this.classList.add('loaded')" onerror="this.style.display='none'">
+            <span class="fallback">👨‍💻</span>
+        </div>
+        <div class="about-text fade-in">
+            <h3>39 лет. Не выбирал одну профессию — накапливал навыки.</h3>
+            <p>Много лет <strong>сварщик</strong> на крупнейших стройках: космодром «Восточный», БелАЭС, Домодедово. <strong>Читаю проекты и чертежи</strong>, конструирую и изготавливаю металлоконструкции своими руками — от эскиза до готового узла. Знаю производство изнутри — от сварного шва до сдачи объекта.</p>
+            <p>Потом — <strong>юрист</strong> в агрохолдинге: договоры, суды, госзакупки, строительное согласование. Потом — <strong>менеджер склада</strong>: приёмка, отгрузка, оптимизация.</p>
+            <p>Сейчас — создаю <strong>цифровые продукты</strong> и веду <strong>частную юридическую практику</strong> с постоянными клиентами. Это живой бизнес, который я сам создал и продвигаю.</p>
+            <div class="about-box">
+                <p><strong>Суть:</strong> предлагаю компаниям <span class="highlight">универсального специалиста</span> — на штатную должность или по договору подряда. Закрываю сразу несколько задач, не боюсь нового и понимаю бизнес не из теории, а из собственного опыта.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="contact" id="contact">
+    <div class="section-header fade-in">
+        <h2>Обсудим формат сотрудничества</h2>
+        <p>Готов к найму, проектной работе или договору подряда. Могу начать с пилотной задачи без обязательств — чтобы вы увидели подход</p>
+        <div class="line"></div>
+    </div>
+    <div class="contact-box fade-in">
+        <h3>Свяжитесь со мной</h3>
+        <p>Отвечаю быстро. Готов к звонкам, видеособеседованиям и личным встречам.</p>
+        <div class="contact-btns">
+            <a href="tel:+375333742917" class="btn btn-primary">Позвонить</a>
+            <a href="viber://chat?number=%2B375333742917" class="btn btn-secondary">Viber</a>
+            <a href="mailto:333742917@mail.ru" class="btn btn-secondary">Email</a>
+        </div>
+        <div class="contact-links">
+            <a href="tel:+375333742917">+375 33 374-29-17</a>
+            <a href="mailto:333742917@mail.ru">333742917@mail.ru</a>
+            <a href="https://серко.рф" target="_blank" rel="noopener">serko.рф</a>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="footer-links">
+        <a href="https://серко.рф/lexconsult" target="_blank" rel="noopener">🏛️ LexConsult</a>
+        <a href="https://серко.рф/drsujournal" target="_blank" rel="noopener">⚙️ Журнал ДРСУ</a>
+        <a href="https://серко.рф/lawyer_assistant_v3" target="_blank" rel="noopener">🧠 Lawyer Assistant</a>
+        <a href="https://t.me/ConsullexBot" target="_blank" rel="noopener">🤖 Consullex Bot</a>
+        <a href="https://серко.рф/legal-blog" target="_blank" rel="noopener">📝 Юридический блог</a>
+        <a href="https://серко.рф/serko-anonymize/" target="_blank" rel="noopener">🛡️ Анонимайзер</a>
+    </div>
+    <div class="footer-brand">СЕРКО<span>.</span></div>
+    <div class="footer-name">Иван Серко — универсальный исполнитель</div>
+    <div class="footer-year">© 2026</div>
+    <div class="footer-meta">
+        <a href="mailto:333742917@mail.ru">333742917@mail.ru</a>
+        <a href="tel:+375333742917">+375 33 374-29-17</a>
+        <a href="https://серко.рф" target="_blank" rel="noopener">serko.рф →</a>
+    </div>
+</footer>
+
+<script src="app.js" defer></script>
+</body>
+</html>
