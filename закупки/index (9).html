@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Помощник по закупкам — ОАО «Щучинский ремонтный завод» v1.5.1</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a4d38">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Помощник специалиста по закупкам: визард процедур, калькулятор оценки, генератор документов. Данные хранятся локально в браузере.">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Закупки ЩРЗ">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f2f5f4; --card:#ffffff; --ink:#1c2b28; --muted:#5f6f6b;
+  --acc:#0e6b4f; --acc2:#0a4d38; --warn:#b3541e; --danger:#a52a2a;
+  --line:#d7e0dd; --chip:#e3efe9; --gold:#8a6d1d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+header{background:linear-gradient(135deg,#0a4d38,#0e6b4f);color:#fff;padding:18px 24px}
+header h1{font-size:20px}
+header .sub{opacity:.85;font-size:13px;margin-top:4px}
+.badge{display:inline-block;background:#ffd75e;color:#4a3a00;font-size:11px;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle}
+nav{display:flex;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav button{border:0;background:none;padding:12px 18px;cursor:pointer;font-size:14px;color:var(--muted);border-bottom:3px solid transparent}
+nav button.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+main{max-width:1100px;margin:20px auto;padding:0 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+h2{font-size:18px;margin-bottom:12px;color:var(--acc2)}
+h3{font-size:15px;margin:14px 0 8px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--chip);font-weight:600}
+tr:nth-child(even) td{background:#fafcfb}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit}
+.btn{background:var(--acc);color:#fff;border:0;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;margin-top:12px}
+.btn:hover{background:var(--acc2)}
+.btn.ghost{background:#fff;color:var(--acc);border:1px solid var(--acc)}
+.btn:disabled{background:#9db8af;cursor:not-allowed}
+.btn.sm{padding:4px 12px;margin:0;font-size:13px}
+.result{border:2px solid var(--acc);border-radius:10px;padding:16px;background:#f0f8f4;margin-top:14px}
+.result .proc{font-size:17px;font-weight:700;color:var(--acc2)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0}
+.tag.g{background:#e3efe9;color:var(--acc2)}
+.tag.y{background:#fdf3d7;color:var(--gold)}
+.tag.r{background:#fbe4e4;color:var(--danger)}
+.check label{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--ink);margin:7px 0;cursor:pointer}
+.check input{width:auto;margin-top:3px}
+.steps{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.steps span{font-size:12px;padding:4px 10px;border-radius:12px;background:var(--chip);color:var(--muted)}
+.steps span.on{background:var(--acc);color:#fff}
+.note{font-size:12.5px;color:var(--muted);background:#f7f9f8;border-left:3px solid var(--acc);padding:8px 12px;margin:10px 0}
+.note.warn{border-left-color:var(--warn);background:#fdf6ef}
+.note.alert{border-left-color:var(--danger);background:#fdf0f0;color:#7a1f1f}
+.kv{font-size:13px}
+.kv b{color:var(--acc2)}
+footer{font-size:12px;color:var(--muted);text-align:center;padding:16px;border-top:1px solid var(--line);background:#fff}
+.del{background:none;border:0;color:var(--danger);cursor:pointer;font-size:13px}
+.small{font-size:12.5px;color:var(--muted)}
+details{margin:8px 0}
+summary{cursor:pointer;font-weight:600;color:var(--acc2);font-size:14px}
+#diag{font-size:12px;color:var(--acc2);background:var(--chip);border-radius:6px;padding:8px 12px;margin-top:6px}
+.ver{font-size:11px;color:var(--gold);background:#fdf3d7;padding:1px 7px;border-radius:9px;white-space:nowrap}
+@media print{nav,.btn,.del,#diag{display:none}body{background:#fff}}
+.upd-banner{position:fixed;left:0;right:0;bottom:0;background:var(--acc2);color:#fff;padding:12px 20px;text-align:center;font-size:14px;z-index:99;box-shadow:0 -2px 10px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Помощник специалиста по закупкам <span class="badge">v1.5.1</span></h1>
+  <div class="sub">ОАО «Щучинский ремонтный завод» · УНП 500031469 · база актуализирована 17.09.2026 · БВ = 45 руб. с 01.01.2026 · учтены ПП № 90 (25.02.2026), № 168 (07.04.2026), № 355 (10.07.2026), № 252 (ЭТП при ЗОИ 50–500 б.в.)</div>
+</header>
+<nav id="nav">
+  <button data-t="wiz" class="on">Визард закупки</button>
+  <button data-t="calc">Калькулятор оценки</button>
+  <button data-t="refs">Справочники порогов</button>
+  <button data-t="kb">База знаний</button>
+  <button data-t="chk">Чек-листы</button>
+  <button data-t="cls">Классификатор предмета</button>
+  <button data-t="doc">Комиссия и документы</button>
+  <button data-t="log">Журнал закупок</button>
+  <button data-t="sup">Контрагенты</button>
+  <button data-t="tz">Конструктор ТЗ</button>
+</nav>
+<main>
+<!-- ===================== WIZARD ===================== -->
+<section id="wiz">
+  <div class="card">
+    <h2>Новая закупка — с чего начать</h2>
+    <div class="steps"><span class="on" id="st0">1. Чек-лист старта</span><span id="st1">2. Контур</span><span id="st2">3. Параметры</span><span id="st3">4. Результат и сроки</span></div>
+    <div id="w0" class="check">
+      <h3>Шаг 1. Чек-лист старта (что делать первым делом)</h3>
+      <label><input type="checkbox" class="s0">Получена и зарегистрирована заявка от структурного подразделения (потребность)</label>
+      <label><input type="checkbox" class="s0">Определён источник финансирования: средства госзаказчика / собственные средства</label>
+      <label><input type="checkbox" class="s0">Определена ориентировочная стоимость (расчёт / коммерческие предложения / иной расчёт)</label>
+      <label><input type="checkbox" class="s0">Для госзакупок посчитана <b>годовая (общая) потребность в однородных товарах</b> — от неё зависят конкурс и п. 9</label>
+      <label><input type="checkbox" class="s0">Проверено: предмет не входит в перечень закупок-исключений (прил. 1 к № 168 / приложение к 419-З)</label>
+      <label><input type="checkbox" class="s0">Назначен ответственный, зафиксирована дата принятия решения о закупке</label>
+      <div class="note">Даты принятия решения важны: № 90 (25.02.2026) и № 168 (11.07.2026) применяются без обратной силы; закупки с решением до этих дат завершаются по старым правилам.</div>
+      <button class="btn" onclick="wNext(1)">Далее →</button>
+      <button class="btn ghost" onclick="clearWizard()">Очистить форму</button>
+    </div>
+    <div id="w1" style="display:none">
+      <h3>Шаг 2. Выбор контура</h3>
+      <label>Контур закупки</label>
+      <select id="contour">
+        <option value="own">Закупка за счёт собственных средств (ПП № 168 от 07.04.2026 с изм. № 355 от 10.07.2026, ЭТП)</option>
+        <option value="gos">Государственная закупка (Закон № 419-З, ГИАС «Электронные закупки»)</option>
+      </select>
+      <button class="btn" onclick="wNext(2)">Далее →</button>
+      <button class="btn ghost" onclick="wNext(0)">← Назад</button>
+    </div>
+    <div id="w2" style="display:none">
+      <h3>Шаг 3. Параметры закупки</h3>
+      <label>Предмет закупки</label><input id="subject" placeholder="например: металлопрокат, запчасти, проектные работы…">
+      <label>Ориентировочная стоимость <b>данной закупки</b>, руб. (с НДС)</label><input id="amount" type="number" min="0" placeholder="45000">
+      <div class="small" id="bvShow"></div>
+      <label>Тип</label>
+      <select id="ptype"><option>Товары</option><option>Работы</option><option>Услуги</option></select>
+      <div id="ownExtra">
+        <label><input type="checkbox" id="ownProd" style="width:auto"> Сырьё / материалы / комплектующие / оборудование для собственного производства (п. 29 приложения 1 к № 168, уточнён № 355) — до 1 000 б.в. без процедур</label>
+        <label><input type="checkbox" id="oisStroy" style="width:auto"> Закупка при строительстве — по п. 9 приложения 4 к № 168 <b>вне годового лимита 5 000 б.в.</b></label>
+        <label><input type="checkbox" id="priorDog" style="width:auto"> Есть действующий договор с поставщиком по этому предмету (проверить основания; продление «старых» договоров ограничено № 355)</label>
+      </div>
+      <div id="gosExtra" style="display:none">
+        <label><b>Годовая (общая) потребность в однородных товарах (работах, услугах)</b>, руб. — определяет конкурс (≥ 100 000 б.в.) и п. 9 (≤ 500 б.в.)</label>
+        <input id="annual" type="number" min="0" placeholder="например: 20000000 (обязательно для п. 9 и конкурса)">
+        <div class="small" id="bvAnnualShow"></div>
+        <label><input type="checkbox" id="std" style="width:auto"> Предмет стандартизированный (характеристики однозначно описываются) — открывает электронный аукцион</label>
+        <label><input type="checkbox" id="repeatProc" style="width:auto"> Повторная процедура (предыдущая признана несостоявшейся / отменена) — короче сроки подачи</label>
+      </div>
+      <label>Дата размещения приглашения / извещения</label><input id="dstart" type="date">
+      <button class="btn" onclick="wNext(3)">Рассчитать →</button>
+      <button class="btn ghost" onclick="wNext(1)">← Назад</button>
+    </div>
+    <div id="w3" style="display:none">
+      <h3>Шаг 4. Результат</h3>
+      <div id="wres"></div>
+      <div id="wdates"></div>
+      <div id="wfix"></div>
+      <div id="wnext" style="margin-top:12px"></div>
+      <button class="btn ghost" onclick="wNext(2)">← Назад</button>
+    </div>
+  </div>
+</section>
+<!-- ===================== CALC ===================== -->
+<section id="calc" style="display:none">
+  <div class="card">
+    <h2>Калькулятор оценки предложений (методика завода: веса 70/15/15, 10-балльная шкала)</h2>
+    <div class="note">10-балльная шкала: худшему значению критерия — 1 балл, лучшему — 10. Итог: Σ (балл × вес). <b>Направление «лучше» задаётся по каждому критерию</b>: для цены и срока поставки «меньше — лучше», для условий оплаты «больше — лучше» (большая отсрочка выгоднее заказчика).</div>
+    <h3>Критерии и веса</h3>
+    <table id="critTbl">
+      <tr><th>Критерий</th><th>Единица</th><th>Направление «лучше»</th><th>Вес, %</th><th></th></tr>
+    </table>
+    <button class="btn ghost sm" onclick="addCritRow()">+ добавить критерий</button>
+    <div class="grid2" style="margin-top:14px">
+      <div>
+        <label>Участники (через запятую)</label><input id="names" placeholder="ООО «Альфа», ООО «Бета», ООО «Гамма»">
+        <button class="btn" onclick="buildCalc()">Сформировать таблицу</button>
+      </div>
+      <div>
+        <div class="small" id="wsum" style="margin-top:14px"></div>
+        <div class="small">Веса по умолчанию: цена 70%, сроки поставки 15%, условия оплаты 15% (п. 22.6 внутреннего Порядка завода, ред. 2022).</div>
+      </div>
+    </div>
+    <div id="calcTbl" style="margin-top:14px"></div>
+  </div>
+</section>
+<!-- ===================== REFS ===================== -->
+<section id="refs" style="display:none">
+  <div class="card">
+    <h2>Справочники (на 17.09.2026, БВ = 45 руб.)</h2>
+    <h3>1. Закупки за счёт собственных средств — ПП № 168 от 07.04.2026 (с 11.07.2026, с изм. № 355 от 10.07.2026)</h3>
+    <table>
+      <tr><th>Стоимость сделки</th><th>Действие</th><th>Комментарий</th></tr>
+      <tr><td>До 100 б.в. (4 500 руб.)</td><td>Без процедур</td><td>П. 21 приложения 1; кроме аудита обязательной годовой отчётности</td></tr>
+      <tr><td>Оборудование, сырьё, материалы, комплектующие для собственного производства до 1 000 б.в. (45 000 руб.)</td><td>Без процедур (исключение)</td><td>П. 29 приложения 1 (уточнён № 355 от 10.07.2026); без годового лимита</td></tr>
+      <tr><td>Свыше 100 до 1 000 б.в. (4 500 – 45 000 руб.)</td><td>Из одного источника (п. 9 приложения 4) либо электронная процедура</td><td>Годовой лимит по п. 9 — 5 000 б.в. (225 000 руб.), кроме закупок при строительстве; обязательно изучение конъюнктуры</td></tr>
+      <tr><td>Свыше 1 000 б.в. (45 000 руб.)</td><td>Электронная процедура (ЗЦП / конкурс / аукцион)</td><td>Только электронная форма на ЭТП (goszakupki.by / zakupki.butb.by); вид — по локальному порядку организации <span class="ver">проверить по Эталону</span></td></tr>
+    </table>
+    <h3>2. Государственные закупки — Закон № 419-З (пороги зависят от годовой потребности и стоимости закупки)</h3>
+    <table>
+      <tr><th>Условие</th><th>Процедура</th><th>Комментарий</th></tr>
+      <tr><td>Годовая потребность в однородных товарах (работах, услугах) ≥ 100 000 б.в. (4,5 млн руб.)</td><td>Открытый конкурс</td><td>Также для работ строительства, науки, культуры, цифрового развития — независимо от стоимости (п. 1 приложения)</td></tr>
+      <tr><td>Сделка 8 000 – 100 000 б.в. (360 тыс. – 4,5 млн руб.)</td><td>Электронный аукцион</td><td>Стандартизированные товары/работы/услуги; нестандартизированные — конкурс по решению заказчика (ЗЦП недопустим свыше 8 000 б.в.)</td></tr>
+      <tr><td>Сделка до 8 000 б.в. (360 000 руб.)</td><td>Запрос ценовых предложений</td><td>Подача предложений ≥ 5 рабочих дней (рекомендуется 10)</td></tr>
+      <tr><td>Годовая потребность по п. 9 приложения ≤ 500 б.в. (22 500 руб.)</td><td>Из одного источника (п. 9)</td><td>50–500 б.в.: конъюнктура + <b>обязательный ЭТП</b> (ПП № 252); до 50 б.в. — без конъюнктуры. Лимит — на годовую потребность, не на сделку</td></tr>
+    </table>
+    <h3>3. Контрольные сроки (419-З, проверено по pravo.by / разъяснениям МАРТ 17.09.2026)</h3>
+    <table>
+      <tr><th>Событие</th><th>Срок</th><th>Источник</th></tr>
+      <tr><td>Подача предложений, ЗЦП (гос)</td><td>≥ 5 рабочих дней (рекомендуется 10)</td><td>419-З, ст. 23</td></tr>
+      <tr><td>Подача предложений, электронный аукцион (гос)</td><td>новый ≥ 15 календ. дней (10 календ. при ≤ 5 000 б.в.); повторный ≥ 10 календ. (5 раб. при ≤ 5 000 б.в.)</td><td>419-З, ст. 23</td></tr>
+      <tr><td>Подача предложений, конкурс (гос)</td><td>новый ≥ 15 календ. дней; повторный ≥ 10 календ. дней</td><td>419-З, ст. 23</td></tr>
+      <tr><td>Обжалование итогов (гос)</td><td>10 календ. дней со дня размещения протокола</td><td>419-З, ст. 31 <span class="ver">сверить по Эталону</span></td></tr>
+      <tr><td>Размещение проекта договора победителем (гос)</td><td>в течение 5 календ. дней со дня истечения срока обжалования</td><td>419-З, ст. 24</td></tr>
+      <tr><td>Подписание договора победителем (гос)</td><td>3 рабочих дня со дня размещения проекта; при возражениях — 3 раб. дня рассмотрение + 3 раб. дня подписание</td><td>419-З, ст. 24 (ч. 6 п. 4)</td></tr>
+      <tr><td>Уведомление победителя (собств. средства)</td><td>не позднее следующего дня</td><td>Порядок завода (ред. 2022) — до переутверждения по № 168</td></tr>
+      <tr><td>Договор (собств. средства)</td><td>не ранее 5 раб. дней после выбора (ориентир по локальному акту)</td><td>Порядок завода, п. 27.1 — до переутверждения по № 168</td></tr>
+      <tr><td>Сообщение о результатах (собств. средства)</td><td>5 раб. дней после заключения договора</td><td>Порядок завода, п. 26.1 — до переутверждения по № 168</td></tr>
+      <tr><td>Отчётность по № 168</td><td>ежеквартально — договоры; полугодие — мин. доля белорусских товаров (в т.ч. по закупкам-исключениям)</td><td>ПП № 168</td></tr>
+    </table>
+    <div class="note warn">Внутренние «Порядок» и «Положение» завода (пороги 1 000/10 000 б.в., бумажные процедуры) в части, противоречащей № 168, не применять; новый локальный порядок обязан быть разработан и размещён в ИС «Тендеры» (1 б.в. за размещение). Продление «старых» договоров ограничено № 355.</div>
+  </div>
+</section>
+<!-- ===================== KB ===================== -->
+<section id="kb" style="display:none">
+  <div class="card">
+    <h2>База знаний (нормы с версиями и датами проверки)</h2>
+    <div class="note">Каждая норма имеет редакцию и дату проверки. Перед публикацией каждой процедуры сверить применённые нормы с Эталоном/pravo.by (правило двойной проверки). Статусы: <span class="tag g">проверено</span> <span class="tag y">сверить по Эталону</span>.</div>
+    <div id="kbList"></div>
+    <h3>Журнал верификации норм</h3>
+    <div class="small">Фиксируется при каждой сверке (админ-панель → «Отметить сверку»).</div>
+    <div id="verlogList" style="margin-top:8px"></div>
+  </div>
+</section>
+<!-- ===================== CHECKLISTS ===================== -->
+<section id="chk" style="display:none">
+  <div class="card">
+    <h2>Чек-листы</h2>
+    <h3>Проверка заявки участника (комплектность и соответствие)</h3>
+    <div class="check" id="chkApp">
+      <label><input type="checkbox">Заявление на участие (форма по документации о закупке)</label>
+      <label><input type="checkbox">Конкурсное (ценовое) предложение с приложениями, подписано уполномоченным лицом</label>
+      <label><input type="checkbox">Выписка из ЕГР (резиденты) / легализованная выписка из торгового реестра (нерезиденты)</label>
+      <label><input type="checkbox">Бухгалтерский баланс и отчёт о прибылях и убытках на последнюю отчётную дату (выписка из книги учёта доходов и расходов — при УСН)</label>
+      <label><input type="checkbox">Документы, подтверждающие право на деятельность (лицензии — если предусмотрено), квалификацию персонала, опыт (закрытый перечень п. 10 Положения № 168 / ст. 16 419-З)</label>
+      <label><input type="checkbox">Документы на товар: сертификаты соответствия (при обязательной сертификации), описание характеристик</label>
+      <label><input type="checkbox">Подтверждение статуса производителя / сбытовой организации (договор с производителем) — если заявлено</label>
+      <label><input type="checkbox">Документ о стране происхождения товара (только если это основание допуска по нацрежиму — не как требование к участникам)</label>
+      <label><input type="checkbox">Проверено: участник не в реестре недобросовестных поставщиков; не в ликвидации/банкротстве</label>
+      <label><input type="checkbox">Обеспечение заявки (если требуется документацией) — сумма, срок, форма</label>
+      <label><input type="checkbox">Срок действия предложения соответствует документации</label>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn" onclick="verdict()">Сформировать решение по заявке</button>
+      <div id="verdictOut" style="margin-top:12px"></div>
+    </div>
+    <h3>Закупка из одного источника — обязательные условия</h3>
+    <div class="check">
+      <label><input type="checkbox">Основание подпадает под перечень (п. 9 прил. 4 № 168 / приложение к 419-З) — для п. 9 419-З лимит 500 б.в. установлен на <b>годовую потребность</b> в однородных товарах</label>
+      <label><input type="checkbox">Для ЗОИ 50–500 б.в. по пп. 7, 9 (419-З): процедура проводится в электронном виде на ЭТП (ПП № 252)</label>
+      <label><input type="checkbox">Сумма сделки в пределах порога; годовой лимит не исчерпан (№ 168: 5 000 б.в./год по п. 9, кроме строительства; лимит ведёт журнал)</label>
+      <label><input type="checkbox">Проведено изучение конъюнктуры рынка (если обязательно): запросы производителям, сравнение цен, справка/протокол</label>
+      <label><input type="checkbox">Оформлено решение (приказ/справка руководителя или протокол комиссии) с обоснованием</label>
+      <label><input type="checkbox">Соблюдён приоритет производителей при ≥ 2 производителях в процедуре (абз. 7 п. 36 Положения № 168)</label>
+    </div>
+    <h3>Перед публикацией приглашения</h3>
+    <div class="check">
+      <label><input type="checkbox">Описание предмета не содержит страны происхождения, недопустимых требований к участникам (п. 4 ст. 21 419-З)</label>
+      <label><input type="checkbox">Критерии оценки, веса и направление «лучше» указаны в документации</label>
+      <label><input type="checkbox">Сроки реалистичны: ЗЦП гос ≥ 5 раб. дней (рекомендуется 10); аукцион/конкурс — по ст. 23</label>
+      <label><input type="checkbox">Проект договора приложен; условия оплаты и поставки определены</label>
+      <label><input type="checkbox">Сверка норм по Эталону выполнена (правило двойной проверки) — отметка в журнале верификации</label>
+    </div>
+    <h3>Пакет для загрузки на портал (ГИАС goszakupki.by / ИС «Тендеры» icetrade.by / zakupki.butb.by)</h3>
+    <div class="check">
+      <label><input type="checkbox">Приглашение (извещение) — сформировано в генераторе, выгружено в .doc, конвертировано в PDF (если требует портал)</label>
+      <label><input type="checkbox">Документация о закупке: требования к участникам (закрытый перечень № 168, п. 10 / ст. 16 419-З), критерии оценки и веса, проект договора, формы заявления и таблицы цен</label>
+      <label><input type="checkbox">Описание предмета без запрещённых требований (страна происхождения — нет, марка — с «или эквивалент»)</label>
+      <label><input type="checkbox">Сроки: ЗЦП гос ≥ 5 раб. дней; изменения во второй половине срока → продление (не менее половины первоначального)</label>
+      <label><input type="checkbox">Для госзакупок: проверка годового плана (позиция включена / право не включать по пп. 10, 17, 22–231, 31, 35, 40, 45, 55 приложения)</label>
+      <label><input type="checkbox">Для ЗОИ 50–500 б.в. (пп. 7, 9): процедура через ЭТП (ПП № 252)</label>
+      <label><input type="checkbox">Карточка закупки в журнале создана (ID присвоен), статус «в работе»</label>
+      <label><input type="checkbox">После процедуры: протоколы (вскрытие, заседание), уведомления — выгружены и размещены на портале в срок</label>
+      <label><input type="checkbox">Договор подписан в срок (гос: 3 раб. дня / собств.: по локальному порядку); карточка закрыта; документы прикреплены к карточке (архив)</label>
+    </div>
+  </div>
+</section>
+<!-- ===================== CLASSIFIER ===================== -->
+<section id="cls" style="display:none">
+  <div class="card">
+    <h2>Классификатор: куда попадает товар / работа / услуга</h2>
+    <div class="note">Введите предмет закупки — система покажет применимые нормы: исключения из процедур, нацрежим, особые требования. База: ПП № 168 (с изм. № 355), 419-З, ПП № 252, внутренние документы ЩРЗ (17.09.2026). <span class="tag y">перед применением сверить по Эталону</span></div>
+    <label>Поиск по предмету закупки (например: «дизель», «металл», «проект», «аренда»)</label>
+    <input id="clsQ" placeholder="начните вводить…">
+    <div id="clsList" style="margin-top:12px"></div>
+  </div>
+</section>
+<!-- ===================== DOCS ===================== -->
+<section id="doc" style="display:none">
+  <div class="card">
+    <h2>Комиссия, реквизиты и ответственные</h2>
+    <div class="note">Данные подставляются в генерируемые документы и сохраняются в браузере (localStorage).</div>
+    <div class="grid2">
+      <div>
+        <label>Директор (подписант)</label><input id="cDir" placeholder="Фамилия И.О.">
+        <label>Председатель конкурсной комиссии</label><input id="cChair" placeholder="Фамилия И.О. — должность">
+        <label>Секретарь комиссии</label><input id="cSecr" placeholder="">
+        <label>Ответственный за закупку (контакт для участников)</label><input id="cBuyer" placeholder="ФИО, телефон, e-mail">
+      </div>
+      <div>
+        <label>Члены комиссии (ФИО и должность, каждый с новой строки)</label><textarea id="cMembers" rows="3" placeholder="Фамилия И.О. — должность, каждый с новой строки"></textarea>
+        <label>Основной банк (полная строка реквизитов)</label><input id="cBank1" placeholder="р/с BY__ ____ ____ ____ ____ ____ ____, ОАО «Белагропромбанк», МФО BAPBBY2X">
+        <label>Дополнительный банк</label><input id="cBank2" placeholder="р/с …, ОАО «АСБ Беларусбанк», МФО AKBBBY2X">
+        <label>Телефон организации (для договора)</label><input id="cPhone" placeholder="(8-01514) 43-3-30">
+      </div>
+    </div>
+    <button class="btn" onclick="saveCommission()">Сохранить</button>
+    <span class="small" id="cSaved" style="margin-left:10px"></span>
+  </div>
+  <div class="card">
+    <h2>Генератор документов</h2>
+    <div class="note">Ссылки на внутренний «Порядок закупок» ЩРЗ (ред. 2022) применяются только в части, не противоречащей ПП № 168, и подлежат замене после переутверждения локального порядка.</div>
+    <div class="grid2">
+      <div>
+        <label>Тип документа</label>
+        <select id="dType">
+          <option value="inv">Приглашение к участию в процедуре (ЗЦП / конкурс)</option>
+          <option value="open">Протокол вскрытия конвертов с предложениями</option>
+          <option value="meeting">Протокол заседания комиссии (заключение о выборе победителя)</option>
+          <option value="reject">Уведомление об отклонении предложения участника</option>
+          <option value="res">Сообщение о результатах процедуры</option>
+          <option value="oos">Справка-обоснование закупки из одного источника</option>
+          <option value="task">Задание на закупку (внутренний документ)</option>
+          <option value="za">Форма участника: Заявление на участие (по форме документации)</option>
+          <option value="price">Форма участника: Таблица цен</option>
+          <option value="contract">Договор поставки (проект — адаптировать под форму завода)</option>
+        </select>
+        <label>Предмет закупки</label><input id="dSubject" placeholder="например: поставка металлопроката">
+        <label>Номер процедуры / документа</label><input id="dNum" placeholder="например: ЗЦП-15/09-2026">
+        <label>Участники и цены предложений (для протокола вскрытия; каждый с новой строки: «Наименование — цена»)</label>
+        <textarea id="dParticipants" rows="4" placeholder="ООО «Альфа» — 42 000 руб.&#10;ООО «Бета» — 44 500 руб."></textarea>
+        <label>Общее решение комиссии (для протокола вскрытия)</label>
+        <select id="dAdm">
+          <option>Все предложения допущены к оценке</option>
+          <option>Часть предложений отложена для запроса разъяснений</option>
+        </select>
+      </div>
+      <div>
+        <label>Ориентировочная стоимость, руб.</label><input id="dAmount" type="number" placeholder="45000">
+        <label>Дата размещения / решения</label><input id="dDate" type="date">
+        <label>Срок подачи предложений (дата)</label><input id="dDeadline" type="date">
+        <label>Победитель / поставщик (для сообщения о результатах и протокола)</label><input id="dWinner" placeholder="наименование, УНП">
+        <label>Сумма (цена) победителя, руб.</label><input id="dWinSum" type="number">
+        <label>Итоговый балл / место победителя (для протокола заседания)</label><input id="dWinScore" placeholder="например: 9,35 балла, 1 место">
+        <label>Участник, чьё предложение отклонено (для уведомления)</label><input id="dLoser" placeholder="наименование">
+        <label>Причины отклонения (для уведомления; через точку с запятой)</label><input id="dReason" placeholder="не представлены документы, подтверждающие опыт; цена выше ориентировочной стоимости">
+        <label>Наименование участника (для форм заявления и таблицы цен)</label><input id="dPart" placeholder="полное наименование организации">
+        <label>Цены по позициям (для таблицы цен; «наименование — количество — цена», каждая с новой строки)</label>
+        <textarea id="dItems" rows="3" placeholder="Электроды УОНИ-13/55 — 50 кг — 18,50 руб./кг"></textarea>
+        <label>Срок поставки (для договора)</label><input id="dDelivery" placeholder="например: в течение 15 рабочих дней с даты договора">
+        <label>Условия оплаты (для договора)</label><input id="dPay" placeholder="например: оплата в течение 30 банковских дней с даты поставки">
+      </div>
+    </div>
+    <button class="btn" onclick="genDoc()">Сформировать документ</button>
+    <button class="btn ghost" onclick="exportDoc()">Скачать .doc</button>
+    <button class="btn ghost" onclick="window.print()">Печать</button>
+    <div id="docOut" style="margin-top:16px"></div>
+  </div>
+</section>
+<!-- ===================== LOG ===================== -->
+<section id="log" style="display:none">
+  <div class="card">
+    <h2>Журнал закупок</h2>
+    <div class="small" style="margin-bottom:10px">Хранится локально в браузере (localStorage). Экспорт — кнопкой ниже.</div>
+    <div id="lim9box"></div>
+    <div id="logTbl" style="margin-top:14px"></div>
+    <div style="border-top:1px dashed var(--line);margin-top:16px;padding-top:12px">
+      <h3>Резервное копирование</h3>
+      <p class="small">Сохраняет весь архив (журнал с вложениями, лимит, контрагенты, настройки комиссии и банка, результаты оценок). Перенесите файл на другой ПК и восстановите там.</p>
+      <button class="btn ghost" onclick="backupAll()">Скачать резервную копию (.json)</button>
+      <label style="margin-top:8px">Восстановить из копии</label>
+      <input type="file" accept=".json" onchange="restoreAll(this)">
+      <button class="btn ghost" onclick="exportICS()" style="margin-left:8px">Выгрузить дедлайны в календарь (.ics)</button>
+    </div>
+  </div>
+</section>
+<!-- ===================== SUPPLIERS ===================== -->
+<section id="sup" style="display:none">
+  <div class="card">
+    <h2>Реестр контрагентов (база поставщиков завода)</h2>
+    <div class="note">Накапливается с каждой закупкой: кто поставлял, по каким категориям, с каким результатом. Перед включением в документацию проверяйте реестр недобросовестных поставщиков (ГИАС / ИС «Тендеры»). Хранится локально.</div>
+    <div class="grid2">
+      <div>
+        <label>Наименование организации</label><input id="sName" placeholder="ООО «Поставщик»">
+        <label>УНП</label><input id="sUnp" placeholder="123456789">
+        <label>Категория поставок</label>
+        <select id="sCat">
+          <option>Металлопрокат</option><option>Запчасти / техника</option><option>ГСМ и топливо</option>
+          <option>Электротехника</option><option>Стройматериалы и работы</option><option>Услуги / перевозки</option>
+          <option>Проектные работы</option><option>Прочее</option>
+        </select>
+      </div>
+      <div>
+        <label>Контакты (телефон, e-mail)</label><input id="sContact" placeholder="+375 __ ___-__-__, ___@___">
+        <label>Статус</label>
+        <select id="sStatus">
+          <option>актуален</option><option>риск (просрочки, замечания)</option><option>не рекомендуется</option>
+        </select>
+        <label>Заметки (цены, условия, история)</label><textarea id="sNote" rows="3" placeholder="Поставлял электроды 2025 г., цены средние по рынку, сроки выдерживает"></textarea>
+      </div>
+    </div>
+    <button class="btn" onclick="addSupplier()">Добавить в реестр</button>
+  </div>
+  <div class="card">
+    <h2>Реестр</h2>
+    <input id="sSearch" placeholder="Поиск по названию, УНП, категории…" style="margin-bottom:10px" oninput="renderSup()">
+    <div id="supTbl"></div>
+  </div>
+</section>
+<!-- ===================== TZ BUILDER ===================== -->
+<section id="tz" style="display:none">
+  <div class="card">
+    <h2>Конструктор ТЗ / описания предмета закупки</h2>
+    <div class="note">Соберите описание предмета по шаблону — система проверит текст на запрещённые требования (п. 4 ст. 21 419-З / № 168): страна происхождения, марка без «или эквивалент», избыточные требования к участникам. Режим «выгодно, но законно».</div>
+    <label>Шаблон предмета</label>
+    <select id="tzCat" onchange="tzHint()">
+      <option>Металлопрокат</option>
+      <option>Запчасти / комплектующие</option>
+      <option>ГСМ и топливо</option>
+      <option>Электрооборудование</option>
+      <option>Услуги / перевозки</option>
+      <option>Проектные работы</option>
+      <option>Универсальный</option>
+    </select>
+    <div class="small" id="tzHintBox" style="margin-top:4px"></div>
+    <div class="grid2">
+      <div>
+        <label>Наименование предмета закупки</label><input id="tzName" placeholder="например: лист стальной горячекатаный 3 мм">
+        <label>Количество и единицы измерения</label><input id="tzQty" placeholder="например: 2 000 кг">
+        <label>Ключевые технические характеристики</label><textarea id="tzChars" rows="4" placeholder="размеры, марка материала, ГОСТ/ТУ, допуски…"></textarea>
+      </div>
+      <div>
+        <label>Требования к качеству / сертификации</label><input id="tzQuality" placeholder="например: сертификат соответствия, паспорт качества на партию">
+        <label>Срок и место поставки (выполнения)</label><input id="tzDelivery" placeholder="например: в течение 15 рабочих дней, склад завода (аг. Рожанка)">
+        <label>Гарантийные требования</label><input id="tzWarranty" placeholder="например: гарантия 12 месяцев с даты поставки">
+        <label><input type="checkbox" id="tzEquiv" checked style="width:auto"> Допускается «или эквивалент (аналог)» (рекомендуется — расширяет конкуренцию)</label>
+        <label><input type="checkbox" id="tzSamples" style="width:auto"> Предоставление образцов для проверки совместимости</label>
+      </div>
+    </div>
+    <button class="btn" onclick="tzBuild()">Собрать и проверить описание</button>
+    <div id="tzOut" style="margin-top:14px"></div>
+  </div>
+</section>
+<div id="diag">Загрузка модулей…</div>
+</main>
+<footer>Рекомендательная система. Перед публикацией каждой процедуры обязательна сверка норм с Эталоном/pravo.by (внутреннее правило № 2). · v1.5.1 от 17.09.2026 · <span id="footVer"></span></footer>
+<script>
+/* =====================================================================
+   МОДУЛЬ 0. КОНФИГУРАЦИЯ НОРМ (единый источник порогов и сроков)
+   ===================================================================== */
+var CONFIG = {
+  BV: 45,                      // базовая величина с 01.01.2026 (ПП № 651 от 20.11.2025)
+  DATE_NORM: '17.09.2026',
+  ORG: 'ОАО «Щучинский ремонтный завод»',
+  ORG_ADDR: '231552, Республика Беларусь, Гродненская область, Щучинский район, аг. Рожанка, ул. Советская, 52А',
+  ORG_UNP: '500031469',
+  LIM9: 5000,                  // б.в. в год по п. 9 приложения 4 к № 168 (кроме строительства)
+  GOS: {                       // 419-З (пороги в б.в.)
+    OOS9_MAX_ANNUAL: 500,      // п. 9: лимит на ГОДОВУЮ потребность
+    OOS9_CONJ_MIN: 50,         // от 50 б.в. — конъюнктура и ЭТП (ПП № 252)
+    ZCP_MAX: 8000,             // ЗЦП — до 8 000 б.в.
+    AUCTION_MAX: 100000,       // аукцион — 8 000–100 000 б.в.
+    CONTEST_ANNUAL: 100000,    // конкурс — годовая потребность ≥ 100 000 б.в.
+    APPEAL_DAYS: 10            // обжалование итогов, календ. дней (ст. 31) [сверить по Эталону]
+  },
+  OWN: {                       // ПП № 168 (в б.в.)
+    DIRECT_MAX: 100,           // без процедур (п. 21 приложения 1)
+    PROD_MAX: 1000,            // п. 29 приложения 1 (с учётом № 355)
+    OOS9_MIN: 100, OOS9_MAX: 1000
+  },
+  STORE_KEYS: ['zlog','comm','suppliers','lastscore','verlog']
+};
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n){ return new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' руб.'; }
+function dstr(d){ return d.toLocaleDateString('ru-RU'); }
+function addWorkDays(d, n){ var t = new Date(d), a = 0; while (a < n){ t.setDate(t.getDate()+1); var w = t.getDay(); if (w !== 0 && w !== 6) a++; } return t; }
+function addCalDays(d, n){ var t = new Date(d); t.setDate(t.getDate()+n); return t; }
+
+/* =====================================================================
+   МОДУЛЬ 1. ХРАНИЛИЩЕ (localStorage + бэкап/восстановление + миграция)
+   ===================================================================== */
+function lsGet(key, def){ try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e){ return def; } }
+function lsSet(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch(e){ alert('Не удалось сохранить: локальное хранилище переполнено. Удалите часть вложений или сделайте бэкап.'); return false; } }
+function currentYear(){ return new Date().getFullYear(); }
+
+/* Миграция записей журнала, созданных версиями < 1.5.0 */
+function migrateLog(L){
+  var changed = false;
+  for (var i = 0; i < L.length; i++){
+    var r = L[i];
+    if (!r.id){ r.id = nextId(L); r.status = 'в работе'; r.files = r.files || []; r.stage = 1; changed = true; }
+    if (!r.year){ r.year = (r.date || '').slice(0,4) || String(currentYear()); changed = true; }
+    if (!r.procKey){
+      if (r.contour === 'own' && (r.proc || '').indexOf('одного источника') >= 0) r.procKey = 'oosOwn9';
+      else if (r.contour === 'own' && (r.proc || '').indexOf('собственного производства') >= 0) r.procKey = 'prod';
+      else if (r.contour === 'own' && (r.proc || '').indexOf('Прямая') >= 0) r.procKey = 'direct';
+      changed = true;
+    }
+    r.files = r.files || [];
+  }
+  return changed;
+}
+function getLog(){ var L = lsGet('zlog', []); if (migrateLog(L)) lsSet('zlog', L); return L; }
+
+function backupAll(){
+  var pack = { app: 'zakupki-pomoshchnik', version: '1.5.1', date: new Date().toISOString(), data: {} };
+  for (var i = 0; i < CONFIG.STORE_KEYS.length; i++) pack.data[CONFIG.STORE_KEYS[i]] = lsGet(CONFIG.STORE_KEYS[i], null);
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(pack)], {type:'application/json'}));
+  a.download = 'zakupki_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  alert('Резервная копия сохранена. Храните файл в папке закупок/на флешке — это единственный способ перенести данные на другой ПК.');
+}
+function restoreAll(input){
+  var f = input.files && input.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    try {
+      var pack = JSON.parse(r.result);
+      if (!pack || pack.app !== 'zakupki-pomoshchnik' || !pack.data) throw new Error('bad file');
+      if (!confirm('Восстановить данные из копии от ' + (pack.date || 'неизвестной даты') + '?\nТекущие локальные данные будут ЗАМЕНЕНЫ.')) return;
+      for (var k in pack.data){ if (pack.data[k] !== null && pack.data[k] !== undefined) localStorage.setItem(k, JSON.stringify(pack.data[k])); }
+      renderLog(); renderSup(); loadCommission(); renderKB();
+      alert('Данные восстановлены.');
+    } catch(e){ alert('Файл не распознан как резервная копия приложения.'); }
+    input.value = '';
+  };
+  r.readAsText(f);
+}
+
+/* =====================================================================
+   МОДУЛЬ 2. НАВИГАЦИЯ
+   ===================================================================== */
+var navBtns = document.querySelectorAll('#nav button');
+for (var bi = 0; bi < navBtns.length; bi++){
+  navBtns[bi].onclick = function(){
+    for (var x = 0; x < navBtns.length; x++) navBtns[x].classList.remove('on');
+    this.classList.add('on');
+    var ids = ['wiz','calc','refs','kb','chk','cls','doc','log','sup','tz'];
+    for (var i = 0; i < ids.length; i++) $(ids[i]).style.display = ids[i] === this.getAttribute('data-t') ? '' : 'none';
+    if (this.getAttribute('data-t') === 'log') renderLog();
+    if (this.getAttribute('data-t') === 'sup') renderSup();
+    if (this.getAttribute('data-t') === 'tz') tzHint();
+    if (this.getAttribute('data-t') === 'kb') renderKB();
+    window.scrollTo(0,0);
+  };
+}
+function gotoTab(t){
+  for (var i = 0; i < navBtns.length; i++) if (navBtns[i].getAttribute('data-t') === t){ navBtns[i].onclick(); return true; }
+  return false;
+}
+
+/* =====================================================================
+   МОДУЛЬ 3. ВИЗАРД ЗАКУПКИ
+   ===================================================================== */
+function wNext(n){
+  for (var i = 0; i < 4; i++){ $('w'+i).style.display = i === n ? '' : 'none'; $('st'+i).className = i <= n ? 'on' : ''; }
+  if (n === 2) syncExtra();
+  if (n === 3) computeWizard();
+  window.scrollTo(0,0);
+}
+function syncExtra(){
+  var c = $('contour').value;
+  $('ownExtra').style.display = c === 'own' ? '' : 'none';
+  $('gosExtra').style.display = c === 'gos' ? '' : 'none';
+}
+$('amount').oninput = function(){
+  var a = +this.value || 0;
+  $('bvShow').textContent = a > 0 ? '= ' + (a/CONFIG.BV).toFixed(1) + ' базовых величин (БВ ' + CONFIG.BV + ' руб.)' : '';
+};
+$('annual').oninput = function(){
+  var a = +this.value || 0;
+  $('bvAnnualShow').textContent = a > 0 ? 'годовая потребность = ' + (a/CONFIG.BV).toFixed(1) + ' б.в. (п. 9 — если ≤ ' + CONFIG.GOS.OOS9_MAX_ANNUAL + ' б.в.; конкурс — если ≥ ' + fmt(CONFIG.GOS.CONTEST_ANNUAL*CONFIG.BV) + ')' : '';
+};
+$('contour').onchange = syncExtra;
+(function(){ var d = new Date(); $('dstart').value = d.toISOString().slice(0,10); })();
+
+/* --- лимит п. 9 (собственные средства): считается из журнала, а не из отдельного реестра ---
+   Учитываются карточки: контур own, вид «из одного источника», не отменена,
+   текущий календарный год, без признака «строительство». */
+function recCountsToLim(r, year){
+  if (r.contour !== 'own' || r.status === 'отменена') return false;
+  if ((r.year || (r.date||'').slice(0,4) || String(currentYear())) !== String(year)) return false;
+  if (r.oisStroy) return false;
+  if (r.procKey) return r.procKey === 'oosOwn9';
+  return (r.proc || '').indexOf('одного источника') >= 0;
+}
+function limSpent(year){ var L = getLog(), s = 0; for (var i = 0; i < L.length; i++) if (recCountsToLim(L[i], year)) s += (+L[i].bv || 0); return s; }
+function limRecords(year){ var L = getLog(), out = []; for (var i = 0; i < L.length; i++) if (recCountsToLim(L[i], year)) out.push(L[i]); return out; }
+
+function computeWizard(){
+  var c = $('contour').value, a = +$('amount').value || 0, bv = a / CONFIG.BV;
+  var subj = $('subject').value || 'предмет не указан';
+  var ownProd = $('ownProd').checked, oisStroy = $('oisStroy').checked;
+  var std = $('std').checked, repeat = $('repeatProc').checked;
+  var annual = +$('annual').value || 0, av = annual > 0 ? annual / CONFIG.BV : 0;
+  window._wizdates = [];
+  if (a <= 0){ $('wres').innerHTML = '<div class="result"><p>Укажите ориентировочную стоимость.</p></div>'; $('wdates').innerHTML=''; $('wfix').innerHTML=''; $('wnext').innerHTML=''; return; }
+
+  var key = '', proc = '', why = '', tags = '<span class="tag g">проверено ' + CONFIG.DATE_NORM + '</span>', alt = '', block = '';
+  if (c === 'own'){
+    if (bv <= CONFIG.OWN.DIRECT_MAX){
+      key = 'direct';
+      proc = 'Прямая закупка — процедуры не требуются';
+      why = 'П. 21 приложения 1 к ПП № 168: закупки до 100 б.в. (4 500 руб.) по одной сделке. Исключение — аудит обязательной годовой отчётности (для него — конкурс независимо от стоимости).';
+      tags += '<span class="tag g">ПП № 168</span>';
+    } else if (ownProd && bv <= CONFIG.OWN.PROD_MAX){
+      key = 'prod';
+      proc = 'Без процедур — для собственного производства';
+      why = 'П. 29 приложения 1 к ПП № 168 (положения уточнены ПП № 355 от 10.07.2026): оборудование, инструменты, сырьё, материалы, комплектующие для собственного производства до 1 000 б.в. (45 000 руб.) — исключение, без годового лимита. Назначение «для собственного производства» зафиксируйте в задании на закупку.';
+      tags += '<span class="tag g">ПП № 168 + № 355</span>';
+    } else if (bv <= CONFIG.OWN.OOS9_MAX){
+      key = 'oosOwn9';
+      var spent = limSpent(currentYear());
+      var over = !oisStroy && (spent + bv > CONFIG.LIM9);
+      proc = 'Закупка из одного источника (п. 9 приложения 4 к № 168) — либо электронная процедура';
+      why = 'Сделка 100–1 000 б.в. (4 500–45 000 руб.). Условия: изучение конъюнктуры рынка; годовой лимит по п. 9 — 5 000 б.в. (225 000 руб.) на все сделки по основанию за год (для закупок при строительстве лимит не применяется); свыше лимита — только конкурентная электронная процедура.';
+      tags += '<span class="tag g">ПП № 168</span>' + (over ? '<span class="tag r">лимит исчерпан</span>' : '<span class="tag y">сверить по Эталону</span>');
+      alt = 'Альтернатива: запрос ценовых предложений / аукцион в электронной форме на ЭТП (goszakupki.by / zakupki.butb.by).';
+      if (over) block = 'Превышение годового лимита п. 9: израсходовано ' + spent.toFixed(1) + ' б.в., сделка ' + bv.toFixed(1) + ' б.в., лимит 5 000 б.в. Зафиксировать нельзя — выберите конкурентную процедуру либо основание вне п. 9.';
+      else if (CONFIG.LIM9 - spent - bv < 500) block = 'Внимание: после этой закупки остаток лимита п. 9 будет менее 500 б.в. (' + (CONFIG.LIM9 - spent - bv).toFixed(1) + ' б.в.).';
+    } else {
+      key = 'eproc';
+      proc = 'Электронная конкурентная процедура';
+      why = 'Свыше 1 000 б.в. (45 000 руб.): проведение только в электронной форме на ЭТП. Вид процедуры (ЗЦП / конкурс / аукцион) — по локальному порядку организации; новый порядок ЩРЗ по № 168 в разработке (старый противоречит № 168 и применяется лишь в части, ему не противоречащей).';
+      tags += '<span class="tag g">ПП № 168</span><span class="tag y">вид процедуры — по новому локальному порядку</span>';
+      alt = 'Проверьте исключения приложения 1 и основания из одного источника (прил. 4) к № 168, в т.ч. монополия, срочность, строительство.';
+    }
+  } else {
+    tags += '<span class="tag g">419-З</span>';
+    if (annual <= 0) alt = 'Годовая потребность не указана: без неё нельзя оценить п. 9 (лимит 500 б.в. — на годовую потребность) и обязательность конкурса. Укажите на шаге 3.';
+    if (av > 0 && av <= CONFIG.GOS.OOS9_MAX_ANNUAL){
+      key = 'oos9gos';
+      var conj = av >= CONFIG.GOS.OOS9_CONJ_MIN;
+      proc = 'Закупка из одного источника (п. 9 приложения к 419-З)';
+      why = conj
+        ? 'Годовая потребность ' + av.toFixed(1) + ' б.в. (50–500 б.в.): обязательно изучение конъюнктуры рынка, а процедура проводится в электронном виде на ЭТП (ПП № 252). Порог 500 б.в. установлен на годовую (общую) потребность в однородных товарах (ред. № 354-З от 31.01.2024).'
+        : 'Годовая потребность до 50 б.в. (2 250 руб.): изучение конъюнктуры не требуется — заказчик сам выбирает контрагента.';
+      tags += conj ? '<span class="tag y">ЭТП обязателен (ПП № 252)</span>' : '';
+    } else if (av >= CONFIG.GOS.CONTEST_ANNUAL){
+      key = 'contest';
+      proc = 'Открытый конкурс';
+      why = 'Годовая потребность ' + av.toFixed(1) + ' б.в. ≥ 100 000 б.в. (4,5 млн руб.) — конкурс обязателен (п. 1 приложения к 419-З) независимо от стоимости отдельной закупки. Также конкурс проводится для работ строительства, науки, культуры, цифрового развития независимо от стоимости (ч. 2 п. 1 приложения).';
+    } else if (bv <= CONFIG.GOS.ZCP_MAX){
+      key = 'zcp';
+      proc = 'Запрос ценовых предложений';
+      why = 'Сделка до 8 000 б.в. (360 000 руб.). Подача предложений — не менее 5 рабочих дней со дня размещения документов на ЭТП (ст. 23 419-З); на практике МАРТ рекомендует 10 рабочих дней.';
+    } else if (bv <= CONFIG.GOS.AUCTION_MAX){
+      if (std){
+        key = 'auction';
+        proc = 'Электронный аукцион';
+        why = 'Сделка 8 000–100 000 б.в. и стандартизированный предмет — аукцион с понижением цены (ст. 23: не менее 15 календ. дней, при ≤ 5 000 б.в. — 10 календ.; повторный — 10 календ., при ≤ 5 000 б.в. — 5 раб. дней).';
+      } else {
+        key = 'contestDecision';
+        proc = 'Конкурс по решению заказчика (ЗЦП недопустим свыше 8 000 б.в.)';
+        why = 'Сделка 8 000–100 000 б.в., предмет нестандартизированный: аукцион не применяется, ЗЦП — только до 8 000 б.в. Оформите конкурс (в т.ч. малый/упрощённый по вашему плану) либо стандартизируйте описание для аукциона.';
+        tags += '<span class="tag y">сверить по Эталону</span>';
+      }
+    } else {
+      key = 'contestDecision';
+      proc = 'Конкурс по решению заказчика (аукцион ограничен 100 000 б.в.)';
+      why = 'Сделка свыше 100 000 б.в. при годовой потребности ниже 100 000 б.в.: аукцион вне диапазона 8 000–100 000 б.в. не проводится — проведите конкурс по решению заказчика.';
+      tags += '<span class="tag y">сверить по Эталону</span>';
+    }
+  }
+
+  var html = '<div class="result"><div class="proc">' + esc(proc) + '</div><p style="margin-top:8px">' + why + '</p><p>' + tags + '</p>';
+  if (alt) html += '<p class="small">' + alt + '</p>';
+  if (block) html += '<div class="note ' + (block.indexOf('Превышение') === 0 ? 'alert' : 'warn') + '">' + block + '</div>';
+  html += '<p class="small">Предмет: ' + esc(subj) + ' · ' + fmt(a) + ' = ' + bv.toFixed(1) + ' б.в.' + (c === 'gos' && av > 0 ? ' · годовая потребность: ' + av.toFixed(1) + ' б.в.' : '') + '</p></div>';
+  $('wres').innerHTML = html;
+
+  /* --- контрольные даты --- */
+  var ds = $('dstart').value ? new Date($('dstart').value) : new Date();
+  var rows = '';
+  function addR(e, d, note){ rows += '<tr><td>' + e + '</td><td>' + dstr(d) + '</td><td class="small">' + note + '</td></tr>'; window._wizdates.push({ title: e + ' (' + subj + ')', date: d }); }
+  function gosContractDates(after){
+    var itogi = addWorkDays(after, 1);
+    var appeal = addCalDays(itogi, CONFIG.GOS.APPEAL_DAYS);
+    var draft = addCalDays(appeal, 5);
+    var sign = addWorkDays(draft, 3);
+    addR('Итоги (протоколы комиссии)', itogi, 'вскрытие/заседание после окончания подачи');
+    addR('Срок обжалования истекает', appeal, CONFIG.GOS.APPEAL_DAYS + ' календ. дней (ст. 31) — сверить по Эталону');
+    addR('Проект договора разместить до', draft, '5 календ. дней со дня истечения срока обжалования (ст. 24)');
+    addR('Победитель подписывает до', sign, '3 рабочих дня со дня размещения проекта; при возражениях — 3 раб. дня рассмотрение + 3 раб. дня подписание');
+  }
+  if (c === 'own' && (key === 'direct' || key === 'prod')){
+    rows = '<tr><td colspan="3">Сроки процедуры не применяются (закупка без процедур). Документы: заявка подразделения, расчёт цены, приказ/решение руководителя.</td></tr>';
+  } else if (c === 'own' && key === 'oosOwn9'){
+    addR('Размещение / оформление решения', ds, 'ИС «Тендеры» / внутреннее решение по локальному порядку');
+    addR('Изучение конъюнктуры рынка до', addWorkDays(ds, 5), 'запросы производителям, сравнение предложений (ориентир ≥ 5 раб. дней)');
+    addR('Договор не ранее', addWorkDays(ds, 10), 'ориентир 5 раб. дней после выбора (внутр. Порядок завода, ред. 2022 — до переутверждения по № 168)');
+    addR('Сообщение о результатах не позднее', addWorkDays(ds, 15), '5 раб. дней после заключения договора (там же)');
+  } else if (c === 'own'){
+    addR('Размещение приглашения', ds, 'ЭТП (goszakupki.by / zakupki.butb.by)');
+    addR('Окончание подачи предложений', addWorkDays(ds, 10), 'ориентир ≥ 10 раб. дней — точный срок по новому локальному порядку ЩРЗ');
+    addR('Итоги (вскрытие / заседание)', addWorkDays(ds, 11), '');
+    addR('Договор не ранее', addWorkDays(ds, 15), 'ориентир 5 раб. дней после выбора (внутр. Порядок 2022 — до переутверждения)');
+    addR('Сообщение о результатах не позднее', addWorkDays(ds, 20), '5 раб. дней после заключения договора (там же)');
+  } else if (key === 'zcp'){
+    addR('Размещение извещения', ds, 'ГИАС «Электронные закупки»');
+    addR('Окончание подачи предложений', addWorkDays(ds, 5), '≥ 5 рабочих дней (ст. 23 419-З); рекомендуется 10');
+    gosContractDates(addWorkDays(ds, 5));
+  } else if (key === 'auction'){
+    var dl;
+    if (repeat) dl = bv <= 5000 ? addWorkDays(ds, 5) : addCalDays(ds, 10);
+    else dl = bv <= 5000 ? addCalDays(ds, 10) : addCalDays(ds, 15);
+    addR('Размещение извещения', ds, 'ГИАС «Электронные закупки»');
+    addR('Окончание подачи предложений', dl, (repeat ? 'повторный аукцион: ≥ ' : 'новый аукцион: ≥ ') + (bv <= 5000 ? (repeat ? '5 раб. / ' : '') + '10 календ. дней (≤ 5 000 б.в.)' : (repeat ? '10 календ. дней' : '15 календ. дней')) + ' (ст. 23)');
+    gosContractDates(dl);
+  } else if (key === 'contest' || key === 'contestDecision'){
+    var dl2 = repeat ? addCalDays(ds, 10) : addCalDays(ds, 15);
+    addR('Размещение извещения', ds, 'ГИАС «Электронные закупки»');
+    addR('Окончание подачи предложений', dl2, (repeat ? 'повторный' : 'новый') + ' конкурс: ≥ ' + (repeat ? '10' : '15') + ' календ. дней (ст. 23)');
+    gosContractDates(dl2);
+  } else if (key === 'oos9gos'){
+    addR('Размещение / решение', ds, 'в электронном виде на ЭТП (обязателен ЭТП при 50–500 б.в. — ПП № 252)');
+    if (av >= CONFIG.GOS.OOS9_CONJ_MIN) addR('Изучение конъюнктуры рынка до', addWorkDays(ds, 5), 'запросы, сравнение цен (ориентир ≥ 5 раб. дней)');
+    gosContractDates(ds);
+  }
+  $('wdates').innerHTML = '<h3>Контрольные даты</h3><table><tr><th>Событие</th><th>Дата</th><th>Основание</th></tr>' + rows + '</table>' +
+    '<button class="btn ghost sm" onclick="exportICS()">Выгрузить эти даты в календарь (.ics)</button>';
+
+  /* --- фиксация --- */
+  var blocked = block.indexOf('Превышение') === 0;
+  $('wfix').innerHTML = blocked
+    ? '<div class="note alert">Фиксация заблокирована: превышен годовой лимит п. 9 (5 000 б.в.).</div>'
+    : '<button class="btn" onclick="fixLog(\'в работе\')">Зафиксировать в журнале</button> ' +
+      '<button class="btn ghost" onclick="fixLog(\'черновик\')">Сохранить как черновик</button>';
+  $('wnext').innerHTML = '<div class="note"><b>Куда дальше — этап «' + STAGES[1].n + '»:</b> ' + STAGES[1].h + '</div>' +
+    '<button class="btn" onclick="gotoTab(\'doc\')">→ Сформировать приглашение</button> ' +
+    '<button class="btn ghost" onclick="gotoTab(\'chk\')">Чек-лист перед публикацией</button> ' +
+    '<button class="btn ghost" onclick="gotoTab(\'cls\')">Проверить предмет в классификаторе</button> ' +
+    '<button class="btn ghost" onclick="gotoTab(\'log\')">Карточка и этапы в журнале</button>';
+  window._wiz = { contour: c, subject: subj, amount: a, bv: +bv.toFixed(1), proc: proc, procKey: key,
+                  annual: annual, std: std, ownProd: ownProd, oisStroy: oisStroy, repeatProc: repeat };
+}
+
+function nextId(L){
+  L = L || getLog(); var max = 0;
+  for (var i = 0; i < L.length; i++){
+    var m = /З-\d+-(\d+)/.exec(L[i].id || '');
+    if (m) max = Math.max(max, +m[1]);
+  }
+  return 'З-' + currentYear() + '-' + ('000' + (max + 1)).slice(-3);
+}
+function fixLog(status){
+  if (!window._wiz) return alert('Сначала рассчитайте закупку (шаг 4).');
+  var w = window._wiz;
+  var rec = { subject: w.subject, amount: w.amount, bv: w.bv, proc: w.proc, procKey: w.procKey,
+              contour: w.contour, date: new Date().toISOString().slice(0,10), year: String(currentYear()),
+              annual: w.annual, std: w.std, ownProd: w.ownProd, oisStroy: w.oisStroy, repeatProc: w.repeatProc };
+  var L = getLog(), msg, isNew = true;
+  if (window._editId){
+    for (var i = 0; i < L.length; i++) if (L[i].id === window._editId){
+      rec.id = L[i].id; rec.status = status === 'черновик' ? 'черновик' : (L[i].status || 'в работе');
+      rec.files = L[i].files || []; rec.stage = L[i].stage || 1;
+      L[i] = rec; isNew = false; break;
+    }
+    msg = 'Карточка ' + window._editId + ' обновлена.';
+  }
+  if (isNew){
+    rec.id = nextId(L); rec.status = status; rec.files = []; rec.stage = 1;
+    L.unshift(rec);
+    msg = 'Создана карточка закупки ' + rec.id + ' (статус: ' + status + ').\n\nСледующий шаг (этап «' + STAGES[1].n + '»): ' + STAGES[1].h;
+    if (rec.procKey === 'oosOwn9') msg += '\n\nЗакупка учтена в годовом лимите п. 9 (5 000 б.в.)' + (rec.oisStroy ? ' — НЕ учтена: закупка при строительстве вне лимита' : '') + '.';
+  }
+  if (!lsSet('zlog', L)) return;
+  window._editId = rec.id;
+  alert(msg);
+  renderLog();
+}
+function clearWizard(){
+  window._editId = null; window._wiz = null; window._wizdates = [];
+  ['subject','amount','annual'].forEach(function(id){ $(id).value = ''; });
+  $('bvShow').textContent = ''; $('bvAnnualShow').textContent = '';
+  ['ownProd','oisStroy','priorDog','std','repeatProc'].forEach(function(id){ $(id).checked = false; });
+  var s0 = document.querySelectorAll('.s0');
+  for (var i = 0; i < s0.length; i++) s0[i].checked = false;
+  wNext(0);
+}
+function openPurchase(idx){
+  var L = getLog(); var r = L[idx]; if (!r) return;
+  window._editId = r.id;
+  $('contour').value = r.contour; syncExtra();
+  $('subject').value = r.subject; $('amount').value = r.amount; $('amount').oninput();
+  $('annual').value = r.annual || ''; $('annual').oninput();
+  $('ownProd').checked = !!r.ownProd; $('oisStroy').checked = !!r.oisStroy;
+  $('std').checked = !!r.std; $('repeatProc').checked = !!r.repeatProc;
+  wNext(2);
+  window.scrollTo(0,0);
+  alert('Карточка ' + r.id + ' загружена в визард. После изменений нажмите «Зафиксировать в журнале» — карточка обновится.');
+}
+/* =====================================================================
+   МОДУЛЬ 4. ЖУРНАЛ ЗАКУПОК (карточки, этапы, файлы, .ics)
+   ===================================================================== */
+function setStatus(idx, val){
+  var L = getLog(); if (L[idx]){
+    L[idx].status = val;
+    if (val === 'в работе' || val === 'отменена') delete L[idx].waitUntil;
+    lsSet('zlog', L); renderLog();
+  }
+}
+function waitPurchase(idx){
+  var dEl = $('wu' + idx);
+  var d = dEl ? dEl.value : '';
+  if (!d) return alert('Укажите дату, до которой ждёте (дедлайн подачи предложений или дату договора).');
+  var L = getLog(); if (!L[idx]) return;
+  L[idx].status = 'в ожидании'; L[idx].waitUntil = d;
+  lsSet('zlog', L); renderLog();
+  alert('Закупка ' + L[idx].id + ' свёрнута до ' + new Date(d).toLocaleDateString('ru-RU') + '. Напоминание появится в журнале за 2 дня до срока и после него (при открытии журнала).');
+}
+function resumePurchase(idx){
+  var L = getLog(); if (!L[idx]) return;
+  L[idx].status = 'в работе'; delete L[idx].waitUntil;
+  lsSet('zlog', L); renderLog();
+  continuePurchase(idx);
+}
+function toggleFiles(idx){ var p = $('fp' + idx); if (p) p.style.display = p.style.display === 'none' ? '' : 'none'; }
+function attachFiles(idx, input){
+  var L = getLog(); if (!L[idx]) return;
+  var files = L[idx].files || (L[idx].files = []);
+  var total = files.reduce(function(s,f){ return s + (f.size||0); }, 0);
+  var pending = input.files, done = 0;
+  function fin(){ lsSet('zlog', L); renderLog(); alert('Файлы прикреплены к карточке ' + L[idx].id + ' (хранятся локально в браузере). Не забудьте делать резервные копии!'); }
+  if (!pending.length) return;
+  for (var i = 0; i < pending.length; i++){
+    (function(f){
+      if (total + f.size > 4.5e6){ alert('Файл «' + f.name + '» пропущен: лимит хранилища (~4,5 МБ на закупку). Большие архивы — в папке закупки на диске.'); if (++done === pending.length) fin(); return; }
+      var r = new FileReader();
+      r.onload = function(){ files.push({ name: f.name, size: f.size, data: r.result }); total += f.size; if (++done === pending.length) fin(); };
+      r.readAsDataURL(f);
+    })(pending[i]);
+  }
+}
+function delFile(idx, fi){ var L = getLog(); if (L[idx] && L[idx].files){ L[idx].files.splice(fi,1); lsSet('zlog', L); renderLog(); } }
+function downloadFile(idx, fi){
+  var L = getLog(); var f = L[idx] && L[idx].files && L[idx].files[fi]; if (!f) return;
+  var a = document.createElement('a'); a.href = f.data; a.download = f.name; a.click();
+}
+function delLog(i){
+  var L = getLog(); var r = L[i];
+  if (r && !confirm('Удалить карточку ' + (r.id || '') + ' «' + r.subject + '»?')) return;
+  L.splice(i,1); lsSet('zlog', L); renderLog();
+}
+function exportLog(){
+  var L = getLog(); if (!L.length) return alert('Журнал пуст.');
+  var csv = 'ID;Дата;Контур;Предмет;Сумма руб.;б.в.;Годовая потребность руб.;Процедура;Статус\n';
+  for (var i = 0; i < L.length; i++) csv += [L[i].id, L[i].date, L[i].contour, '"' + L[i].subject + '"', L[i].amount, L[i].bv, L[i].annual || '', '"' + (L[i].proc || '') + '"', L[i].status].join(';') + '\n';
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], {type:'text/csv'}));
+  a.download = 'zhurnal_zakupok.csv'; a.click();
+}
+/* --- выгрузка дедлайнов в календарь (.ics) --- */
+function exportICS(){
+  var events = [];
+  var L = getLog();
+  for (var i = 0; i < L.length; i++){
+    if (L[i].status === 'в ожидании' && L[i].waitUntil)
+      events.push({ t: 'Ожидание: ' + L[i].id + ' ' + L[i].subject, d: L[i].waitUntil });
+  }
+  if (window._wizdates && window._wizdates.length){
+    for (var j = 0; j < window._wizdates.length; j++) events.push({ t: window._wizdates[j].title, d: window._wizdates[j].date.toISOString().slice(0,10) });
+  }
+  if (!events.length) return alert('Нет дат для выгрузки: рассчитайте закупку в визарде (шаг 4) или сверните закупку до даты.');
+  var ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//SRZ//Zakupki//RU\r\n';
+  for (var k = 0; k < events.length; k++){
+    var dt = events[k].d.replace(/-/g, '');
+    ics += 'BEGIN:VEVENT\r\nUID:' + dt + '-' + k + '@srz\r\nDTSTART;VALUE=DATE:' + dt + '\r\nSUMMARY:' + String(events[k].t).replace(/[,;]/g, ' ') + '\r\nBEGIN:VALARM\r\nTRIGGER:-P2D\r\nACTION:DISPLAY\r\nDESCRIPTION:Дедлайн закупки\r\nEND:VALARM\r\nEND:VEVENT\r\n';
+  }
+  ics += 'END:VCALENDAR';
+  var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ics], {type:'text/calendar'}));
+  a.download = 'dedlainy_zakupok.ics'; a.click();
+  alert('Файл .ics сохранён — импортируйте его в Outlook/Google Календарь/календарь телефона. Напоминания за 2 дня.');
+}
+function renderLim(){
+  var el = $('lim9box'); if (!el) return;
+  var year = currentYear();
+  var recs = limRecords(year);
+  var spent = recs.reduce(function(s, r){ return s + (+r.bv || 0); }, 0);
+  var rest = CONFIG.LIM9 - spent;
+  var h = '<h3>Лимит п. 9 приложения 4 к № 168 (закупки из одного источника за собственные средства)</h3>' +
+    '<p>Год: <b>' + year + '</b> · Лимит: <b>5 000 б.в. = 225 000 руб.</b> · Израсходовано: <b>' + spent.toFixed(1) + ' б.в. (' + fmt(spent*CONFIG.BV) + ')</b> · Остаток: <b style="color:' + (rest < 0 ? '#a52a2a' : '#0a4d38') + '">' + rest.toFixed(1) + ' б.в. (' + fmt(rest*CONFIG.BV) + ')</b></p>';
+  if (rest < 0) h += '<div class="note alert">Лимит п. 9 превышен! Дальнейшие закупки по п. 9 в этом году недопустимы — только конкурентные процедуры.</div>';
+  else if (rest < 500) h += '<div class="note warn">Остаток лимита менее 500 б.в. — планируйте конкурентные процедуры.</div>';
+  h += '<p class="small">Учитываются карточки журнала (контур «Собственные средства», вид «из одного источника», без отмены; закупки при строительстве вне лимита). При удалении или отмене карточки лимит освобождается автоматически.</p>';
+  if (recs.length){
+    h += '<table><tr><th>ID</th><th>Дата</th><th>Предмет</th><th>Сумма</th><th>б.в.</th></tr>';
+    for (var i = 0; i < recs.length; i++) h += '<tr><td>' + recs[i].id + '</td><td>' + recs[i].date + '</td><td>' + esc(recs[i].subject) + '</td><td>' + fmt(recs[i].amount) + '</td><td>' + recs[i].bv + '</td></tr>';
+    h += '</table>';
+  } else h += '<p class="small">В ' + year + ' году закупок по п. 9 пока не зафиксировано.</p>';
+  el.innerHTML = h;
+}
+function renderLog(){
+  renderLim();
+  var L = getLog();
+  if (!L.length){ $('logTbl').innerHTML = '<p class="small">Журнал пуст — зафиксируйте закупку из визарда (кнопка «Зафиксировать в журнале» на шаге 4).</p>'; return; }
+  var st = {}, sumWork = 0;
+  for (var s = 0; s < L.length; s++){ st[L[s].status] = (st[L[s].status] || 0) + 1; if (L[s].status === 'в работе') sumWork += L[s].amount; }
+  var h = '<div class="note">Отчёт: <b>' + L.length + '</b> закупок — в работе: <b>' + (st['в работе']||0) + '</b> (на ' + fmt(sumWork) + '), в ожидании: <b>' + (st['в ожидании']||0) + '</b>, завершено: <b>' + (st['завершена']||0) + '</b>, отменено: <b>' + (st['отменена']||0) + '</b>, черновиков: <b>' + (st['черновик']||0) + '</b>.</div>';
+  var today = new Date(); today.setHours(0,0,0,0);
+  var soon = [];
+  for (var sd = 0; sd < L.length; sd++){
+    if (L[sd].waitUntil){
+      var days = Math.ceil((new Date(L[sd].waitUntil) - today) / 86400000);
+      if (days <= 2) soon.push({ i: sd, r: L[sd], days: days });
+    }
+  }
+  if (soon.length){
+    h += '<div class="note alert"><b>Подходят сроки ожидания:</b><ul style="margin:6px 0 0 18px">';
+    for (var sn = 0; sn < soon.length; sn++){
+      var srn = soon[sn];
+      h += '<li>' + (srn.days < 0 ? '<b>СРОК ПРОШЁЛ (' + Math.abs(srn.days) + ' дн. назад)!</b> ' : 'осталось ' + srn.days + ' дн.: ') +
+           '<b>' + srn.r.id + '</b> — ' + esc(srn.r.subject) + ' (ждём до ' + new Date(srn.r.waitUntil).toLocaleDateString('ru-RU') + ') ' +
+           '<button class="btn sm" onclick="resumePurchase(' + srn.i + ')">Продолжить →</button></li>';
+    }
+    h += '</ul></div>';
+  }
+  var work = [];
+  for (var wI = 0; wI < L.length; wI++) if (L[wI].status === 'в работе') work.push(wI);
+  if (work.length){
+    var wi = work[0], wr = L[wi], wst = stageOf(wr);
+    h += '<div style="border:2px solid var(--acc);border-radius:10px;padding:16px;margin-bottom:14px;background:#f0f8f4">' +
+      '<h2 style="margin-bottom:6px">Сейчас в работе (' + work.length + ')</h2>' +
+      '<p><b>' + wr.id + '</b> — ' + esc(wr.subject) + ' · ' + fmt(wr.amount) + '</p>' +
+      stageChip(wr) +
+      '<p class="small" style="margin-top:6px"><b>Что сейчас делать:</b> ' + STAGES[wst].h + '</p>' +
+      '<button class="btn" onclick="continuePurchase(' + wi + ')">Выполнить следующий шаг →</button> ' +
+      '<button class="btn ghost" onclick="openPurchase(' + wi + ')">Открыть карточку в визарде</button></div>';
+  } else {
+    var waiting = [];
+    for (var wJ = 0; wJ < L.length; wJ++) if (L[wJ].status === 'в ожидании') waiting.push(wJ);
+    if (waiting.length){
+      h += '<div style="border:2px solid #d9b23c;border-radius:10px;padding:16px;margin-bottom:14px;background:#fdf8ea">' +
+        '<h2 style="margin-bottom:6px">Все активные закупки в ожидании (' + waiting.length + ')</h2>' +
+        '<p class="small">Создайте новую закупку через визард или верните одну из ожидающих. Дедлайны можно выгрузить в календарь кнопкой .ics ниже.</p>';
+      for (var wK = 0; wK < waiting.length; wK++){
+        var wr2 = L[waiting[wK]];
+        var wd2 = Math.ceil((new Date(wr2.waitUntil) - today) / 86400000);
+        h += '<p style="margin:6px 0"><b>' + wr2.id + '</b> — ' + esc(wr2.subject) + ' <span class="small">(' + (wd2 >= 0 ? 'ждём ещё ' + wd2 + ' дн.' : 'СРОК ПРОШЁЛ!') + ')</span> ' +
+             '<button class="btn ghost sm" onclick="resumePurchase(' + waiting[wK] + ')">Вернуть в работу →</button></p>';
+      }
+      h += '</div>';
+    }
+  }
+  h += '<table><tr><th>ID</th><th>Дата</th><th>Контур</th><th>Предмет</th><th>Сумма</th><th>б.в.</th><th>Процедура</th><th>Статус</th><th>Действия</th></tr>';
+  for (var i = 0; i < L.length; i++){
+    var r = L[i];
+    h += '<tr><td><b>' + r.id + '</b></td><td>' + r.date + '</td><td>' + (r.contour === 'gos' ? 'Гос' : 'Собств.') + '</td><td>' + esc(r.subject) + '</td><td>' + fmt(r.amount) + '</td><td>' + r.bv + '</td><td class="small">' + esc(r.proc) + '<br>' + stageChip(r) + '</td>' +
+      '<td><select onchange="setStatus(' + i + ', this.value)">' +
+      ['черновик','в работе','в ожидании','завершена','отменена'].map(function(s2){ return '<option' + (r.status === s2 ? ' selected' : '') + '>' + s2 + '</option>'; }).join('') +
+      '</select></td>' +
+      '<td style="white-space:nowrap"><button class="btn sm" onclick="continuePurchase(' + i + ')">Продолжить</button> ' +
+      '<button class="btn ghost sm" onclick="openPurchase(' + i + ')">Открыть</button> ' +
+      '<button class="btn ghost sm" onclick="toggleFiles(' + i + ')">Файлы (' + (r.files ? r.files.length : 0) + ')</button> ' +
+      '<button class="btn ghost sm" onclick="toggleProcess(' + i + ')">Этапы</button> ' +
+      '<button class="del" onclick="delLog(' + i + ')">✕</button></td></tr>';
+    h += '<tr><td colspan="9" id="pp' + i + '" style="display:none;background:#eef4f1"><div style="padding:8px">' + processHTML(i, r) + '</div></td></tr>';
+    h += '<tr><td colspan="9" id="fp' + i + '" style="display:none;background:#f7f9f8"><div style="padding:8px">' +
+      '<label style="margin-top:0">Прикрепить файлы (сканы заявок, справки, договоры; до ~4,5 МБ на закупку)</label>' +
+      '<input type="file" multiple onchange="attachFiles(' + i + ', this)">' +
+      (r.files && r.files.length ? '<div style="margin-top:8px">' + r.files.map(function(f, fi){
+        return '<div class="small" style="margin:3px 0">📎 ' + esc(f.name) + ' (' + Math.round(f.size/1024) + ' КБ) — <a href="javascript:downloadFile(' + i + ',' + fi + ')">скачать</a> · <a href="javascript:delFile(' + i + ',' + fi + ')">удалить</a></div>';
+      }).join('') + '</div>' : '<div class="small" style="margin-top:6px">Файлов нет.</div>') +
+      '</div></td></tr>';
+  }
+  $('logTbl').innerHTML = h + '</table><button class="btn ghost" onclick="exportLog()">Экспорт журнала (CSV)</button>';
+}
+
+/* ---------- этапы закупки ---------- */
+var STAGES = [
+  { n: 'Заявка зарегистрирована', h: 'Чек-лист старта пройден: заявка от подразделения, источник финансирования, ориентировочная стоимость.' },
+  { n: 'Процедура определена', h: 'Визард рассчитал вид процедуры. Действия: сформируйте приглашение (генератор), пройдите чек-лист «Перед публикацией», разместите на портале, прикрепите скан размещения к карточке.' },
+  { n: 'Приём предложений', h: 'Ожидается окончание срока подачи (ЗЦП гос ≥ 5 раб. дней, рекомендуется 10). Разъяснения — всем участникам одновременно; изменения во второй половине срока → продление не менее чем на половину первоначального.' },
+  { n: 'Проверка заявок', h: 'Чек-лист «Проверка заявки участника» → кнопка «Сформировать решение по заявке». Прикрепите сканы заявок к карточке (Файлы). Отклонения — уведомления с основаниями.' },
+  { n: 'Оценка и протоколы', h: 'Калькулятор оценки (веса 70/15/15, направление «лучше» по каждому критерию) → протокол вскрытия и протокол заседания комиссии; уведомьте победителя не позднее следующего дня (по внутр. Порядку — до переутверждения по № 168).' },
+  { n: 'Договор', h: 'Договор-проект (генератор) на условиях победившего предложения. Гос: проект — 5 календ. дней после обжалования, подписание — 3 раб. дня. Собств.: ориентир — не ранее 5 раб. дней после выбора (внутр. Порядок 2022, до переутверждения).' },
+  { n: 'Завершена', h: 'Кольцо замкнуто: договор подписан, архив прикреплён. Отчётность: ежеквартально договоры, полугодие — мин. доля белорусских товаров (№ 168).' }
+];
+function stageOf(r){ return (typeof r.stage === 'number') ? r.stage : (r.status === 'завершена' ? 6 : 1); }
+function stageChip(r){
+  if (r.status === 'в ожидании' && r.waitUntil){
+    var wd = Math.ceil((new Date(r.waitUntil) - new Date()) / 86400000);
+    var txt = wd >= 0 ? ('в ожидании ещё ' + wd + ' дн.') : ('СРОК ПРОШЁЛ ' + Math.abs(wd) + ' дн. назад!');
+    return '<span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-top:4px;background:' + (wd >= 0 ? '#fdf3d7' : '#fbe4e4') + ';color:' + (wd >= 0 ? '#8a6d1d' : '#a52a2a') + ';font-weight:600">' + txt + '</span>';
+  }
+  var st = stageOf(r);
+  var cancelled = r.status === 'отменена';
+  var bg = cancelled ? '#fbe4e4' : (st >= STAGES.length - 1 ? '#e3efe9' : '#fdf3d7');
+  var col = cancelled ? '#a52a2a' : (st >= STAGES.length - 1 ? '#0a4d38' : '#8a6d1d');
+  var txt2 = cancelled ? 'отменена' : ('этап ' + (st+1) + '/7: ' + STAGES[st].n);
+  return '<span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-top:4px;background:' + bg + ';color:' + col + ';font-weight:600">' + txt2 + '</span>';
+}
+function processHTML(i, r){
+  var st = stageOf(r);
+  var cancelled = r.status === 'отменена';
+  var chips = '';
+  for (var s = 0; s < STAGES.length; s++){
+    var cls = s < st ? 'background:var(--acc);color:#fff' : (s === st && !cancelled ? 'background:#ffd75e;color:#4a3a00;font-weight:700' : 'background:#e9efec;color:#8aa');
+    chips += '<span style="display:inline-block;font-size:11px;padding:3px 9px;border-radius:11px;margin:2px;' + cls + '">' + (s+1) + '. ' + STAGES[s].n + '</span>';
+  }
+  var h = '<div style="margin-bottom:6px">' + chips + '</div>';
+  if (r.status === 'в ожидании' && r.waitUntil){
+    var days = Math.ceil((new Date(r.waitUntil) - new Date()) / 86400000);
+    h += '<p class="small" style="color:#8a6d1d"><b>В ожидании до ' + new Date(r.waitUntil).toLocaleDateString('ru-RU') + '</b> (осталось ' + days + ' дн.). Напоминание — в журнале за 2 дня до срока; дедлайн можно выгрузить в календарь (.ics).</p>' +
+         '<button class="btn sm" onclick="resumePurchase(' + i + ')">Срок подошёл / вернуть в работу →</button>';
+    return h;
+  }
+  if (cancelled) return h + '<p class="small" style="color:#a52a2a"><b>Закупка отменена.</b> Основание зафиксируйте в примечании к карточке/протоколе.</p>';
+  if (st >= STAGES.length - 1) return h + '<p class="small"><b>Текущий этап: ' + STAGES[st].n + '.</b> ' + STAGES[st].h + '</p>';
+  h += '<p class="small"><b>Сейчас: ' + STAGES[st].n + '.</b> ' + STAGES[st].h + '</p>';
+  h += '<button class="btn sm" style="margin-top:6px" onclick="advanceStage(' + i + ')">Этап выполнен → ' + STAGES[st+1].n + '</button> ';
+  if (st >= 2) h += '<button class="btn ghost sm" style="margin-top:6px" onclick="cancelPurchase(' + i + ')">Отменить закупку</button>';
+  h += '<div class="small" style="margin-top:10px;border-top:1px dashed var(--line);padding-top:8px">Нужно ждать срок? <input type="date" id="wu' + i + '" style="width:auto;display:inline-block;padding:4px 8px"> <button class="btn ghost sm" onclick="waitPurchase(' + i + ')">Жду срок → свернуть закупку</button></div>';
+  return h;
+}
+function toggleProcess(idx){ var p = $('pp' + idx); if (p) p.style.display = p.style.display === 'none' ? '' : 'none'; }
+function continuePurchase(idx){
+  var L = getLog(); var r = L[idx]; if (!r) return;
+  window._editId = r.id;
+  var st = stageOf(r);
+  var map = { 0:'log', 1:'doc', 2:'log', 3:'chk', 4:'calc', 5:'doc', 6:'log' };
+  if (st === 1) $('dType').value = 'inv';
+  if (st === 5) $('dType').value = 'contract';
+  gotoTab(map[st] || 'log');
+  alert('Карточка ' + r.id + ' — этап «' + STAGES[st].n + '».\n\n' + STAGES[st].h);
+}
+function advanceStage(idx){
+  var L = getLog(); var r = L[idx]; if (!r) return;
+  var st = stageOf(r);
+  if (st >= STAGES.length - 1){ alert('Закупка уже завершена (все этапы пройдены).'); return; }
+  if (!confirm('Этап «' + STAGES[st].n + '» выполнен?\n\nПеред переходом проверьте: ' + STAGES[st].h + '\n\nПереход к этапу «' + (STAGES[st+1] ? STAGES[st+1].n : '—') + '».')) return;
+  r.stage = st + 1;
+  if (r.stage >= STAGES.length - 1){ r.status = 'завершена'; }
+  else if (r.status !== 'в работе' && r.status !== 'черновик') r.status = 'в работе';
+  lsSet('zlog', L); renderLog();
+}
+function cancelPurchase(idx){
+  var L = getLog(); var r = L[idx]; if (!r) return;
+  if (!confirm('Отменить закупку ' + r.id + ' «' + r.subject + '»?\nОснование зафиксируйте в примечании. Закупка по п. 9 будет автоматически исключена из годового лимита.')) return;
+  r.status = 'отменена';
+  lsSet('zlog', L); renderLog();
+}
+function verdict(){
+  var labels = document.querySelectorAll('#chkApp label');
+  var missing = [];
+  for (var i = 0; i < labels.length; i++){
+    var cb = labels[i].querySelector('input');
+    if (cb && !cb.checked) missing.push(labels[i].textContent.trim());
+  }
+  var h = '<div class="result">';
+  if (!missing.length){
+    h += '<div class="proc">Заявка соответствует требованиям</div>' +
+         '<p>Предложение участника соответствует требованиям документации о закупке. Решение комиссии: <b>допустить к оценке</b>.</p>';
+  } else {
+    h += '<div class="proc" style="color:#a52a2a">Предложение не соответствует требованиям (' + missing.length + ')</div>' +
+         '<p><b>Основания для отклонения:</b></p><ol>';
+    for (var j = 0; j < missing.length; j++) h += '<li>' + esc(missing[j]) + '.</li>';
+    h += '</ol>' +
+         '<p class="small"><b>Готовая формулировка для уведомления участника:</b> «Предложение отклонено в связи с несоответствием требованиям документации о закупке: ' + esc(missing.join('; ').toLowerCase()) + '».</p>' +
+         '<p class="small">Перед отклонением убедитесь: требование действительно указано в документации о закупке (недопустимо предъявлять требования, в ней не указанные — закрытый перечень п. 10 Положения № 168 / ст. 16 419-З), соблюдены сроки запроса разъяснений. Решение подлежит уведомлению участника с указанием причин.</p>';
+  }
+  if (!missing.length){
+    h += '<div class="note" style="margin-top:10px"><b>Следующий шаг — этап «Оценка и протоколы»:</b> проведите балльную оценку всех допущенных предложений (калькулятор, веса 70/15/15), затем сформируйте протоколы. После оценки отметьте этап в карточке.' +
+      '<br><button class="btn sm" style="margin-top:6px" onclick="gotoTab(\'calc\')">К калькулятору оценки →</button> ' +
+      '<button class="btn ghost sm" style="margin-top:6px" onclick="gotoTab(\'log\')">К карточке: отметить этап</button></div>';
+  } else {
+    h += '<div class="note warn" style="margin-top:10px"><b>Следующий шаг:</b> оформите уведомление об отклонении — формулировка с основаниями готова выше (скопируйте её в генератор). После уведомления переходите к оценке остальных предложений.' +
+      '<br><button class="btn sm" style="margin-top:6px" onclick="gotoDocType(\'reject\')">К уведомлению об отклонении →</button></div>';
+  }
+  h += '</div>';
+  $('verdictOut').innerHTML = h;
+}
+function gotoDocType(t){ gotoTab('doc'); $('dType').value = t; }
+/* =====================================================================
+   МОДУЛЬ 5. КАЛЬКУЛЯТОР ОЦЕНКИ (критерии с направлением «лучше»)
+   ===================================================================== */
+var CRITDEFS = [
+  { name: 'Цена предложения', unit: 'руб.', dir: 'min', w: 70 },
+  { name: 'Срок поставки', unit: 'дней', dir: 'min', w: 15 },
+  { name: 'Условия оплаты', unit: 'дней отсрочки', dir: 'max', w: 15 }
+];
+var NAMES = [];
+function critRowHTML(c, i){
+  return '<tr>' +
+    '<td><input id="cn' + i + '" value="' + esc(c.name) + '"></td>' +
+    '<td><input id="cu' + i + '" value="' + esc(c.unit) + '" style="width:110px"></td>' +
+    '<td><select id="cd' + i + '"><option value="min"' + (c.dir === 'min' ? ' selected' : '') + '>меньше — лучше</option><option value="max"' + (c.dir === 'max' ? ' selected' : '') + '>больше — лучше</option></select></td>' +
+    '<td><input id="cw' + i + '" type="number" value="' + c.w + '" style="width:80px"></td>' +
+    '<td><button class="del" onclick="this.parentNode.parentNode.parentNode.removeChild(this.parentNode.parentNode)">✕</button></td></tr>';
+}
+function renderCritRows(){
+  var h = '';
+  for (var i = 0; i < CRITDEFS.length; i++) h += critRowHTML(CRITDEFS[i], i);
+  $('critTbl').innerHTML = '<tr><th>Критерий</th><th>Единица</th><th>Направление «лучше»</th><th>Вес, %</th><th></th></tr>' + h;
+}
+function addCritRow(){ var tb = $('critTbl'); var i = tb.rows.length; tb.insertRow(-1); tb.rows[tb.rows.length-1].outerHTML = critRowHTML({ name:'', unit:'', dir:'min', w:0 }, 'x' + new Date().getTime()); }
+function readCrits(){
+  var rows = $('critTbl').rows, out = [];
+  for (var i = 1; i < rows.length; i++){
+    var inp = rows[i].getElementsByTagName('input');
+    var sel = rows[i].getElementsByTagName('select');
+    if (!inp.length) continue;
+    var name = inp[0].value.trim();
+    if (!name) continue;
+    out.push({ name: name, unit: (inp[1] ? inp[1].value.trim() : ''), dir: (sel[0] ? sel[0].value : 'min'), w: +(inp[2] ? inp[2].value : 0) || 0 });
+  }
+  return out;
+}
+function buildCalc(){
+  CRITS = readCrits();
+  NAMES = $('names').value.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+  if (CRITS.length < 1) return alert('Добавьте хотя бы один критерий оценки.');
+  if (NAMES.length < 2) return alert('Укажите минимум двух участников через запятую.');
+  var wsum = CRITS.reduce(function(s,c){ return s + c.w; }, 0);
+  $('wsum').textContent = 'Сумма весов: ' + wsum + '%' + (wsum !== 100 ? ' — исправьте!' : ' — ок');
+  if (wsum !== 100 && !confirm('Сумма весов = ' + wsum + '% (нужно 100%). Продолжить расчёт?')) return;
+  var h = '<table><tr><th>Участник</th>';
+  for (var c = 0; c < CRITS.length; c++) h += '<th>' + esc(CRITS[c].name) + ' (' + esc(CRITS[c].unit) + ', ' + (CRITS[c].dir === 'min' ? 'меньше — лучше' : 'больше — лучше') + ')<br>вес ' + CRITS[c].w + '%</th>';
+  h += '</tr>';
+  for (var i = 0; i < NAMES.length; i++){
+    h += '<tr><td><b>' + esc(NAMES[i]) + '</b></td>';
+    for (var j = 0; j < CRITS.length; j++) h += '<td><input type="number" id="v' + i + '_' + j + '" placeholder="значение"></td>';
+    h += '</tr>';
+  }
+  h += '</table><button class="btn" onclick="score()">Рассчитать</button><div id="scoreOut"></div>';
+  $('calcTbl').innerHTML = h;
+}
+function score(){
+  var vals = [];
+  for (var i = 0; i < NAMES.length; i++){
+    vals[i] = [];
+    for (var j = 0; j < CRITS.length; j++) vals[i][j] = +$('v' + i + '_' + j).value || 0;
+  }
+  var out = '<h3>Результат оценки</h3><table><tr><th>Участник</th>';
+  for (var j = 0; j < CRITS.length; j++) out += '<th>Баллы: ' + esc(CRITS[j].name) + '</th>';
+  out += '<th>Итоговый балл</th><th>Место</th></tr>';
+  var totals = [];
+  for (var i = 0; i < NAMES.length; i++){
+    var sum = 0, balls = [];
+    for (var j = 0; j < CRITS.length; j++){
+      var col = [];
+      for (var k = 0; k < NAMES.length; k++) col.push(vals[k][j]);
+      var best = CRITS[j].dir === 'min' ? Math.min.apply(null, col) : Math.max.apply(null, col);
+      var worst = CRITS[j].dir === 'min' ? Math.max.apply(null, col) : Math.min.apply(null, col);
+      var b = (worst === best) ? 10 : 1 + (CRITS[j].dir === 'min' ? (worst - vals[i][j]) : (vals[i][j] - worst)) / Math.abs(best - worst) * 9;
+      balls.push(b.toFixed(2));
+      sum += b * CRITS[j].w / 100;
+    }
+    totals.push({ n: NAMES[i], balls: balls, total: sum });
+  }
+  var places = totals.slice().sort(function(a,b){ return b.total - a.total; });
+  for (var i = 0; i < totals.length; i++){
+    var place = places.indexOf(totals[i]) + 1;
+    out += '<tr><td><b>' + esc(totals[i].n) + '</b></td>';
+    for (var j = 0; j < totals[i].balls.length; j++) out += '<td>' + totals[i].balls[j] + '</td>';
+    out += '<td><b>' + totals[i].total.toFixed(2) + '</b></td><td><b>' + place + '</b></td></tr>';
+  }
+  out += '</table><p class="small">Методика: худшему значению — 1 балл, лучшему — 10 (при равенстве всех значений — 10 баллов); итог = Σ (балл × вес). Победитель — максимальный итоговый балл. Зафиксируйте расчёт в протоколе комиссии.</p>' +
+    '<button class="btn" onclick="fillFromScore()">Передать результат в протокол заседания</button>';
+  $('scoreOut').innerHTML = out;
+  lsSet('lastscore', {
+    crits: CRITS.map(function(c){ return { name: c.name + (c.unit ? ' (' + c.unit + ')' : ''), w: c.w, dir: c.dir }; }),
+    rows: totals.map(function(t){ return { n: t.n, balls: t.balls, total: +t.total.toFixed(2) }; }),
+    places: totals.map(function(t){ return places.indexOf(t) + 1; }),
+    date: new Date().toISOString()
+  });
+}
+function fillFromScore(){
+  var sc = lsGet('lastscore', null);
+  if (!sc || !sc.rows.length) return alert('Сначала выполните расчёт оценки в калькуляторе.');
+  gotoTab('doc');
+  $('dType').value = 'meeting';
+  $('dParticipants').value = sc.rows.map(function(r, i){ return r.n + ' — итог ' + r.total + ' балла, ' + sc.places[i] + ' место'; }).join('\n');
+  var winIdx = sc.places.indexOf(1);
+  $('dWinner').value = sc.rows[winIdx].n;
+  $('dWinScore').value = sc.rows[winIdx].total + ' балла, 1 место';
+  alert('Результат оценки подставлен в генератор документов (тип: «Протокол заседания комиссии»).\nУкажите предмет и номер процедуры, затем нажмите «Сформировать документ» — расчёт будет вставлен приложением к протоколу.');
+}
+
+/* =====================================================================
+   МОДУЛЬ 6. КОМИССИЯ, РЕКВИЗИТЫ И ГЕНЕРАТОР ДОКУМЕНТОВ
+   ===================================================================== */
+function loadCommission(){
+  var c = lsGet('comm', {});
+  var ids = ['cDir','cChair','cSecr','cMembers','cBuyer','cBank1','cBank2','cPhone'];
+  for (var i = 0; i < ids.length; i++) if (c[ids[i]]) $(ids[i]).value = c[ids[i]];
+}
+function saveCommission(){
+  var c = {}, ids = ['cDir','cChair','cSecr','cMembers','cBuyer','cBank1','cBank2','cPhone'];
+  for (var i = 0; i < ids.length; i++) c[ids[i]] = $(ids[i]).value;
+  lsSet('comm', c);
+  $('cSaved').textContent = 'Сохранено ' + new Date().toLocaleString('ru-RU');
+}
+function commBlock(){
+  var c = lsGet('comm', {});
+  var members = (c.cMembers || '').split('\n').filter(function(m){ return m.trim(); });
+  var h = '<p><b>Директор ' + CONFIG.ORG + '</b> ' + esc(c.cDir || '_____________') + '</p>' +
+          '<p><b>Председатель конкурсной комиссии:</b> ' + esc(c.cChair || '_____________') + '</p>' +
+          '<p><b>Секретарь:</b> ' + esc(c.cSecr || '_____________') + '</p>';
+  if (members.length) h += '<p><b>Члены комиссии:</b></p><p>' + members.map(esc).join('<br>') + '</p>';
+  if (c.cBuyer) h += '<p><b>Контактное лицо:</b> ' + esc(c.cBuyer) + '</p>';
+  return h;
+}
+function genDoc(){
+  var t = $('dType').value, s = esc($('dSubject').value || '___________________');
+  var num = esc($('dNum').value || '____');
+  var dt = $('dDate').value ? new Date($('dDate').value).toLocaleDateString('ru-RU') : '«___» _______ 20___ г.';
+  var dl = $('dDeadline').value ? new Date($('dDeadline').value).toLocaleDateString('ru-RU') : '«___» _______ 20___ г.';
+  var am = +$('dAmount').value || 0, amS = am ? fmt(am) + ' (' + (am/CONFIG.BV).toFixed(1) + ' б.в.)' : '___________________';
+  var w = esc($('dWinner').value || '___________________'), ws = +$('dWinSum').value ? fmt(+$('dWinSum').value) : '___________________';
+  var parts = ($('dParticipants').value || '').split('\n').filter(function(m){ return m.trim(); });
+  var adm = $('dAdm').value;
+  var winScore = esc($('dWinScore').value || '__________');
+  var loser = esc($('dLoser').value || '___________________');
+  var reason = esc($('dReason').value || '___________________');
+  var partName = esc($('dPart').value || '___________________');
+  var items = ($('dItems').value || '').split('\n').filter(function(m){ return m.trim(); });
+  var delivery = esc($('dDelivery').value || 'в течение ___ рабочих дней с даты договора');
+  var pay = esc($('dPay').value || 'оплата в течение ___ банковских дней с даты поставки');
+  var set = lsGet('comm', {});
+  var bank = (set.cBank1 || '___________________') + (set.cBank2 ? '; дополнительно: ' + set.cBank2 : '');
+  var phone = set.cPhone || '___________________';
+  var LOCAL_NOTE = ' <span class="small">(внутренний Порядок ЩРЗ ред. 2022 — применяется в части, не противоречащей ПП № 168, до переутверждения)</span>';
+  var h = '<div class="result" style="background:#fff"><div style="text-align:center"><b>' + CONFIG.ORG + '</b><br><span class="small">' + CONFIG.ORG_ADDR + ', УНП ' + CONFIG.ORG_UNP + '</span></div><hr style="margin:10px 0">';
+  if (t === 'inv') h += '<h3 style="text-align:center">ПРИГЛАШЕНИЕ<br>к участию в процедуре закупки за счёт собственных средств</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p><p><b>Предмет закупки:</b> ' + s + '.</p><p><b>Ориентировочная стоимость:</b> ' + amS + '.</p>' +
+    '<p><b>Источник финансирования:</b> собственные средства.</p><p><b>Срок подачи предложений:</b> до ' + dl + '.</p>' +
+    '<p><b>Порядок подачи:</b> предложения принимаются в электронной форме через ЭТП (ГИАС «Электронные закупки» / zakupki.butb.by) либо по адресу: ' + CONFIG.ORG_ADDR + '.</p>' +
+    '<p>Документация о закупке предоставляется бесплатно. Требования к участникам (закрытый перечень п. 10 Положения к ПП № 168) и состав предложения — согласно документации о закупке.</p>';
+  if (t === 'res') h += '<h3 style="text-align:center">СООБЩЕНИЕ<br>о результатах процедуры закупки за счёт собственных средств</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p><p><b>Предмет закупки:</b> ' + s + '.</p>' +
+    '<p><b>Победитель:</b> ' + w + '.</p><p><b>Сумма договора:</b> ' + ws + '.</p>' +
+    '<p>Договор подлежит заключению не ранее чем через 5 рабочих дней после выбора победителя.' + LOCAL_NOTE + '</p>';
+  if (t === 'oos') h += '<h3 style="text-align:center">СПРАВКА<br>об обосновании закупки из одного источника</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p><p><b>Предмет закупки:</b> ' + s + '.</p><p><b>Сумма:</b> ' + amS + '.</p>' +
+    '<p><b>Основание:</b> п. 9 приложения 4 к Постановлению Совмина от 07.04.2026 № 168 (с изм. от 10.07.2026 № 355) — либо иное основание: ________.</p>' +
+    '<p>Изучение конъюнктуры рынка проведено: сравнение предложений, запросы производителям (приложения: ________).</p>' +
+    '<p>Годовой лимит по п. 9 (5 000 б.в. = 225 000 руб.): не исчерпан / израсходован ________ б.в. (для закупок при строительстве лимит не применяется).</p>';
+  if (t === 'task') h += '<h3 style="text-align:center">ЗАДАНИЕ НА ЗАКУПКУ</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p><p><b>Предмет:</b> ' + s + '.</p><p><b>Ориентировочная стоимость:</b> ' + amS + '.</p>' +
+    '<p><b>Источник финансирования:</b> собственные средства.</p><p><b>Вид процедуры:</b> ____________ (согласно Порядку закупок и ПП № 168).</p>' +
+    '<p><b>Критерии оценки:</b> цена — 70%, сроки поставки — 15%, условия оплаты — 15% (по умолчанию; направление «лучше» — по документации закупки).</p>';
+  if (t === 'open'){
+    h += '<h3 style="text-align:center">ПРОТОКОЛ<br>вскрытия конвертов с предложениями участников</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p><p><b>Предмет закупки:</b> ' + s + '.</p>' +
+    '<p><b>Заседание комиссии проведено:</b> ' + dt + ' в ' + CONFIG.ORG + '.</p>' +
+    '<p><b>Поступившие предложения:</b></p><ol>' + (parts.length ? parts.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') : '<li>___________________</li>') + '</ol>' +
+    '<p><b>Решение комиссии:</b> ' + adm + '. Каждое предложение подлежит проверке на соответствие требованиям документации о закупке (комплектность, требования к участникам, обеспечение, срок действия предложения).</p>' +
+    '<p>Лица, имеющие личную заинтересованность в результатах закупки, отстраняются от участия в процедуре (законодательство о закупках; внутренний Порядок ЩРЗ — до переутверждения по № 168).</p>';
+  }
+  if (t === 'meeting'){
+    h += '<h3 style="text-align:center">ПРОТОКОЛ<br>заседания конкурсной комиссии (заключение о результатах оценки)</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p><p><b>Предмет закупки:</b> ' + s + '.</p>' +
+    '<p><b>Методика оценки:</b> критерии, веса и направление «лучше» — согласно документации о закупке (по умолчанию завода: цена — 70% «меньше лучше», сроки поставки — 15% «меньше лучше», условия оплаты — 15% «больше лучше»; 10-балльная шкала).</p>' +
+    '<p><b>Рассмотрены предложения:</b></p><ol>' + (parts.length ? parts.map(function(p){ return '<li>' + esc(p) + '</li>'; }).join('') : '<li>___________________</li>') + '</ol>' +
+    '<p><b>Итог оценки:</b> победителем признан(а) <b>' + w + '</b>, итоговый результат: ' + winScore + ', цена предложения: ' + ws + '.</p>' +
+    '<p>Предложения иных участников отклонены / заняли соответствующие места (подробности — в расчёте комиссии, прилагается).</p>' +
+    '<p><b>Решение:</b> признать ' + w + ' победителем процедуры и предложить заключить договор на условиях предложения. Уведомить победителя не позднее следующего дня; договор заключить не ранее чем через 5 рабочих дней после выбора победителя;' + LOCAL_NOTE + ' сообщение о результатах разместить в течение 5 рабочих дней после заключения договора.</p>';
+    var sc = lsGet('lastscore', null);
+    if (sc && sc.rows && sc.rows.length){
+      h += '<p style="margin-top:8px"><b>Приложение к протоколу — расчёт оценки предложений</b> (из калькулятора системы, ' + new Date(sc.date).toLocaleDateString('ru-RU') + '):</p>' +
+        '<table><tr><th>Участник</th>' + sc.crits.map(function(c){ return '<th>' + esc(c.name.split(' (')[0]) + ' (вес ' + c.w + '%)</th>'; }).join('') + '<th>Итог</th><th>Место</th></tr>';
+      for (var si = 0; si < sc.rows.length; si++) h += '<tr><td>' + esc(sc.rows[si].n) + '</td>' + sc.rows[si].balls.map(function(b){ return '<td>' + b + '</td>'; }).join('') + '<td><b>' + sc.rows[si].total + '</b></td><td><b>' + sc.places[si] + '</b></td></tr>';
+      h += '</table>';
+    }
+  }
+  if (t === 'reject'){
+    h += '<h3 style="text-align:center">УВЕДОМЛЕНИЕ<br>об отклонении предложения на участие в процедуре закупки</h3>' +
+    '<p>№ ' + num + ' от ' + dt + '</p>' +
+    '<p>Уважаемые партнёры! ' + CONFIG.ORG + ' благодарит за участие в процедуре закупки: ' + s + '.</p>' +
+    '<p>Сообщаем, что предложение, представленное ' + loser + ', отклонено по следующим основаниям: ' + reason + '.</p>' +
+    '<p>Основания отклонения соответствуют документации о закупке и законодательству о закупках. Решение комиссии может быть обжаловано в порядке, предусмотренном законодательством (для госзакупок — ст. 31 Закона № 419-З: жалоба в течение 10 календарных дней).</p>';
+  }
+  if (t === 'za') h += '<h3 style="text-align:center">ЗАЯВЛЕНИЕ<br>на участие в конкурсе (запросе ценовых предложений)</h3>' +
+    '<p>Председателю конкурсной комиссии ' + CONFIG.ORG + '</p>' +
+    '<p>от ' + partName + '</p>' +
+    '<p>1. Изучив представленную ' + CONFIG.ORG + ' документацию о закупке и проект договора, мы, нижеподписавшиеся, уполномоченные на подписание заявления, принимаем предложенные правила и условия проведения закупки, условия проекта договора и согласны принять участие в процедуре по закупке: <b>' + s + '</b>.</p>' +
+    '<p>2. В случае победы принимаем на себя обязательство заключить договор по форме, приложенной к документации о закупке, в срок не позднее 5 рабочих дней после выбора победителя и направления заказчиком подписанных экземпляров договора.</p>' +
+    '<p>3. Заявляем, что: не признаны судом экономически несостоятельными (банкротами); исполнили обязательства по уплате налогов (сборов), пеней и пошлин; в течение последних трёх лет не были осуждены за правонарушения, связанные с экономической деятельностью; не искажали информацию о квалификационных данных.</p>' +
+    '<p>4. Просим направлять переписку по вопросам закупки по указанным контактам (адрес, телефон, e-mail — заполняется участником).</p>' +
+    '<p>Приложения: конкурсное предложение с приложениями; таблица цен.</p>' +
+    '<p>Должность уполномоченного лица: ______________ Подпись: ______________</p>';
+  if (t === 'price') h += '<h3 style="text-align:center">ТАБЛИЦА ЦЕН</h3>' +
+    '<p>Участник: ' + partName + '.</p>' +
+    '<p>Закупка: ' + s + '.</p>' +
+    '<table style="margin-top:8px"><tr><th>№</th><th>Наименование продукции</th><th>Производитель, страна</th><th>Кол-во</th><th>Цена за ед., руб. без НДС</th><th>Ставка НДС, %</th><th>Цена за ед., руб. с НДС</th></tr>' +
+    (items.length ? items.map(function(it, ix){ var p = it.split('—'); return '<tr><td>' + (ix+1) + '</td><td>' + esc((p[0]||'').trim()) + '</td><td></td><td>' + esc((p[1]||'').trim()) + '</td><td>' + esc((p[2]||'').trim()) + '</td><td>20</td><td></td></tr>'; }).join('') : '<tr><td>1</td><td>___________________</td><td></td><td></td><td></td><td>20</td><td></td></tr>') +
+    '</table>' +
+    '<p style="margin-top:8px">Условия и срок поставки: ______________ · Условия и срок оплаты: ______________</p>' +
+    '<p>Руководитель организации: ______________ (подпись)</p>';
+  if (t === 'contract') h += '<h3 style="text-align:center">ДОГОВОР ПОСТАВКИ № ____</h3>' +
+    '<p style="text-align:center">' + CONFIG.ORG + ' (УНП ' + CONFIG.ORG_UNP + ', ' + CONFIG.ORG_ADDR + '), именуемое в дальнейшем «Покупатель», и ' + w + ', именуемое в дальнейшем «Поставщик», заключили настоящий договор:</p>' +
+    '<p><b>1. Предмет договора.</b> Поставщик обязуется передать в собственность Покупателя товар: <b>' + s + '</b>, а Покупатель обязуется принять и оплатить товар.</p>' +
+    '<p><b>2. Цена договора.</b> Цена: ' + ws + ', в том числе НДС 20%. Цена является твёрдой и изменению не подлежит.</p>' +
+    '<p><b>3. Срок поставки.</b> ' + delivery + '.</p>' +
+    '<p><b>4. Порядок оплаты.</b> ' + pay + '.</p>' +
+    '<p><b>5. Порядок приёмки.</b> Количество и качество товара проверяются Покупателем в течение 5 (пяти) рабочих дней с момента поставки. При выявлении недостатков составляется акт, товар подлежит замене в течение 10 (десяти) рабочих дней.</p>' +
+    '<p><b>6. Ответственность сторон.</b> За нарушение срока поставки Поставщик уплачивает неустойку 0,1% от стоимости непоставленного товара за каждый день просрочки, но не более 10% от цены договора. За нарушение срока оплаты Покупатель уплачивает неустойку 0,1% за каждый день просрочки.</p>' +
+    '<p><b>7. Форс-мажор.</b> Стороны освобождаются от ответственности при наступлении обстоятельств непреодолимой силы.</p>' +
+    '<p><b>8. Разрешение споров.</b> Споры разрешаются путём переговоров, при недостижении согласия — в судебном порядке по законодательству Республики Беларусь.</p>' +
+    '<p><b>9. Реквизиты и подписи сторон.</b> ' + CONFIG.ORG + ' — ' + esc(bank) + '; тел. ' + esc(phone) + '. Поставщик: ' + w + '.</p>' +
+    '<p class="small">ПРИМЕЧАНИЕ: проект договора — типовая форма. Перед применением сверить с типовой формой завода и требованиями документации о закупке (условия победившего предложения обязательны для договора!).</p>';
+  h += '<hr style="margin:10px 0">' + commBlock() +
+       '<p class="small" style="margin-top:14px">Электронная версия соответствует оригиналу. Перед утверждением сверить нормы по ИПС «ЭТАЛОН» / pravo.by (правило двойной проверки).</p></div>';
+  $('docOut').innerHTML = h;
+  var NEXTMAP = { inv:['chk','пройти чек-лист перед публикацией и разместить приглашение на портале (ИС «Тендеры» / ГИАС / zakupki.butb.by)'],
+    open:['calc','провести оценку предложений — калькулятор с весами 70/15/15'],
+    meeting:['log','перейти к карточке закупки и отметить этап «Оценка и протоколы» выполненным'],
+    reject:['log','перейти к карточке закупки'],
+    res:['log','перейти к карточке закупки'],
+    oos:['log','перейти к карточке закупки'],
+    task:['doc','сформировать приглашение к участию в процедуре'],
+    za:['doc','сформировать таблицу цен и подать предложение через портал'],
+    price:['log','перейти к карточке закупки'],
+    contract:['log','перейти к карточке закупки: этап «Договор» — подписание, сообщение о результатах на портале'] };
+  var nx = NEXTMAP[t];
+  if (nx) $('docOut').innerHTML += '<div class="note" style="margin-top:10px"><b>Следующий шаг:</b> ' + nx[1] + ' <button class="btn sm" style="margin:4px 0 0 8px" onclick="gotoTab(\'' + nx[0] + '\')">Перейти →</button></div>';
+}
+function exportDoc(){
+  if (!$('docOut').innerHTML) return alert('Сначала сформируйте документ.');
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Документ</title></head><body style="font-family:Times New Roman,serif;font-size:12pt">' + $('docOut').innerHTML + '</body></html>';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + html], {type:'application/msword'}));
+  a.download = 'dokument_' + ($('dType').value) + '.doc';
+  a.click();
+}
+/* =====================================================================
+   МОДУЛЬ 7. БАЗА ЗНАНИЙ (нормы с редакциями + журнал верификации)
+   ===================================================================== */
+var NORMS = [
+  { g: 'Ядро законодательства', items: [
+    ['Закон № 419-З от 13.07.2012 «О государственных закупках…»', 'действует', 'проверено pravo.by 17.09.2026', 'g', 'ред. Закона № 354-З от 31.01.2024 (с 04.02.2024)'],
+    ['ПП № 837 от 15.11.2023 «Об организации государственных закупок»', 'действует', 'проверено 17.09.2026', 'g', 'заменило ПП № 229'],
+    ['ПП № 90 от 25.02.2026 (изм. в госзакупки)', 'действует, без обратной силы', 'проверено 17.09.2026', 'g', 'преференция МСП 25%; ИТ — порог собственных сил 30%; продление оснований ЗОИ до 31.12.2027; к процедурам с решением от 25.02.2026'],
+    ['ПП № 168 от 07.04.2026 «О порядке осуществления закупок… за счёт собственных средств»', 'действует с 11.07.2026', 'проверено 17.09.2026', 'g', 'единый акт; только электронные процедуры; порог без процедур 100 б.в.; лимит п. 9 — 5 000 б.в./год; ЭТП goszakupki.by / zakupki.butb.by; плата 1 б.в. за размещение в ИС «Тендеры»'],
+    ['ПП № 355 от 10.07.2026 — изменения в № 168 и № 395', 'действует с 11–12.07.2026', 'проверено 17.09.2026', 'g', 'из-под регулирования выведены закупки оборудования и сырья для собственного производства до 1 000 БВ (п. 29 прил. 1); запрет продления «старых» договоров; правила для холдингов; детали аукционов'],
+    ['ПП № 252 — обязательный ЭТП при ЗОИ по пп. 7, 9 в пределах 50–500 б.в.', 'действует', 'проверено 17.09.2026', 'g', 'закупки из одного источника на 50–500 б.в. проводятся в электронном виде на ЭТП'],
+    ['Базовая величина 45 руб. с 01.01.2026 (ПП № 651 от 20.11.2025)', 'действует', 'проверено 17.09.2026', 'g', 'в 2025 г. — 42 руб.']
+  ]},
+  { g: 'Ключевые правила 419-З', items: [
+    ['Открытый конкурс', 'годовая потребность ≥ 100 000 б.в. (4,5 млн руб.)', 'проверено 17.09.2026', 'g', 'также независимо от стоимости — работы строительства, науки, культуры, цифрового развития (п. 1 приложения)'],
+    ['Электронный аукцион', 'сделка 8 000–100 000 б.в., стандартизированные предметы', 'проверено 17.09.2026', 'g', 'подача: новый ≥ 15 календ. дней (10 календ. при ≤ 5 000 б.в.); повторный ≥ 10 календ. (5 раб. при ≤ 5 000 б.в.) — ст. 23'],
+    ['Запрос ценовых предложений', 'сделка до 8 000 б.в. (360 000 руб.)', 'проверено 17.09.2026', 'g', 'подача ≥ 5 рабочих дней (ст. 23); на практике МАРТ рекомендует 10 рабочих дней'],
+    ['П. 9 приложения (из одного источника)', 'годовая потребность ≤ 500 б.в. (22 500 руб.)', 'проверено 17.09.2026', 'g', 'лимит — на ГОДОВУЮ потребность, не на сделку; 50–500 б.в. — конъюнктура + ЭТП (ПП № 252); до 50 б.в. — без конъюнктуры'],
+    ['Договор (ст. 24)', 'проект — 5 календ. дней после обжалования; подписание — 3 раб. дня', 'проверено 17.09.2026', 'g', 'при возражениях: 3 раб. дня рассмотрение + 3 раб. дня подписание (ч. 6 п. 4 ст. 24)'],
+    ['Описание предмета (п. 4 ст. 21)', 'запрет страны происхождения', 'проверено 17.09.2026', 'g', 'марка — только с «или эквивалент (аналог)»; допускаются необязательные ТНПА'],
+    ['Годовой план (ст. 19)', 'право не включать закупки по пп. 10, 17, 22–231, 31, 35, 40, 45, 55 приложения', 'проверено 17.09.2026', 'g', 'сроки размещения плана — локальным актом заказчика']
+  ]},
+  { g: 'Правила № 168 (собственные средства)', items: [
+    ['Порог «без процедур»', 'до 100 б.в. (4 500 руб.) по одной сделке', 'проверено 17.09.2026', 'g', 'п. 21 прил. 1; исключение — аудит обязательной годовой отчётности (для него — конкурс)'],
+    ['П. 29 прил. 1 (собственное производство)', 'до 1 000 б.в. (45 000 руб.) без процедур и без лимита', 'проверено 17.09.2026', 'g', 'положения уточнены ПП № 355 от 10.07.2026'],
+    ['П. 9 прил. 4 (из одного источника)', 'сделка 100–1 000 б.в.; лимит 5 000 б.в./год', 'проверено 17.09.2026', 'g', 'в лимит включаются ВСЕ сделки по основанию за год; для закупок при строительстве лимит не применяется'],
+    ['Аренда и лизинг', 'подпадают под правила закупок', 'проверено 17.09.2026', 'g', 'п. 6 прил. 2 — впервые с 11.07.2026'],
+    ['Бензин и дизтопливо', 'только из одного источника (п. 11 прил. 4)', 'проверено 17.09.2026', 'g', 'исключены из безпроцедурных закупок'],
+    ['Отчётность', 'ежеквартально — договоры; полугодие — мин. доля белорусских товаров', 'проверено 17.09.2026', 'g', 'миндоля сохраняется даже по закупкам-исключениям (подп. 2.3 п. 2)']
+  ]},
+  { g: 'Локальные документы ЩРЗ', items: [
+    ['«Положение о порядке выбора поставщика» (2020) и «Порядок закупок…» (ред. 14.09.2022)', 'применять с оговоркой', 'проверено 17.09.2026', 'y', 'основаны на утратившем силу ПП № 229; в части, противоречащей № 168 (пороги, бумажные процедуры), НЕ применять; новый порядок — разработать и разместить в ИС «Тендеры»'],
+    ['Методика оценки 70/15/15, 10-балльная шкала (п. 22.6 Порядка)', 'действует как методика завода', 'проверено 17.09.2026', 'y', 'веса изменяемы; направление «лучше» по каждому критерию фиксируется в документации закупки'],
+    ['Экспертиза ТЗ в БЕЛОРГСТАНКИНПРОМе (оборудование 28.41, Инструкция Минпрома № 9 от 07.05.2015)', 'требует сверки', 'сверить по Эталону', 'y', 'действие инструкции в 2026 г. не подтверждено открытыми источниками']
+  ]}
+];
+function renderKB(){
+  var h = '';
+  for (var g = 0; g < NORMS.length; g++){
+    h += '<details' + (g === 0 ? ' open' : '') + '><summary>' + NORMS[g].g + '</summary><table class="kv"><tr><th>Норма</th><th>Правило</th><th>Проверка</th><th>Комментарий</th></tr>';
+    for (var i = 0; i < NORMS[g].items.length; i++){
+      var it = NORMS[g].items[i];
+      h += '<tr><td><b>' + esc(it[0]) + '</b></td><td>' + esc(it[1]) + ' <span class="tag ' + it[3] + '">' + (it[3] === 'g' ? '✓ ' : '⚠ ') + esc(it[2]) + '</span></td><td colspan="2" class="small">' + esc(it[4]) + '</td></tr>';
+    }
+    h += '</table></details>';
+  }
+  h += '<p class="small" style="margin-top:8px">Статус «⚠ сверить по Эталону» — обязательная двойная проверка перед применением. Дата актуализации базы: <b>' + CONFIG.DATE_NORM + '</b>.</p>';
+  $('kbList').innerHTML = h;
+  renderVerlog();
+}
+function getVerlog(){ return lsGet('verlog', [
+  { d: '17.09.2026', n: 'Полная сверка базы норм', s: 'pravo.by, government.by, разъяснения МАРТ (pnkbel, etalonline)' },
+  { d: '17.09.2026', n: 'ПП № 355 от 10.07.2026 внесено в базу', s: 'jurist.by, ilex.by (до сверки по Эталону)' },
+  { d: '17.09.2026', n: 'Сроки ст. 23 419-З (ЗЦП 5 раб. дней, аукцион/конкурс — календ.)', s: 'ilex.by, jurk.by' }
+]); }
+function renderVerlog(){
+  var V = getVerlog();
+  var h = '<table><tr><th>Дата</th><th>Что сверено</th><th>Источник</th></tr>';
+  for (var i = 0; i < V.length; i++) h += '<tr><td>' + esc(V[i].d) + '</td><td>' + esc(V[i].n) + '</td><td class="small">' + esc(V[i].s) + '</td></tr>';
+  h += '</table><button class="btn ghost sm" onclick="addVerlog()">+ Отметить сверку по Эталону</button>';
+  $('verlogList').innerHTML = h;
+}
+function addVerlog(){
+  var n = prompt('Какую норму/документ сверили с Эталоном?');
+  if (!n) return;
+  var V = getVerlog();
+  V.unshift({ d: new Date().toISOString().slice(0,10), n: n, s: 'ИПС «ЭТАЛОН»' });
+  lsSet('verlog', V); renderVerlog();
+}
+
+/* =====================================================================
+   МОДУЛЬ 8. КЛАССИФИКАТОР ПРЕДМЕТА
+   ===================================================================== */
+var CLS = [
+ { k: ['гсм','бензин','дизель','топливо','мазут','керосин','пеллет','масло моторн','смазк'], t: 'ГСМ, нефтепродукты, топливо',
+   n: 'С 11.07.2026 автобензин и дизтопливо <b>исключены из перечня закупок без процедур</b> — приобретаются посредством закупки из одного источника (п. 11 приложения 4 к № 168). Электроэнергия и газ — остаются исключением (приложение 1). Госзакупки: стандартные процедуры либо аукцион.',
+   okrb: '19.20 / 46.71', spec: 'Проверить необходимость биржевых закупок по перечню БУТБ (сверить по Эталону).' },
+ { k: ['холдинг','гроднооблсельхозтехник','внутрихолдинг','управляющая компания'], t: 'Закупки внутри холдинга «ГродноОблсельхозтехника»',
+   n: 'ЩРЗ — участник холдинга (управляющая компания — ОАО «УК холдинга «ГродноОблсельхозтехника», г. Гродно). По № 168 (с изм. № 355 от 10.07.2026) правила закупок для холдингов уточнены: проверить актуальный перечень исключений (27 позиций) и возможность централизации закупок (ч. 2 п. 6 № 168). Уточнить, не централизованы ли закупки ЩРЗ через УК.',
+   okrb: '—', spec: 'Порядок для холдингов изменён ПП № 355 — сверить редакцию по Эталону.' },
+ { k: ['металлопрокат','металл','арматур','лист стальной','труба стальн','уголок','швеллер','пруток','заготовк'], t: 'Металлопрокат, металлоизделия',
+   n: 'За собственные средства: обычные процедуры по № 168; свыше 2 000 б.в. (90 000 руб.) — <b>нацрежим</b> (приоритет белорусских товаров и товаров стран нацрежима; для прочих иностранных — согласование). Чёрные металлы — часто <b>биржевые товары</b>: проверить перечень БУТБ.',
+   okrb: '24.10–24.42', spec: 'Отслеживать минимальную долю белорусских товаров (отчётность раз в полгода).' },
+ { k: ['запчаст','гомсельмаш','комбайн','косилк','жатк','пресс-подбор','сельхозтехник','узел агрегат','деталь к'], t: 'Запчасти, комплектующие к технике (в т.ч. Гомсельмаш)',
+   n: 'Собственные средства: закупка <b>у производителя или сбытовой организации (официального дилера)</b> — основание из одного источника (сертификат БТПП производителя; внутр. п. 7.2.1 — до переутверждения по № 168). По № 168 — приоритет производителей при ≥ 2 производителях в процедуре (абз. 7 п. 36). Гарантийное сервисное обслуживание — исключение.',
+   okrb: '28.30 / 28.22', spec: 'Завод — дилер РУП «Гомсельмаш»: собственные полномочия/сертификаты проверять на актуальность.' },
+ { k: ['сырьё','материал','комплектующ','метиз','электрод','краск','лак','упаковк','провод','кабель'], t: 'Сырьё, материалы, комплектующие для собственного производства',
+   n: '<b>До 1 000 б.в. (45 000 руб.) — без процедур</b> (п. 29 приложения 1 к № 168, положения уточнены ПП № 355 от 10.07.2026), без годового лимита. Свыше 1 000 б.в. — электронная процедура по общим правилам.',
+   okrb: 'различные', spec: 'Фиксировать назначение «для собственного производства» в задании на закупку.' },
+ { k: ['проект','проектирован','проектно-сметн','изыскан','сметн','техническое обоснован'], t: 'Проектные, изыскательские работы, ПСД',
+   n: 'Собственные средства: конкурс/ЗЦП в электронной форме (у ЩРЗ — конкурс, как в тендере № 1350777: котельная АБК, код ОКРБ 71.11.22.200). Госзакупки: работы строительства — конкурс независимо от стоимости.',
+   okrb: '71.11 / 71.12', spec: 'Требования к участникам: опыт, квалификация персонала (закрытый перечень № 168, п. 10).' },
+ { k: ['стройк','строительн','ремонт здан','монтаж','демонтаж','благоустройств','фундамент','кровл'], t: 'Строительные, монтажные работы',
+   n: 'Закупки при строительстве объектов — исключение из внутреннего Порядка ЩРЗ (сверить перечень исключений по № 168): процедуры не проводятся, но нацрежим и миндоля сохраняются; по п. 9 прил. 4 к № 168 закупки при строительстве — вне лимита 5 000 б.в. Субподряд у генподрядчика — из одного источника (по 419-З для госчасти).',
+   okrb: '41.00 / 43.00', spec: 'Для госчасти: работы строительства — открытый конкурс (п. 1 приложения к 419-З).' },
+ { k: ['оборудован','станок','механизм','установк','агрегат','компрессор','насос','токарн','фрезерн','сверлил'], t: 'Оборудование (в т.ч. металлообрабатывающее)',
+   n: 'Класс 28.41 «Станки для обработки металлов» (ОКРБ 007-2012): по внутреннему Порядку ЩРЗ обязательна <b>экспертиза ТЗ в ОАО «Институт БЕЛОРГСТАНКИНПРОМ»</b> по Инструкции Минпрома № 9 от 07.05.2015 <span class="tag y">проверить актуальность [Э]</span>. Оборудование для собственного производства до 1 000 б.в. — без процедур (п. 29 прил. 1, № 355). Прочее — общие процедуры; нацрежим свыше 2 000 б.в.',
+   okrb: '28.41 / 28.49', spec: 'Закладывать срок и стоимость экспертизы ТЗ в план закупки.' },
+ { k: ['аренд','лизинг','прокат'], t: 'Аренда, лизинг',
+   n: 'С 11.07.2026 (ПП № 168, п. 6 приложения 2) аренда и лизинг <b>впервые подпадают под правила закупок</b> за собственные средства — процедуры обязательны (ранее — исключение).',
+   okrb: '68.20 / 77.00', spec: 'Проверить, не попадает ли объект в исключения.' },
+ { k: ['аудит','аудиторск'], t: 'Аудиторские услуги',
+   n: 'Аудит обязательной годовой отчётности — исключение из порога «до 100 б.в. без процедур»; у ЩРЗ аудиторские услуги — только конкурс независимо от стоимости (типовое требование).',
+   okrb: '69.20', spec: 'Проверять членство в саморегулируемой организации аудиторов.' },
+ { k: ['it ','по ','программ','софт','лицензи','сервер','компьютер','ноутбук','разработка по','сопровождени по'], t: 'ИТ-услуги, программное обеспечение',
+   n: 'Госзакупки: с 25.02.2026 (ПП № 90) порог выполнения работ собственными силами при ИТ-закупках — <b>30%</b> (было 50%). Собственные средства: общие процедуры № 168; обратить внимание на права на ПО.',
+   okrb: '62.00 / 63.00', spec: 'Проверить исключительные права и лицензионные соглашения.' },
+ { k: ['перевозк','транспорт','логистик','доставк груз','грузчик'], t: 'Перевозки, транспортные услуги',
+   n: 'Общие процедуры. Госзакупки: с 25.02.2026 новые требования к участникам транспортных закупок (собственные ресурсы, опыт, деловая репутация) — ПП № 90.',
+   okrb: '49.00 / 52.00', spec: 'Документы на транспортные средства, допуски водителей.' },
+ { k: ['электроэнерг','теплоэнерг','водоснабжен','канализац','коммунальн услуг','газ '], t: 'Энергоресурсы, коммунальные услуги',
+   n: '<b>Исключение</b> из процедур: электроэнергия, газ, коммунальные услуги (сверить перечень исключений приложения 1 к № 168). Требования п. 10 к участникам не применяются.',
+   okrb: '35.00 / 36.00', spec: 'Договоры — по тарифам регулируемых организаций.' },
+ { k: ['банковск','расчетно-кассов','кредит','страхован'], t: 'Банковские и страховые услуги',
+   n: '<b>Исключение</b> из процедур. Выбор банка — решением руководителя.',
+   okrb: '64.00 / 65.00', spec: '—' },
+ { k: ['услуг связи','интернет','телефон','сотов'], t: 'Услуги связи',
+   n: 'Связь (кроме сотовой подвижной) — исключение; сотовая связь и интернет — общие процедуры (пороги № 168).',
+   okrb: '61.00', spec: '—' },
+ { k: ['обучен','тренинг','курс','аттестац','лицензиат','медосмотр','охрана труда'], t: 'Обучение, аттестация, медосмотры',
+   n: 'Медосмотры — исключение (сверить перечень по № 168). Обучение и аттестация — общие процедуры; убедиться в лицензии образовательного учреждения.',
+   okrb: '85.00 / 88.00', spec: 'Проверять лицензию на образовательную деятельность.' }
+];
+function clsRender(list){
+  var h = '';
+  for (var i = 0; i < list.length; i++){
+    h += '<div class="result" style="margin-top:10px"><div class="proc">' + list[i].t + '</div>' +
+    '<p class="small" style="margin-top:4px">ОКРБ 007-2012: ' + list[i].okrb + '</p><p style="margin-top:6px">' + list[i].n + '</p>' +
+    '<p class="small" style="margin-top:6px"><b>Особо:</b> ' + list[i].spec + '</p></div>';
+  }
+  $('clsList').innerHTML = h || '<p class="small">Ничего не найдено — попробуйте другой запрос или обратитесь к справочникам.</p>';
+}
+function clsFilter(){
+  var q = $('clsQ').value.trim().toLowerCase();
+  if (!q) return clsRender(CLS);
+  var out = [];
+  for (var i = 0; i < CLS.length; i++){
+    var hit = CLS[i].t.toLowerCase().indexOf(q) >= 0;
+    for (var j = 0; j < CLS[i].k.length && !hit; j++) if (q.indexOf(CLS[i].k[j]) >= 0) hit = true;
+    if (hit) out.push(CLS[i]);
+  }
+  clsRender(out);
+}
+$('clsQ').oninput = clsFilter;
+clsRender(CLS);
+
+/* =====================================================================
+   МОДУЛЬ 9. РЕЕСТР КОНТРАГЕНТОВ
+   ===================================================================== */
+function getSup(){ return lsGet('suppliers', []); }
+function addSupplier(){
+  var name = $('sName').value.trim();
+  if (!name) return alert('Укажите наименование организации.');
+  var S = getSup();
+  S.unshift({ name: name, unp: $('sUnp').value.trim(), cat: $('sCat').value, contact: $('sContact').value.trim(), status: $('sStatus').value, note: $('sNote').value.trim(), date: new Date().toISOString().slice(0,10) });
+  if (!lsSet('suppliers', S)) return;
+  ['sName','sUnp','sContact','sNote'].forEach(function(id){ $(id).value = ''; });
+  renderSup();
+  alert('Контрагент добавлен в реестр.');
+}
+function delSup(i){ if (!confirm('Удалить контрагента из реестра?')) return; var S = getSup(); S.splice(i,1); lsSet('suppliers', S); renderSup(); }
+function renderSup(){
+  var S = getSup();
+  var q = ($('sSearch') && $('sSearch').value || '').trim().toLowerCase();
+  if (q) S = S.filter(function(r){ return (r.name + ' ' + r.unp + ' ' + r.cat + ' ' + r.note).toLowerCase().indexOf(q) >= 0; });
+  if (!S.length){ $('supTbl').innerHTML = '<p class="small">Реестр пуст — добавьте первого контрагента.</p>'; return; }
+  var h = '<table><tr><th>Наименование</th><th>УНП</th><th>Категория</th><th>Контакты</th><th>Статус</th><th>Заметки</th><th></th></tr>';
+  for (var i = 0; i < S.length; i++){
+    var r = S[i];
+    var bg = r.status.indexOf('риск') >= 0 ? '#fdf3d7' : (r.status.indexOf('не рекомендуется') >= 0 ? '#fbe4e4' : '#e3efe9');
+    h += '<tr><td><b>' + esc(r.name) + '</b><br><span class="small">' + r.date + '</span></td><td>' + esc(r.unp || '—') + '</td><td>' + esc(r.cat) + '</td><td class="small">' + esc(r.contact || '—') + '</td>' +
+      '<td><span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:' + bg + '">' + esc(r.status) + '</span></td>' +
+      '<td class="small">' + esc(r.note || '—') + '</td><td><button class="del" onclick="delSup(' + i + ')">✕</button></td></tr>';
+  }
+  $('supTbl').innerHTML = h + '</table>';
+}
+
+/* =====================================================================
+   МОДУЛЬ 10. КОНСТРУКТОР ТЗ
+   ===================================================================== */
+var TZ_HINTS = {
+  'Металлопрокат': 'Типовое: марка стали, ГОСТ/ТУ, размеры с допусками, состояние поставки (лист/рулон), документы качества. Требование «или эквивалент» обязательно при указании ГОСТ.',
+  'Запчасти / комплектующие': 'Типовое: номер детали/чертежа, материал, совместимость (с чем), допуски. Для аналогов — обязательна оговорка «или эквивалент (аналог)».',
+  'ГСМ и топливо': 'Типовое: вид топлива, соответствие СТБ, документы качества на партию. Напоминание: бензин/дизель — только из одного источника (п. 11 прил. 4 № 168).',
+  'Электрооборудование': 'Типовое: напряжение, мощность, степень защиты IP, условия эксплуатации, сертификаты.',
+  'Услуги / перевозки': 'Типовое: объём/маршрут, требования к транспорту, грузоподъёмность, допуски водителей, страхование груза.',
+  'Проектные работы': 'Типовое: исходные данные (задание на проектирование, ТУ), состав проектной документации, сроки стадий, требования к составу ПСД.',
+  'Универсальный': 'Заполните поля вручную.'
+};
+function tzHint(){ $('tzHintBox').textContent = TZ_HINTS[$('tzCat').value] || ''; }
+var BRANDS = ['гомсельмаш','john deere','bosch','siemens','skf','fag','caterpillar','мерседес','ман','claas','new holland'];
+function tzCheck(text){
+  var issues = [];
+  if (/страна происхождения|происхождения товара|происхождение:/i.test(text))
+    issues.push({ t: 'err', m: 'Обнаружено указание страны происхождения — ЗАПРЕЩЕНО (п. 4 ст. 21 419-З). Удалите формулировку.' });
+  var low = text.toLowerCase();
+  var words = low.split(/[^a-zа-яё0-9]+/i);
+  var hasEquiv = /или эквивалент|или аналог|аналог\)/i.test(low);
+  var found = BRANDS.filter(function(b){ return words.indexOf(b) >= 0; });
+  if (found.length && !hasEquiv)
+    issues.push({ t: 'warn', m: 'Упомянута марка (' + found.join(', ') + ') без оговорки «или эквивалент (аналог)» — риск претензии об ограничении конкуренции. Отметьте галочку «Допускается или эквивалент».' });
+  if (/\b(гост|стб|ту)\s*[-№]?\s*\d/i.test(text) && !hasEquiv)
+    issues.push({ t: 'info', m: 'Есть ссылка на ТНПА (ГОСТ/СТБ/ТУ). Допустимо, но рекомендуется добавить: «или иные технические нормативные правовые акты, обеспечивающие эквивалентные характеристики».' });
+  if (/только производитель|исключительно производитель|непосредственный производитель/i.test(text))
+    issues.push({ t: 'warn', m: '«Только производитель» без законного основания ограничивает конкуренцию. Сбытовые организации должны допускаться (закрытый перечень требований к участникам).' });
+  var m = /не менее\s*(\d+)\s*лет/i.exec(text);
+  if (m) issues.push({ t: 'warn', m: 'Требование стажа «не менее ' + m[1] + ' лет» — проверьте экономическое обоснование; избыточные требования к участникам — типовая претензия контролёров (закрытый перечень п. 10 Положения № 168 / ст. 16 419-З).' });
+  return issues;
+}
+function tzBuild(){
+  var name = $('tzName').value.trim();
+  if (!name) return alert('Укажите наименование предмета закупки.');
+  var text = '1. Наименование: ' + name + '.\n' +
+    '2. Количество: ' + ($('tzQty').value.trim() || 'согласно заявке') + '.\n' +
+    '3. Технические характеристики: ' + ($('tzChars').value.trim() || 'согласно документации заказчика') +
+    ($('tzEquiv').checked ? ' Допускается поставка «или эквивалент (аналог)».' : '') + '\n' +
+    '4. Требования к качеству: ' + ($('tzQuality').value.trim() || 'соответствие обязательным ТНПА, документы качества на партию') + '.\n' +
+    '5. Срок и место: ' + ($('tzDelivery').value.trim() || 'согласно договору') + '.\n' +
+    '6. Гарантия: ' + ($('tzWarranty').value.trim() || 'согласно законодательству') + '.' +
+    ($('tzSamples').checked ? '\n7. Заказчик вправе запросить образцы для проверки соответствия характеристик / совместимости.' : '');
+  var issues = tzCheck(text);
+  var h = '<div class="result"><div class="proc">Описание предмета закупки</div>';
+  if (!issues.length) h += '<p><span class="tag g">проверка пройдена</span> Запрещённых требований не выявлено.</p>';
+  else {
+    h += '<p><b>Результат проверки «выгодно, но законно»:</b></p><ul>';
+    for (var i = 0; i < issues.length; i++)
+      h += '<li><span class="tag ' + (issues[i].t === 'err' ? 'r' : (issues[i].t === 'warn' ? 'y' : 'g')) + '">' + (issues[i].t === 'err' ? 'запрещено' : (issues[i].t === 'warn' ? 'риск' : 'инфо')) + '</span> ' + issues[i].m + '</li>';
+    h += '</ul>';
+  }
+  h += '<div class="note" style="background:#fff;border-color:var(--line);white-space:pre-wrap;margin-top:10px">' + esc(text) + '</div>' +
+    '<button class="btn" onclick="tzToDoc()">Передать в генератор (приглашение)</button> ' +
+    '<button class="btn ghost" onclick="gotoTab(\'chk\')">Чек-лист перед публикацией</button></div>';
+  $('tzOut').innerHTML = h;
+  window._tztext = text;
+}
+function tzToDoc(){
+  gotoTab('doc');
+  $('dType').value = 'inv';
+  $('dSubject').value = $('tzName').value.trim();
+  alert('Описание перенесено в генератор (тип: приглашение). Проверьте остальные поля и сформируйте документ.');
+}
+
+/* =====================================================================
+   МОДУЛЬ 11. САМОДИАГНОСТИКА И СТАРТ
+   ===================================================================== */
+renderCritRows();
+loadCommission();
+renderKB();
+(function(){
+  var d = [];
+  d.push('конфиг норм: БВ ' + CONFIG.BV + ' руб., лимит п.9 ' + CONFIG.LIM9 + ' б.в.');
+  d.push('визард: ' + ($('w0') ? 'OK' : 'ОШИБКА'));
+  d.push('калькулятор: ' + ($('critTbl') ? 'OK' : 'ОШИБКА'));
+  d.push('справочники: ' + ($('refs') ? 'OK' : 'ОШИБКА'));
+  d.push('классификатор: ' + (window.CLS ? CLS.length + ' категорий' : 'ОШИБКА'));
+  d.push('база знаний: ' + (window.NORMS ? NORMS.reduce(function(s,g){ return s + g.items.length; }, 0) + ' норм' : 'ОШИБКА'));
+  d.push('комиссия: ' + ($('cChair') ? 'OK' : 'ОШИБКА'));
+  d.push('хранилище: ' + (window.localStorage ? 'OK' : 'localStorage недоступен'));
+  $('diag').textContent = 'Модули загружены — ' + d.join(' · ');
+  var fv = $('footVer'); if (fv) fv.textContent = 'нормативная база: ' + NORMS.reduce(function(s,g){ return s + g.items.length; }, 0) + ' позиций, сверено ' + CONFIG.DATE_NORM;
+})();
+
+// === PWA: Service Worker + баннер обновления ===
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(function(reg){
+    reg.addEventListener('updatefound', function(){
+      var sw = reg.installing;
+      sw.addEventListener('statechange', function(){
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(sw);
+      });
+    });
+    setInterval(function(){ reg.update(); }, 60*60*1000);
+  }).catch(function(){ /* file:// или неподдерживаемый контекст — PWA требует http(s)/localhost */ });
+  var reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if (!reloading){ reloading = true; location.reload(); }
+  });
+}
+function showUpdateBanner(sw){
+  if (window._updateShown) return; window._updateShown = true;
+  var d = document.createElement('div');
+  d.className = 'upd-banner';
+  d.innerHTML = 'Доступна новая версия приложения <button class="btn sm">Обновить</button>';
+  d.querySelector('button').onclick = function(){ sw.postMessage({type:'SKIP_WAITING'}); };
+  document.body.appendChild(d);
+}
+</script>
+</body>
+</html>
