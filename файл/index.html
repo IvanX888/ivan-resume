@@ -4,15 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FileBridge — передача файлов напрямую</title>
-<meta name="description" content="Передача файлов между устройствами напрямую, без серверов. Бесплатно, без регистрации.">
+<meta name="description" content="Передача файлов между устройствами напрямую, без серверов хранения. Бесплатно, без регистрации.">
 <meta name="theme-color" content="#0e1117">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FileBridge">
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
 :root{
   --bg:#0e1117;
@@ -141,7 +142,7 @@ footer b{color:var(--text)}
 
 <header>
   <div class="logo">File<span>Bridge</span></div>
-  <div class="tag">Прямая передача файлов между устройствами.<br>Без серверов, без регистрации, бесплатно.</div>
+  <div class="tag">Прямая передача файлов между устройствами.<br>Без серверов хранения, без регистрации, бесплатно.</div>
 </header>
 
 <div class="card">
@@ -165,6 +166,7 @@ footer b{color:var(--text)}
       <div class="hint">Назовите этот код получателю — на втором устройстве выберите «Получить» и введите его:</div>
       <div class="code-box" id="roomCode" onclick="copyCode()" title="Нажмите, чтобы скопировать">------</div>
       <div class="hint">Код одноразовый и живёт, пока открыта эта вкладка</div>
+      <div class="hint" id="brokerInfo" style="display:none;font-weight:600"></div>
       <div class="progress" id="sendProgressWrap" style="display:none"><div id="sendProgress"></div></div>
       <div class="p-label" id="sendProgressLabel" style="display:none"><span id="sendCurFile"></span><span id="sendPct"></span></div>
       <ul class="files" id="sendQueue"></ul>
@@ -199,19 +201,14 @@ footer b{color:var(--text)}
 </div>
 
 <details class="card">
-  <summary style="cursor:pointer;font-size:15px;font-weight:600">Продвинутые настройки: свой брокер</summary>
+  <summary style="cursor:pointer;font-size:15px;font-weight:600">Продвинутые настройки: свой сигнальный брокер</summary>
   <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-    <input type="text" id="brHost" placeholder="Хост брокера, напр. peerjs.mydomain.ru" autocomplete="off">
-    <div class="row">
-      <input type="text" id="brPort" placeholder="Порт (443)">
-      <input type="text" id="brPath" placeholder="Путь (/)">
-      <input type="text" id="brKey" placeholder="Ключ (peerjs)">
-    </div>
+    <input type="text" id="brUrl" placeholder="wss://ваш-брокер.ru:8084/mqtt" autocomplete="off">
     <div class="row">
       <button class="btn small" onclick="saveBroker()">Сохранить</button>
       <button class="btn small ghost" onclick="clearBroker()">Сбросить на публичные</button>
     </div>
-    <div class="hint">Свой брокер = максимальная надёжность. Поднимается одной командой на любом VPS:<br><code style="font-size:11px">npx peerjs --port 9000 --key МОЙ_КЛЮЧ</code> + HTTPS-прокси (Caddy/nginx). Оба устройства должны использовать один брокер.</div>
+    <div class="hint">Свой брокер = максимальная надёжность. Поднимается одной командой (Docker):<br><code style="font-size:11px">docker run -d -p 8084:8084 emqx/emqx</code><br>затем впишите wss://ваш-домен:8084/mqtt (TLS — через Caddy/nginx). Оба устройства должны использовать один брокер.</div>
   </div>
 </details>
 
@@ -220,21 +217,35 @@ footer b{color:var(--text)}
   Оба устройства должны быть онлайн одновременно. Видео не поддерживаются.
 </footer>
 </div>
+
 <script>
 "use strict";
-/* ================= FileBridge: P2P-передача файлов (PeerJS / WebRTC) ================= */
+/* ============ FileBridge v1.2 — P2P-передача файлов ============
+   Сигналинг: MQTT over WebSocket (публичные брокеры, fallback-цепочка).
+   Передача файлов: WebRTC DataChannel (DTLS), напрямую между устройствами. */
 const $ = id => document.getElementById(id);
-const CHUNK = 16384;                 // размер бинарного чанка
-const HIGH_WATER = 1 << 21;          // ~2 МБ буфера — пауза на сброс
+const HIGH_WATER = 1 << 20;                 // ~1 МБ — пауза на сброс буфера
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // без 0/O/1/I
 const MAX_FILE = 100 * 1024 * 1024;
+const td = new TextDecoder();
+
+const RTC_CFG = { iceServers: [
+  { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+  { urls: "turn:openrelay.metered.ca:80",            username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443",           username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+]};
+
+const MQTT_BROKERS = [
+  "wss://broker.hivemq.com:8884/mqtt",
+  "wss://broker.emqx.io:8084/mqtt"
+];
+const TBASE = c => "fbv1/" + c;
 
 let mode = "send";
-let peer = null, conn = null;
-let files = [];                      // отправитель: объекты File + meta
-let roomCode = "";
-let curSend = -1;                    // индекс передаваемого файла
-let recvState = null;                // состояние приёма текущего файла
+let mqtt = null, conn = null, pc = null;
+let files = [], recvFiles = [], recvState = null;
+let roomCode = "", curSend = -1;
 
 /* ---------- утилиты ---------- */
 function fmtSize(b){
@@ -259,7 +270,71 @@ function setStatus(who, state, text){
   if (text) txt.textContent = text;
 }
 function esc(s){
-  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function isOpen(){ return conn && conn.readyState === "open"; }
+function csend(o){ if (isOpen()) conn.send(JSON.stringify(o)); }
+function showBroker(url){
+  const el = $("brokerInfo");
+  let host = url;
+  try { host = new URL(url).host; } catch(e){}
+  if (el) { el.style.display = "block"; el.textContent = "Сигнальный брокер: " + host + " — файл идёт напрямую, минуя его"; }
+}
+
+/* ---------- цепочка MQTT-брокеров ---------- */
+function mqttChain(){
+  let custom = null;
+  try { custom = JSON.parse(localStorage.getItem("fb_mqtt") || "null"); } catch(e){}
+  const chain = MQTT_BROKERS.slice();
+  if (typeof custom === "string" && /^(wss?:\/\/)/.test(custom)) chain.unshift(custom);
+  return chain;
+}
+/* cb(null, client, url, idx) при успехе; cb(err, null, null, idx) если этот брокер не взошёл */
+function tryMqtt(chain, idx, cb){
+  if (idx >= chain.length) { cb(new Error("all-brokers-down"), null, null, idx); return; }
+  const url = chain[idx];
+  let c;
+  try {
+    c = mqtt.connect(url, {
+      connectTimeout: 8000,
+      reconnectPeriod: 0,
+      clientId: "fb_" + Math.random().toString(36).slice(2, 12)
+    });
+  } catch(e) { cb(new Error("bad-url"), null, null, idx); return; }
+  let settled = false;
+  const timer = setTimeout(() => {
+    if (settled) return; settled = true;
+    try { c.end(true); } catch(e){}
+    cb(new Error("timeout"), null, null, idx);
+  }, 9000);
+  c.on("connect", () => {
+    if (settled) return; settled = true; clearTimeout(timer);
+    cb(null, c, url, idx);
+  });
+  c.on("error", () => {
+    if (settled) return; settled = true; clearTimeout(timer);
+    try { c.end(true); } catch(e){}
+    cb(new Error("conn-error"), null, null, idx);
+  });
+}
+
+/* ---------- RTCPeerConnection ---------- */
+function newPc(candTopic){
+  const p = new RTCPeerConnection(RTC_CFG);
+  p.onicecandidate = e => { if (e.candidate && mqtt) mqtt.publish(candTopic, JSON.stringify(e.candidate.toJSON())); };
+  return p;
+}
+const candQueue = [];
+function handleCandidate(msg){
+  try {
+    const c = JSON.parse(msg);
+    if (pc && pc.remoteDescription) pc.addIceCandidate(c).catch(() => {});
+    else candQueue.push(c);
+  } catch(e){}
+}
+function flushCands(){
+  if (!pc || !pc.remoteDescription) return;
+  while (candQueue.length) pc.addIceCandidate(candQueue.shift()).catch(() => {});
 }
 
 /* ---------- режимы ---------- */
@@ -283,149 +358,64 @@ $("fileInput").addEventListener("change", e => {
   renderSendList();
   $("btnCreateRoom").disabled = files.length === 0;
 });
-
 function renderSendList(){
   $("sendFileList").innerHTML = files.map(f =>
     `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span></li>`).join("");
 }
 
-/* ---------- брокеры сигналинга (fallback-цепочка) ---------- */
-const DEFAULT_BROKERS = [
-  { name: "PeerJS Cloud",   host: "0.peerjs.com",   port: 443, path: "/", secure: true,  key: "peerjs" },
-  { name: "92k.de (резерв)", host: "peerjs.92k.de",  port: 443, path: "/", secure: true,  key: "peerjs" }
-];
-const BROKER_FAIL = ["network", "server-error", "socket-error", "socket-closed"];
-
-function customBroker(){
-  try {
-    const b = JSON.parse(localStorage.getItem("fb_broker") || "null");
-    return (b && b.host) ? b : null;
-  } catch(e){ return null; }
-}
-function brokerChain(){
-  const c = customBroker();
-  return c ? [Object.assign({ name: "свой" }, c)].concat(DEFAULT_BROKERS) : DEFAULT_BROKERS.slice();
-}
-function makePeer(id, broker){
-  return new Peer(id, {
-    debug: 0,
-    host: broker.host,
-    port: broker.port || 443,
-    path: broker.path || "/",
-    key: broker.key || "peerjs",
-    secure: broker.secure !== false,
-    config: { iceServers: [
-      { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
-      { urls: "turn:openrelay.metered.ca:80",       username: "openrelayproject", credential: "openrelayproject" },
-      { urls: "turn:openrelay.metered.ca:443",      username: "openrelayproject", credential: "openrelayproject" },
-      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
-    ]}
-  });
-}
-function showBroker(name){
-  const el = $("brokerInfo");
-  if (el) { el.style.display = "block"; el.textContent = "Брокер подключения: " + name + " — должен совпадать у обоих сторон"; }
-}
-function saveBroker(){
-  const host = $("brHost").value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
-  if (!host) { alert("Впишите хост брокера."); return; }
-  localStorage.setItem("fb_broker", JSON.stringify({
-    host: host,
-    port: parseInt($("brPort").value) || 443,
-    path: $("brPath").value.trim() || "/",
-    key: $("brKey").value.trim() || "peerjs",
-    secure: true
-  }));
-  alert("Сохранено. Новые сессии будут использовать ваш брокер первым.");
-}
-function clearBroker(){
-  localStorage.removeItem("fb_broker");
-  $("brHost").value = $("brPort").value = $("brPath").value = $("brKey").value = "";
-  alert("Сброшено на публичные брокеры.");
-}
-(function initBrokerForm(){
-  const b = customBroker();
-  if (b) {
-    $("brHost").value = b.host || "";
-    $("brPort").value = b.port || "";
-    $("brPath").value = b.path || "";
-    $("brKey").value = b.key || "";
-  }
-})();
-
+let sendGen = 0;
 function createRoom(){
   roomCode = genCode();
   $("roomCode").textContent = roomCode;
   $("sendStep1").classList.add("hidden");
   $("sendStep2").classList.remove("hidden");
-  const chain = brokerChain();
-  let idx = 0, roomTries = 0, gen = 0;
-
-  const tryBroker = () => {
-    if (idx >= chain.length) {
-      setStatus("send", "err", "Все брокеры недоступны. Укажите свой брокер в настройках ниже, затем «Завершить сессию» и создайте комнату заново.");
+  const chain = mqttChain();
+  const myGen = ++sendGen;
+  const alive = () => myGen === sendGen;
+  const step = (i) => {
+    if (!alive()) return;
+    if (i >= chain.length) {
+      setStatus("send", "err", "Все сигнальные брокеры недоступны. Укажите свой WSS-брокер в настройках ниже, затем «Завершить сессию» и создайте комнату заново.");
       return;
     }
-    const b = chain[idx++];
-    setStatus("send", "wait", (idx > 1 ? "Брокер недоступен, пробуем «" + b.name + "»…" : "Создаём комнату…") + " (" + idx + "/" + chain.length + ")");
-    const myGen = ++gen;
-    const myPeer = (peer = makePeer("filebridge-v1-" + roomCode, b));
-    const dead = () => peer !== myPeer || myGen !== gen;
-    let opened = false;
-    // заблокированные сокеты часто висят без ошибки — свой таймаут
-    const timer = setTimeout(() => {
-      if (dead() || opened) return;
-      try { myPeer.destroy(); } catch(e){}
-      tryBroker();
-    }, 8000);
-
-    myPeer.on("open", () => {
-      if (dead()) return;
-      opened = true; clearTimeout(timer);
-      showBroker(b.name);
+    setStatus("send", "wait", "Подключаемся к сигнальному брокеру… (" + (i + 1) + "/" + chain.length + ")");
+    tryMqtt(chain, i, (err, client, url, idx) => {
+      if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
+      if (err) { step(idx + 1); return; }
+      mqtt = client;
+      showBroker(url);
+      const t = TBASE(roomCode);
+      client.subscribe(t + "/answer");
+      client.subscribe(t + "/cand");
+      client.on("message", (topic, payload) => {
+        if (!alive()) return;
+        const msg = td.decode(payload);
+        if (topic === t + "/answer") {
+          try { pc.setRemoteDescription(JSON.parse(msg)).then(flushCands).catch(() => {}); } catch(e){}
+        } else if (topic === t + "/cand") {
+          handleCandidate(msg);
+        }
+      });
+      client.on("close", () => {
+        if (alive() && !isOpen()) setStatus("send", "err", "Связь с брокером потеряна до подключения получателя. «Завершить сессию» и создайте комнату заново.");
+      });
+      pc = newPc(t + "/cand");
+      conn = pc.createDataChannel("fb");
+      wireConn("send");
+      pc.createOffer()
+        .then(o => pc.setLocalDescription(o))
+        .then(() => { if (alive()) client.publish(t + "/offer", JSON.stringify(pc.localDescription.toJSON())); })
+        .catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
       setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
-    myPeer.on("error", err => {
-      if (dead()) return;
-      clearTimeout(timer);
-      if (err.type === "unavailable-id") { // код занят на этом брокере — новый код
-        try { myPeer.destroy(); } catch(e){}
-        if (peer === myPeer) peer = null;
-        if (++roomTries > 3) { setStatus("send", "err", "Не удалось создать комнату, попробуйте ещё раз."); return; }
-        roomCode = genCode();
-        $("roomCode").textContent = roomCode;
-        idx = 0; tryBroker(); return;
-      }
-      if (BROKER_FAIL.includes(err.type)) {
-        try { myPeer.destroy(); } catch(e){}
-        if (peer === myPeer) peer = null;
-        tryBroker(); return;
-      }
-      setStatus("send", "err", "Ошибка: " + err.type);
-    });
-    myPeer.on("disconnected", () => { if (!dead() && opened) { try { myPeer.reconnect(); } catch(e){} } });
-    myPeer.on("connection", c => {
-      if (dead()) return;
-      if (conn) { c.close(); return; } // одно соединение на комнату
-      conn = c;
-      setupConnCommon();
-      setStatus("send", "ok", "Получатель подключён");
-      conn.on("data", onSenderData);
-      conn.on("close", () => {
-        if (conn === c) conn = null;
-        setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
-      });
-      sendFileList();
-    });
   };
-  tryBroker();
+  step(0);
 }
 
 function sendFileList(){
-  conn.send({ t: "list", files: files.map(f => ({ name: f.name, size: f.size })) });
+  csend({ t: "list", files: files.map(f => ({ name: f.name, size: f.size })) });
   renderQueue();
 }
-
 function renderQueue(){
   const badges = { queue: ["queue","в очереди"], busy: ["busy","передача"], done: ["done","отправлен"], err: ["err","ошибка"] };
   $("sendQueue").innerHTML = files.map(f => {
@@ -435,17 +425,16 @@ function renderQueue(){
   }).join("");
 }
 
-async function onSenderData(msg){
-  if (!msg || typeof msg !== "object") return;
+async function onSenderCtrl(msg){
   if (msg.t === "hi" || msg.t === "req") {
     const next = files.findIndex(f => f.status !== "done" && f.status !== "busy");
-    if (next === -1) { conn.send({ t: "all-done" }); return; }
+    if (next === -1) { csend({ t: "all-done" }); return; }
     await sendFile(next);
   }
 }
 
 async function sendFile(i){
-  if (curSend !== -1) return;         // одна передача за раз
+  if (curSend !== -1) return;
   curSend = i;
   const f = files[i];
   f.status = "busy"; f.sent = 0;
@@ -454,22 +443,18 @@ async function sendFile(i){
   $("sendProgressLabel").style.display = "flex";
   try {
     if (!f.hash) f.hash = await sha256(await f.file.arrayBuffer());
-    conn.send({ t: "fs", i, name: f.name, size: f.size, hash: f.hash });
-    const stream = f.file.stream();
-    const reader = stream.getReader();
-    let first = true;
+    csend({ t: "fs", i, name: f.name, size: f.size, hash: f.hash });
+    const reader = f.file.stream().getReader();
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      // отрезаем ровно видимую часть — буфер может быть больше вью
       conn.send(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
       f.sent += value.byteLength;
-      if (first) { updateSendProgress(f); first = false; }
-      else if ((f.sent & 0x3FFFF) < CHUNK) updateSendProgress(f); // ~каждые 256 КБ
-      while (conn.dataChannel && conn.dataChannel.bufferedAmount > HIGH_WATER) await sleep(20);
-      if (!conn || !conn.open) throw new Error("connection closed");
+      if ((f.sent & 0x3FFFF) < value.byteLength) updateSendProgress(f);
+      while (isOpen() && conn.bufferedAmount > HIGH_WATER) await sleep(20);
+      if (!isOpen()) throw new Error("соединение закрыто");
     }
-    conn.send({ t: "fe", i });
+    csend({ t: "fe", i });
     f.status = "done";
     setStatus("send", "ok", "Файл «" + f.name + "» передан");
   } catch (e) {
@@ -499,70 +484,68 @@ function copyCode(){
 }
 
 /* ================= ПОЛУЧАТЕЛЬ ================= */
+let recvGen = 0;
 function joinRoom(){
   const code = $("codeInput").value.trim().toUpperCase();
   $("recvErr").textContent = "";
   if (!/^[A-Z2-9]{6}$/.test(code)) { $("recvErr").textContent = "Код — 6 символов (латиница и цифры без 0/O/1/I)."; return; }
   $("btnJoin").disabled = true;
-  const chain = brokerChain();
-  const target = "filebridge-v1-" + code;
-  let idx = 0, gen = 0;
+  mode = "recv";
+  const myGen = ++recvGen;
+  const alive = () => myGen === recvGen;
+  const chain = mqttChain();
+  let curIdx = 0;
 
-  const tryBroker = () => {
-    if (idx >= chain.length) {
+  const step = (i) => {
+    if (!alive()) return;
+    if (i >= chain.length) {
       $("btnJoin").disabled = false;
-      setStatus("recv", "err", "Комната не найдена ни на одном брокере. Проверьте код, что вкладка отправителя открыта, и что брокер совпадает у обоих.");
+      setStatus("recv", "err", "Комната не найдена: брокеры недоступны или отправитель ещё не создал комнату. Проверьте код и повторите.");
       return;
     }
-    const b = chain[idx++];
-    setStatus("recv", "wait", (idx > 1 ? "Ищем комнату на «" + b.name + "»…" : "Подключаемся…") + " (" + idx + "/" + chain.length + ")");
-    const myGen = ++gen;
-    const myPeer = (peer = makePeer(undefined, b));
-    const dead = () => peer !== myPeer || myGen !== gen;
-    let opened = false;
-    const timer = setTimeout(() => {
-      if (dead() || opened) return;
-      try { myPeer.destroy(); } catch(e){}
-      tryBroker();
-    }, 8000);
+    curIdx = i;
+    setStatus("recv", "wait", "Подключаемся к сигнальному брокеру… (" + (i + 1) + "/" + chain.length + ")");
+    tryMqtt(chain, i, (err, client, url, idx) => {
+      if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
+      if (err) { step(idx + 1); return; }
 
-    myPeer.on("open", () => {
-      if (dead()) return;
-      opened = true; clearTimeout(timer);
-      const myConn = (conn = myPeer.connect(target, { reliable: true }));
-      setupConnCommon();
-      myConn.on("open", () => {
-        if (dead() || conn !== myConn) return;
-        showBroker(b.name);
-        myConn.send({ t: "hi" });
-        $("recvStep1").classList.add("hidden");
-        $("recvStep2").classList.remove("hidden");
-        setStatus("recv", "ok", "Подключено. Получаем список файлов…");
+      const t = TBASE(code);
+      let gotOffer = false;
+      client.subscribe(t + "/offer");
+      client.subscribe(t + "/cand");
+      // оффера нет 12 секунд — комната, видимо, на другом брокере
+      const hop = setTimeout(() => {
+        if (gotOffer || !alive()) return;
+        try { client.end(true); } catch(e){}
+        step(curIdx + 1);
+      }, 12000);
+
+      client.on("message", (topic, payload) => {
+        if (!alive()) return;
+        const msg = td.decode(payload);
+        if (topic === t + "/offer" && !gotOffer) {
+          gotOffer = true; clearTimeout(hop);
+          showBroker(url);
+          pc = newPc(t + "/cand");
+          pc.ondatachannel = e => { conn = e.channel; wireConn("recv"); };
+          try {
+            pc.setRemoteDescription(JSON.parse(msg))
+              .then(() => pc.createAnswer())
+              .then(a => pc.setLocalDescription(a))
+              .then(() => { flushCands(); if (alive()) client.publish(t + "/answer", JSON.stringify(pc.localDescription.toJSON())); })
+              .catch(er => setStatus("recv", "err", "Ошибка WebRTC: " + er.message));
+          } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); }
+        } else if (topic === t + "/cand") {
+          handleCandidate(msg);
+        }
       });
-      myConn.on("data", onRecvData);
-      myConn.on("close", () => {
-        if (dead() || conn !== myConn) return;
-        setStatus("recv", "err", "Соединение закрыто отправителем");
-      });
-    });
-    myPeer.on("error", err => {
-      if (dead()) return;
-      clearTimeout(timer);
-      try { myPeer.destroy(); } catch(e){}
-      if (peer === myPeer) { peer = null; conn = null; }
-      if (err.type === "peer-unavailable") { tryBroker(); return; } // комната может быть на следующем брокере
-      if (BROKER_FAIL.includes(err.type)) { tryBroker(); return; }
-      $("btnJoin").disabled = false;
-      setStatus("recv", "err", "Ошибка: " + err.type);
+      setStatus("recv", "wait", "Ищем комнату " + code + "… (" + (i + 1) + "/" + chain.length + ")");
     });
   };
-  tryBroker();
+  step(0);
 }
 
-let recvFiles = []; // метаданные списка
-function onRecvData(data){
-  if (data instanceof ArrayBuffer) { onChunk(data); return; }
-  if (!data || typeof data !== "object") return;
+function onRecvCtrl(data){
   switch (data.t) {
     case "list":
       recvFiles = data.files.map(f => ({ ...f, got: 0, status: "queue" }));
@@ -592,7 +575,7 @@ function onRecvData(data){
 
 function requestNext(){
   const next = recvFiles.findIndex(f => f.status === "queue");
-  if (next !== -1 && conn && conn.open) conn.send({ t: "req", i: next });
+  if (next !== -1 && isOpen()) csend({ t: "req", i: next });
 }
 
 function onChunk(buf){
@@ -610,6 +593,7 @@ async function finishFile(){
   const rf = recvFiles[st.i];
   try {
     const blob = new Blob(st.chunks);
+    st.chunks = [];
     const buf = await blob.arrayBuffer();
     const hash = await sha256(buf);
     if (hash !== st.hash) {
@@ -627,7 +611,7 @@ async function finishFile(){
   $("recvProgressWrap").style.display = "none";
   $("recvProgressLabel").style.display = "none";
   renderRecvList();
-  conn.send({ t: "ack", i: st.i });
+  csend({ t: "ack", i: st.i });
   requestNext();
 }
 
@@ -647,12 +631,38 @@ function saveBlob(blob, name){
   setTimeout(() => URL.revokeObjectURL(a.href), 30000);
 }
 
+/* ---------- общий транспорт (RTCDataChannel) ---------- */
+function wireConn(side){
+  conn.binaryType = "arraybuffer";
+  conn.onopen = () => {
+    if (side === "send") {
+      setStatus("send", "ok", "Получатель подключён");
+      sendFileList();
+      conn.onclose = () => setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
+    } else {
+      csend({ t: "hi" });
+      $("recvStep1").classList.add("hidden");
+      $("recvStep2").classList.remove("hidden");
+      setStatus("recv", "ok", "Подключено. Получаем список файлов…");
+      conn.onclose = () => setStatus("recv", "err", "Соединение закрыто отправителем");
+    }
+  };
+  conn.onmessage = e => {
+    if (typeof e.data === "string") {
+      let o; try { o = JSON.parse(e.data); } catch(err){ return; }
+      if (side === "send") onSenderCtrl(o); else onRecvCtrl(o);
+    } else {
+      onChunk(e.data);
+    }
+  };
+}
+
 /* ================= ТЕКСТ ================= */
 function sendText(){
   const inp = $("textOut");
   const v = inp.value.trim();
-  if (!v || !conn || !conn.open) return;
-  conn.send({ t: "text", body: v });
+  if (!v || !isOpen()) return;
+  csend({ t: "text", body: v });
   addTextMsg("Вы", v);
   inp.value = "";
 }
@@ -665,23 +675,41 @@ function addTextMsg(from, body){
   div.innerHTML = "<small>" + esc(from) + " · " + new Date().toLocaleTimeString() + "</small>" + esc(body);
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
-  // клик — копировать
   div.style.cursor = "pointer";
   div.title = "Нажмите, чтобы скопировать";
   div.onclick = () => navigator.clipboard?.writeText(body);
 }
 
-/* ============ общее ============ */
-function setupConnCommon(){
-  conn.on("error", e => console.warn("conn error", e));
+/* ================= НАСТРОЙКИ: свой MQTT-брокер ================= */
+function saveBroker(){
+  const v = $("brUrl").value.trim();
+  if (!/^(wss?:\/\/)/.test(v)) { alert("Адрес должен начинаться с wss:// (рекомендуется) или ws://"); return; }
+  localStorage.setItem("fb_mqtt", JSON.stringify(v));
+  alert("Сохранено. Новые сессии будут пробовать ваш брокер первым.");
 }
-function destroyPeer(){
+function clearBroker(){
+  localStorage.removeItem("fb_mqtt");
+  $("brUrl").value = "";
+  alert("Сброшено на публичные брокеры.");
+}
+(function initBrokerForm(){
+  try {
+    const v = JSON.parse(localStorage.getItem("fb_mqtt") || "null");
+    if (typeof v === "string") $("brUrl").value = v;
+  } catch(e){}
+})();
+
+/* ================= очистка ================= */
+function cleanup(){
+  sendGen++; recvGen++;
   try { conn && conn.close(); } catch(e){}
-  try { peer && peer.destroy(); } catch(e){}
-  conn = null; peer = null;
+  try { pc && pc.close(); } catch(e){}
+  try { mqtt && mqtt.end(true); } catch(e){}
+  conn = null; pc = null; mqtt = null;
+  candQueue.length = 0;
 }
 function resetAll(){
-  destroyPeer();
+  cleanup();
   files = []; recvFiles = []; recvState = null; curSend = -1; roomCode = "";
   $("fileInput").value = "";
   $("sendFileList").innerHTML = "";
@@ -699,16 +727,9 @@ function resetAll(){
   $("brokerInfo").style.display = "none";
   setMode("send");
 }
-window.addEventListener("beforeunload", destroyPeer);
+window.addEventListener("beforeunload", cleanup);
 
-/* PWA: service worker */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  });
-}
-
-/* блок отправки текста у отправителя — вставляем перед кнопкой завершения */
+/* блок отправки текста у отправителя */
 (function(){
   const row = document.createElement("div");
   row.className = "row";
@@ -718,12 +739,19 @@ if ("serviceWorker" in navigator) {
   $("sendStep2").insertBefore(row, btn);
   $("btnTextS").onclick = () => {
     const v = $("textOutS").value.trim();
-    if (!v || !conn || !conn.open) return;
-    conn.send({ t: "text", body: v });
+    if (!v || !isOpen()) return;
+    csend({ t: "text", body: v });
     addTextMsg("Вы", v);
     $("textOutS").value = "";
   };
 })();
+
+/* PWA: service worker */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
