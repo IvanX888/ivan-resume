@@ -1,5 +1,5 @@
-/* FileBridge service worker: app shell + runtime-кеш CDN (PeerJS) */
-const VERSION = "fb-v1.1.2";
+/* FileBridge service worker: app shell + runtime-кеш CDN (mqtt.js) */
+const VERSION = "fb-v1.2.0";
 const SHELL = "shell-" + VERSION;
 const RUNTIME = "runtime-" + VERSION;
 
@@ -13,8 +13,11 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", e => {
+  // allSettled: один недоступный файл (напр. иконка ещё не залита) не должен ронять весь SW
   e.waitUntil(
-    caches.open(SHELL).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(SHELL)
+      .then(c => Promise.allSettled(ASSETS.map(u => c.add(u))))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -29,7 +32,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
 
-  // PeerJS с CDN: сначала сеть, при сбое — кеш (нужен для офлайн-запуска)
+  // mqtt.js с CDN: сначала сеть, при сбое — кеш (нужен для офлайн-запуска)
   if (url.hostname === "unpkg.com") {
     e.respondWith(
       fetch(e.request).then(res => {
@@ -41,8 +44,9 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // брокер PeerJS и WebRTC-сигналинг — только сеть, не кешируем
-  if (url.hostname.includes("peerjs.com")) return;
+  // MQTT-брокеры и WebRTC-сигналинг — только сеть, не кешируем
+  if (url.protocol === "wss:" || url.protocol === "ws:") return;
+  if (["broker.hivemq.com", "broker.emqx.io"].includes(url.hostname)) return;
 
   // свой хост: сначала кеш (мгновенный старт), фоновое обновление
   if (e.request.method === "GET" && url.origin === location.origin) {
