@@ -327,13 +327,18 @@ function MiniMqtt(url){
     if (type === 2) {              // CONNACK
       if (body.length >= 2 && body[1] === 0) {
         pingTimer = setInterval(() => { try { packet(0xC0, []); } catch(e){} }, 45000);
+        console.log("[MQTT] connected");
         emit("connect");
       } else {
+        console.log("[MQTT] CONNACK error code:", body[1]);
         emit("error", new Error("mqtt-connack-" + (body[1] !== undefined ? body[1] : "?")));
       }
     } else if (type === 3) {       // PUBLISH (QoS 0)
       const tl = (body[0] << 8) | body[1];
-      emit("message", td.decode(body.slice(2, 2 + tl)), body.slice(2 + tl));
+      const topic = td.decode(body.slice(2, 2 + tl));
+      const payload = body.slice(2 + tl);
+      console.log("[MQTT] PUBLISH topic:", topic, "len:", payload.length);
+      emit("message", topic, payload);
     }
     // SUBACK(9), PINGRESP(13) — не нужны
   }
@@ -456,6 +461,7 @@ $("fileInput").addEventListener("change", e => {
   files = [...e.target.files].slice(0, 50).map(f => ({
     file: f, name: f.name, size: f.size, sent: 0, status: "queue", hash: null
   }));
+  console.log("[FILES] selected:", files.length, "items, total:", files.reduce((a,f)=>a+f.size,0));
   const over = files.find(f => f.size > MAX_FILE);
   if (over) alert("Файл «" + over.name + "» больше 100 МБ — браузер на телефоне не выдержит. Разделите или заархивируйте.");
   files = files.filter(f => f.size <= MAX_FILE);
@@ -493,8 +499,9 @@ function createRoom(){
       client.on("message", (topic, payload) => {
         if (!alive()) return;
         const msg = td.decode(payload);
+        console.log("[SENDER] MQTT msg on", topic, "len:", msg.length);
         if (topic === t + "/answer" && msg) {
-          try { pc.setRemoteDescription(JSON.parse(msg)).catch(() => {}); } catch(e){}
+          try { pc.setRemoteDescription(JSON.parse(msg)).then(() => console.log("[SENDER] setRemoteDescription OK")).catch(e => console.log("[SENDER] setRemoteDescription err:", e)); } catch(e){}
         }
       });
       client.on("close", () => {
@@ -503,21 +510,33 @@ function createRoom(){
       pc = newPc();
       conn = pc.createDataChannel("fb");
       wireConn("send");
+      console.log("[SENDER] DataChannel created");
       pc.onconnectionstatechange = () => {
+        console.log("[SENDER] PC state:", pc.connectionState);
         if (!alive()) return;
         if (pc.connectionState === "failed") setStatus("send", "err", "WebRTC: не удалось установить прямое соединение. Попробуйте другую сеть (Wi-Fi ↔ мобильный интернет).");
       };
       // ждём полного сбора ICE, затем публикуем offer со всеми кандидатами
+      let offerPublished = false;
+      function publishOffer(){
+        if (offerPublished || !alive()) return;
+        offerPublished = true;
+        const desc = { type: pc.localDescription.type, sdp: pc.localDescription.sdp };
+        console.log("[SENDER] Publishing offer, size:", JSON.stringify(desc).length);
+        client.publish(t + "/offer", JSON.stringify(desc), true);
+      }
       pc.onicegatheringstatechange = () => {
-        if (!alive() || pc.iceGatheringState !== "complete") return;
-        client.publish(t + "/offer", JSON.stringify(pc.localDescription.toJSON()), true);
+        console.log("[SENDER] ICE gathering:", pc.iceGatheringState);
+        if (pc.iceGatheringState === "complete") publishOffer();
       };
+      // fallback: если ICE не собрался за 8 с, публикуем то, что есть
+      setTimeout(() => { if (!offerPublished) publishOffer(); }, 8000);
       // таймаут: если DataChannel не открылся за 30 с — ошибка
       const dcTimer = setTimeout(() => {
         if (!alive() || isOpen()) return;
         setStatus("send", "err", "Получатель не подключился за 30 сек. Проверьте код и интернет на обоих устройствах.");
       }, 30000);
-      conn.onopen = () => { clearTimeout(dcTimer); };
+      conn.onopen = () => { console.log("[SENDER] DataChannel OPEN"); clearTimeout(dcTimer); };
       pc.createOffer().then(o => pc.setLocalDescription(o)).catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
       setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
@@ -638,29 +657,40 @@ function joinRoom(){
         if (topic === t + "/offer" && msg && !gotOffer) {
           gotOffer = true; clearTimeout(hop);
           showBroker(url);
+          console.log("[RECV] Got offer, len:", msg.length);
           pc = newPc();
           pc.ondatachannel = e => {
+            console.log("[RECV] DataChannel received!");
             conn = e.channel; wireConn("recv");
-            // очистить retained offer/answer после установления соединения
             if (alive()) { client.publish(t + "/offer", "", true); client.publish(t + "/answer", "", true); }
           };
           pc.onconnectionstatechange = () => {
+            console.log("[RECV] PC state:", pc.connectionState);
             if (!alive()) return;
             if (pc.connectionState === "failed") setStatus("recv", "err", "WebRTC: не удалось установить прямое соединение. Попробуйте другую сеть.");
           };
-          // ждём полного сбора ICE, затем публикуем answer
+          let answerPublished = false;
+          function publishAnswer(){
+            if (answerPublished || !alive()) return;
+            answerPublished = true;
+            const desc = { type: pc.localDescription.type, sdp: pc.localDescription.sdp };
+            console.log("[RECV] Publishing answer, size:", JSON.stringify(desc).length);
+            client.publish(t + "/answer", JSON.stringify(desc), true);
+          }
           pc.onicegatheringstatechange = () => {
-            if (!alive() || pc.iceGatheringState !== "complete") return;
-            client.publish(t + "/answer", JSON.stringify(pc.localDescription.toJSON()), true);
+            console.log("[RECV] ICE gathering:", pc.iceGatheringState);
+            if (pc.iceGatheringState === "complete") publishAnswer();
           };
+          setTimeout(() => { if (!answerPublished) publishAnswer(); }, 8000);
           const dcTimerR = setTimeout(() => {
             if (!alive() || isOpen()) return;
             setStatus("recv", "err", "Соединение не установлено за 30 сек. Проверьте код и интернет.");
           }, 30000);
           try {
             pc.setRemoteDescription(JSON.parse(msg))
-              .then(() => pc.createAnswer())
-              .then(a => pc.setLocalDescription(a))
+              .then(() => { console.log("[RECV] setRemoteDescription OK"); return pc.createAnswer(); })
+              .then(a => { console.log("[RECV] createAnswer OK"); return pc.setLocalDescription(a); })
+              .then(() => console.log("[RECV] setLocalDescription OK"))
               .catch(er => setStatus("recv", "err", "Ошибка WebRTC: " + er.message));
           } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); clearTimeout(dcTimerR); }
         } else if (topic === t + "/cand") {
@@ -763,6 +793,7 @@ function saveBlob(blob, name){
 function wireConn(side){
   conn.binaryType = "arraybuffer";
   conn.onopen = () => {
+    console.log("[DATA] onopen — side:", side);
     if (side === "send") {
       setStatus("send", "ok", "Получатель подключён");
       sendFileList();
