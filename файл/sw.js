@@ -1,5 +1,5 @@
 /* FileBridge service worker: app shell + runtime-кеш CDN (mqtt.js) */
-const VERSION = "fb-v1.2.2";
+const VERSION = "fb-v1.2.3";
 const SHELL = "shell-" + VERSION;
 const RUNTIME = "runtime-" + VERSION;
 
