@@ -13,7 +13,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FileBridge">
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
 :root{
   --bg:#0e1117;
@@ -281,6 +280,113 @@ function showBroker(url){
   if (el) { el.style.display = "block"; el.textContent = "Сигнальный брокер: " + host + " — файл идёт напрямую, минуя его"; }
 }
 
+/* ---------- минимальный MQTT 3.1.1 поверх WebSocket (QoS 0, без зависимостей) ---------- */
+function MiniMqtt(url){
+  const clientId = "fb_" + Math.random().toString(36).slice(2, 12);
+  const te = new TextEncoder();
+  const handlers = {};
+  let ws = null, dead = false, pingTimer = null, pid = 1;
+  const chunks = []; let chunksLen = 0;
+
+  function on(ev, fn){ (handlers[ev] = handlers[ev] || []).push(fn); return client; }
+  function emit(ev, a, b){ (handlers[ev] || []).slice().forEach(f => { try { f(a, b); } catch(e){} }); }
+
+  function u16(n){ return [(n >> 8) & 255, n & 255]; }
+  function sbytes(s){ const b = te.encode(s); return [...u16(b.length), ...b]; }
+  function encLen(n){ const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return o; }
+  function packet(type, body){ ws.send(new Uint8Array([type, ...encLen(body.length), ...body])); }
+
+  function sendConnect(){
+    const cid = te.encode(clientId);
+    packet(0x10, [
+      ...sbytes("MQTT"),  // протокол
+      4,                  // уровень 3.1.1
+      2,                  // clean session
+      ...u16(60),         // keepalive 60 с
+      ...u16(cid.length), ...cid
+    ]);
+  }
+
+  function handle(type, body){
+    if (type === 2) {              // CONNACK
+      if (body.length >= 2 && body[1] === 0) {
+        pingTimer = setInterval(() => { try { packet(0xC0, []); } catch(e){} }, 45000);
+        emit("connect");
+      } else {
+        emit("error", new Error("mqtt-connack-" + (body[1] !== undefined ? body[1] : "?")));
+      }
+    } else if (type === 3) {       // PUBLISH (QoS 0)
+      const tl = (body[0] << 8) | body[1];
+      emit("message", td.decode(body.slice(2, 2 + tl)), body.slice(2 + tl));
+    }
+    // SUBACK(9), PINGRESP(13) — не нужны
+  }
+
+  function parse(){
+    if (!chunksLen) return;
+    const all = new Uint8Array(chunksLen);
+    let off = 0;
+    for (const c of chunks) { all.set(c, off); off += c.length; }
+    chunks.length = 0; chunksLen = 0;
+    let pos = 0;
+    while (true) {
+      if (all.length - pos < 2) break;
+      const type = all[pos] >> 4;
+      let mul = 1, rem = 0, hlen = 0, b;
+      while (true) {
+        if (all.length - pos < 2 + hlen) { rem = -1; break; }
+        b = all[pos + 1 + hlen];
+        rem += (b & 127) * mul;
+        mul *= 128; hlen++;
+        if (!(b & 128)) break;
+        if (hlen > 3) { rem = -1; break; }
+      }
+      if (rem < 0 || all.length - pos < 1 + hlen + rem) break;
+      handle(type, all.slice(pos + 1 + hlen, pos + 1 + hlen + rem));
+      pos += 1 + hlen + rem;
+    }
+    if (pos < all.length) { chunks.push(all.slice(pos)); chunksLen = all.length - pos; }
+  }
+
+  try {
+    ws = new WebSocket(url, ["mqtt"]);
+  } catch (e) {
+    dead = true;
+    setTimeout(() => emit("error", e), 0);
+  }
+  if (ws) {
+    ws.binaryType = "arraybuffer";
+    ws.onopen = () => { try { sendConnect(); } catch (e) { emit("error", e); } };
+    ws.onmessage = e => { chunks.push(new Uint8Array(e.data)); chunksLen += e.data.byteLength; parse(); };
+    ws.onerror = () => emit("error", new Error("ws-error"));
+    ws.onclose = () => {
+      if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+      if (!dead) { dead = true; emit("close"); }
+    };
+  }
+
+  const client = {
+    on: on,
+    subscribe(topic){
+      if (dead || !ws || ws.readyState !== 1) return;
+      packet(0x82, [...u16(pid++), ...sbytes(topic), 0]);
+    },
+    publish(topic, payload){
+      if (dead || !ws || ws.readyState !== 1) return;
+      const p = (typeof payload === "string") ? te.encode(payload) : payload;
+      packet(0x30, [...sbytes(topic), ...p]);
+    },
+    end(){
+      dead = true;
+      if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+      try { if (ws && ws.readyState === 1) ws.send(new Uint8Array([0xE0, 0x00])); } catch(e){}
+      try { if (ws) ws.close(); } catch(e){}
+    }
+  };
+  return client;
+}
+const MQTT = { connect: url => new MiniMqtt(url) };
+
 /* ---------- цепочка MQTT-брокеров ---------- */
 function mqttChain(){
   let custom = null;
@@ -295,11 +401,7 @@ function tryMqtt(chain, idx, cb){
   const url = chain[idx];
   let c;
   try {
-    c = mqtt.connect(url, {
-      connectTimeout: 8000,
-      reconnectPeriod: 0,
-      clientId: "fb_" + Math.random().toString(36).slice(2, 12)
-    });
+    c = MQTT.connect(url);
   } catch(e) { cb(new Error("bad-url"), null, null, idx); return; }
   let settled = false;
   const timer = setTimeout(() => {
