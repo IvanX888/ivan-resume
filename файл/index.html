@@ -14,18 +14,17 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="FileBridge">
 <script>
-/* Сброс старого кеша и service worker — один раз при обновлении */
+/* Сброс старого кеша и service worker — один раз на версию */
 (function(){
+  const V = "fb-v1.2.6";                      // ← поднимать при каждом релизе (как VERSION в sw.js)
+  if (localStorage.getItem("fb_ver") === V) return;
+  localStorage.setItem("fb_ver", V);
   if (!navigator.serviceWorker) return;
   navigator.serviceWorker.getRegistrations().then(regs => {
-    let hadOld = false;
-    regs.forEach(r => { hadOld = true; r.unregister(); });
-    if (hadOld) {
-      // очистить весь кеш приложения
-      if (window.caches) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
-      // перезагрузить без кеша
-      location.reload();
-    }
+    if (!regs.length) return;
+    Promise.all(regs.map(r => r.unregister()))
+      .then(() => window.caches ? caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))) : null)
+      .then(() => location.reload());
   });
 })();
 </script>
@@ -150,7 +149,6 @@ footer b{color:var(--text)}
   .code-box{font-size:28px;letter-spacing:5px}
 }
 </style>
-<base target="_blank">
 </head>
 <body>
 <div class="wrap">
@@ -536,7 +534,7 @@ function createRoom(){
         if (!alive() || isOpen()) return;
         setStatus("send", "err", "Получатель не подключился за 30 сек. Проверьте код и интернет на обоих устройствах.");
       }, 30000);
-      conn.onopen = () => { console.log("[SENDER] DataChannel OPEN"); clearTimeout(dcTimer); };
+      conn.addEventListener("open", () => { console.log("[SENDER] DataChannel OPEN"); clearTimeout(dcTimer); });
       pc.createOffer().then(o => pc.setLocalDescription(o)).catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
       setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
@@ -560,7 +558,10 @@ function renderQueue(){
 async function onSenderCtrl(msg){
   if (msg.t === "hi" || msg.t === "req") {
     const next = files.findIndex(f => f.status !== "done" && f.status !== "busy");
-    if (next === -1) { csend({ t: "all-done" }); return; }
+    if (next === -1) {
+      if (curSend === -1) csend({ t: "all-done" });   // очередь пуста И передача не идёт
+      return;
+    }
     await sendFile(next);
   }
 }
@@ -662,7 +663,7 @@ function joinRoom(){
           pc.ondatachannel = e => {
             console.log("[RECV] DataChannel received!");
             conn = e.channel; wireConn("recv");
-            if (alive()) { client.publish(t + "/offer", "", true); client.publish(t + "/answer", "", true); }
+            if (alive()) { client.publish(t + "/offer", "", true); }
           };
           pc.onconnectionstatechange = () => {
             console.log("[RECV] PC state:", pc.connectionState);
@@ -693,8 +694,6 @@ function joinRoom(){
               .then(() => console.log("[RECV] setLocalDescription OK"))
               .catch(er => setStatus("recv", "err", "Ошибка WebRTC: " + er.message));
           } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); clearTimeout(dcTimerR); }
-        } else if (topic === t + "/cand") {
-          handleCandidate(msg);
         }
       });
       setStatus("recv", "wait", "Ищем комнату " + code + "… (" + (i + 1) + "/" + chain.length + ")");
@@ -865,7 +864,6 @@ function cleanup(){
   try { pc && pc.close(); } catch(e){}
   try { mqtt && mqtt.end(true); } catch(e){}
   conn = null; pc = null; mqtt = null;
-  candQueue.length = 0;
 }
 function resetAll(){
   cleanup();
