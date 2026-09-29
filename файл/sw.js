@@ -1,5 +1,5 @@
 /* FileBridge service worker: app shell + runtime-кеш CDN (PeerJS) */
-const VERSION = "fb-v1.1.0";
+const VERSION = "fb-v1.1.1";
 const SHELL = "shell-" + VERSION;
 const RUNTIME = "runtime-" + VERSION;
 
