@@ -198,6 +198,23 @@ footer b{color:var(--text)}
   <div class="textlog" id="textLog"><div class="msg" style="color:var(--muted)">Принятые тексты и ссылки появятся здесь</div></div>
 </div>
 
+<details class="card">
+  <summary style="cursor:pointer;font-size:15px;font-weight:600">Продвинутые настройки: свой брокер</summary>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+    <input type="text" id="brHost" placeholder="Хост брокера, напр. peerjs.mydomain.ru" autocomplete="off">
+    <div class="row">
+      <input type="text" id="brPort" placeholder="Порт (443)">
+      <input type="text" id="brPath" placeholder="Путь (/)">
+      <input type="text" id="brKey" placeholder="Ключ (peerjs)">
+    </div>
+    <div class="row">
+      <button class="btn small" onclick="saveBroker()">Сохранить</button>
+      <button class="btn small ghost" onclick="clearBroker()">Сбросить на публичные</button>
+    </div>
+    <div class="hint">Свой брокер = максимальная надёжность. Поднимается одной командой на любом VPS:<br><code style="font-size:11px">npx peerjs --port 9000 --key МОЙ_КЛЮЧ</code> + HTTPS-прокси (Caddy/nginx). Оба устройства должны использовать один брокер.</div>
+  </div>
+</details>
+
 <footer>
   <b>FileBridge</b> · файлы передаются напрямую (P2P/WebRTC, шифрование DTLS) и нигде не хранятся.<br>
   Оба устройства должны быть онлайн одновременно. Видео не поддерживаются.
@@ -272,32 +289,115 @@ function renderSendList(){
     `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span></li>`).join("");
 }
 
+/* ---------- брокеры сигналинга (fallback-цепочка) ---------- */
+const DEFAULT_BROKERS = [
+  { name: "PeerJS Cloud",   host: "0.peerjs.com",   port: 443, path: "/", secure: true,  key: "peerjs" },
+  { name: "92k.de (резерв)", host: "peerjs.92k.de",  port: 443, path: "/", secure: true,  key: "peerjs" }
+];
+const BROKER_FAIL = ["network", "server-error", "socket-error", "socket-closed"];
+
+function customBroker(){
+  try {
+    const b = JSON.parse(localStorage.getItem("fb_broker") || "null");
+    return (b && b.host) ? b : null;
+  } catch(e){ return null; }
+}
+function brokerChain(){
+  const c = customBroker();
+  return c ? [Object.assign({ name: "свой" }, c)].concat(DEFAULT_BROKERS) : DEFAULT_BROKERS.slice();
+}
+function makePeer(id, broker){
+  return new Peer(id, {
+    debug: 1,
+    host: broker.host,
+    port: broker.port || 443,
+    path: broker.path || "/",
+    key: broker.key || "peerjs",
+    secure: broker.secure !== false,
+    config: { iceServers: [
+      { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+      { urls: "turn:openrelay.metered.ca:80",       username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443",      username: "openrelayproject", credential: "openrelayproject" },
+      { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+    ]}
+  });
+}
+function showBroker(name){
+  const el = $("brokerInfo");
+  if (el) { el.style.display = "block"; el.textContent = "Брокер подключения: " + name + " — должен совпадать у обоих сторон"; }
+}
+function saveBroker(){
+  const host = $("brHost").value.trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  if (!host) { alert("Впишите хост брокера."); return; }
+  localStorage.setItem("fb_broker", JSON.stringify({
+    host: host,
+    port: parseInt($("brPort").value) || 443,
+    path: $("brPath").value.trim() || "/",
+    key: $("brKey").value.trim() || "peerjs",
+    secure: true
+  }));
+  alert("Сохранено. Новые сессии будут использовать ваш брокер первым.");
+}
+function clearBroker(){
+  localStorage.removeItem("fb_broker");
+  $("brHost").value = $("brPort").value = $("brPath").value = $("brKey").value = "";
+  alert("Сброшено на публичные брокеры.");
+}
+(function initBrokerForm(){
+  const b = customBroker();
+  if (b) {
+    $("brHost").value = b.host || "";
+    $("brPort").value = b.port || "";
+    $("brPath").value = b.path || "";
+    $("brKey").value = b.key || "";
+  }
+})();
+
 function createRoom(){
   roomCode = genCode();
   $("roomCode").textContent = roomCode;
   $("sendStep1").classList.add("hidden");
   $("sendStep2").classList.remove("hidden");
-  setStatus("send", "wait", "Создаём комнату…");
-  peer = new Peer("filebridge-v1-" + roomCode, { debug: 1 });
-  peer.on("open", () => setStatus("send", "wait", "Ждём получателя… код: " + roomCode));
-  peer.on("error", err => {
-    if (err.type === "unavailable-id") { // код занят — генерируем другой
-      destroyPeer(); createRoom(); return;
+  const chain = brokerChain();
+  let idx = 0, roomTries = 0;
+  const tryBroker = () => {
+    if (idx >= chain.length) {
+      setStatus("send", "err", "Все брокеры недоступны. Впишите свой брокер в настройках ниже.");
+      return;
     }
-    setStatus("send", "err", "Ошибка: " + err.type);
-  });
-  peer.on("connection", c => {
-    if (conn) { c.close(); return; } // одно соединение на комнату
-    conn = c;
-    setupConnCommon();
-    setStatus("send", "ok", "Получатель подключён");
-    conn.on("data", onSenderData);
-    conn.on("close", () => {
-      conn = null;
-      setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
+    const b = chain[idx++];
+    setStatus("send", "wait", idx > 1 ? "Брокер недоступен, пробуем «" + b.name + "»…" : "Создаём комнату…");
+    peer = makePeer("filebridge-v1-" + roomCode, b);
+    peer.on("open", () => {
+      showBroker(b.name);
+      setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
-    sendFileList();
-  });
+    peer.on("error", err => {
+      if (err.type === "unavailable-id") { // код занят на этом брокере — новый код
+        destroyPeer();
+        if (++roomTries > 3) { setStatus("send", "err", "Не удалось создать комнату, попробуйте ещё раз."); return; }
+        roomCode = genCode();
+        $("roomCode").textContent = roomCode;
+        idx = 0; tryBroker(); return;
+      }
+      if (BROKER_FAIL.includes(err.type)) { destroyPeer(); tryBroker(); return; }
+      setStatus("send", "err", "Ошибка: " + err.type);
+    });
+    peer.on("disconnected", () => { try { peer.reconnect(); } catch(e){} });
+    peer.on("connection", c => {
+      if (conn) { c.close(); return; } // одно соединение на комнату
+      conn = c;
+      setupConnCommon();
+      setStatus("send", "ok", "Получатель подключён");
+      conn.on("data", onSenderData);
+      conn.on("close", () => {
+        conn = null;
+        setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
+      });
+      sendFileList();
+    });
+  };
+  tryBroker();
 }
 
 function sendFileList(){
@@ -383,27 +483,41 @@ function joinRoom(){
   $("recvErr").textContent = "";
   if (!/^[A-Z2-9]{6}$/.test(code)) { $("recvErr").textContent = "Код — 6 символов (латиница и цифры без 0/O/1/I)."; return; }
   $("btnJoin").disabled = true;
-  setStatus("recv", "wait", "Подключаемся…");
-  peer = new Peer({ debug: 1 });
-  peer.on("open", () => {
-    conn = peer.connect("filebridge-v1-" + code, { reliable: true });
-    setupConnCommon();
-    conn.on("open", () => {
-      conn.send({ t: "hi" });
-      $("recvStep1").classList.add("hidden");
-      $("recvStep2").classList.remove("hidden");
-      setStatus("recv", "ok", "Подключено. Получаем список файлов…");
+  const chain = brokerChain();
+  let idx = 0, target = "filebridge-v1-" + code;
+  const tryBroker = () => {
+    if (idx >= chain.length) {
+      $("btnJoin").disabled = false;
+      setStatus("recv", "err", "Комната не найдена ни на одном брокере. Проверьте код, что вкладка отправителя открыта, и что брокер совпадает у обоих.");
+      return;
+    }
+    const b = chain[idx++];
+    setStatus("recv", "wait", idx > 1 ? "Ищем комнату на «" + b.name + "»…" : "Подключаемся…");
+    peer = makePeer(undefined, b);
+    peer.on("open", () => {
+      conn = peer.connect(target, { reliable: true });
+      setupConnCommon();
+      conn.on("open", () => {
+        showBroker(b.name);
+        conn.send({ t: "hi" });
+        $("recvStep1").classList.add("hidden");
+        $("recvStep2").classList.remove("hidden");
+        setStatus("recv", "ok", "Подключено. Получаем список файлов…");
+      });
+      conn.on("data", onRecvData);
+      conn.on("close", () => {
+        setStatus("recv", "err", "Соединение закрыто отправителем");
+      });
     });
-    conn.on("data", onRecvData);
-    conn.on("close", () => {
-      setStatus("recv", "err", "Соединение закрыто отправителем");
+    peer.on("error", err => {
+      destroyPeer();
+      if (err.type === "peer-unavailable") { tryBroker(); return; } // комната может быть на следующем брокере
+      if (BROKER_FAIL.includes(err.type)) { tryBroker(); return; }
+      $("btnJoin").disabled = false;
+      setStatus("recv", "err", "Ошибка: " + err.type);
     });
-  });
-  peer.on("error", err => {
-    $("btnJoin").disabled = false;
-    if (err.type === "peer-unavailable") setStatus("recv", "err", "Комната не найдена. Проверьте код и что вкладка отправителя открыта.");
-    else setStatus("recv", "err", "Ошибка: " + err.type);
-  });
+  };
+  tryBroker();
 }
 
 let recvFiles = []; // метаданные списка
@@ -543,6 +657,7 @@ function resetAll(){
   $("recvStep1").classList.remove("hidden");
   setStatus("send", "", "Выберите файлы для отправки");
   setStatus("recv", "", "Введите код от отправителя");
+  $("brokerInfo").style.display = "none";
   setMode("send");
 }
 window.addEventListener("beforeunload", destroyPeer);
