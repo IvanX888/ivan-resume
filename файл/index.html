@@ -387,10 +387,10 @@ function MiniMqtt(url){
       if (dead || !ws || ws.readyState !== 1) return;
       packet(0x82, [...u16(pid++), ...sbytes(topic), 0]);
     },
-    publish(topic, payload){
+    publish(topic, payload, retained){
       if (dead || !ws || ws.readyState !== 1) return;
       const p = (typeof payload === "string") ? te.encode(payload) : payload;
-      packet(0x30, [...sbytes(topic), ...p]);
+      packet(retained ? 0x31 : 0x30, [...sbytes(topic), ...p]);
     },
     end(){
       dead = true;
@@ -439,7 +439,7 @@ function tryMqtt(chain, idx, cb){
 /* ---------- RTCPeerConnection ---------- */
 function newPc(candTopic){
   const p = new RTCPeerConnection(RTC_CFG);
-  p.onicecandidate = e => { if (e.candidate && mqtt) mqtt.publish(candTopic, JSON.stringify(e.candidate.toJSON())); };
+  p.onicecandidate = e => { if (e.candidate && mqtt) mqtt.publish(candTopic, JSON.stringify(e.candidate.toJSON()), false); };
   return p;
 }
 const candQueue = [];
@@ -520,9 +520,19 @@ function createRoom(){
       pc = newPc(t + "/cand");
       conn = pc.createDataChannel("fb");
       wireConn("send");
+      pc.onconnectionstatechange = () => {
+        if (!alive()) return;
+        if (pc.connectionState === "failed") setStatus("send", "err", "WebRTC: не удалось установить прямое соединение. Попробуйте другую сеть (Wi-Fi ↔ мобильный интернет).");
+      };
+      // таймаут: если DataChannel не открылся за 30 с — ошибка
+      const dcTimer = setTimeout(() => {
+        if (!alive() || isOpen()) return;
+        setStatus("send", "err", "Получатель не подключился за 30 сек. Проверьте код и интернет на обоих устройствах.");
+      }, 30000);
+      conn.onopen = () => { clearTimeout(dcTimer); };
       pc.createOffer()
         .then(o => pc.setLocalDescription(o))
-        .then(() => { if (alive()) client.publish(t + "/offer", JSON.stringify(pc.localDescription.toJSON())); })
+        .then(() => { if (alive()) client.publish(t + "/offer", JSON.stringify(pc.localDescription.toJSON()), true); })
         .catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
       setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
@@ -645,14 +655,26 @@ function joinRoom(){
           gotOffer = true; clearTimeout(hop);
           showBroker(url);
           pc = newPc(t + "/cand");
-          pc.ondatachannel = e => { conn = e.channel; wireConn("recv"); };
+          pc.ondatachannel = e => {
+            conn = e.channel; wireConn("recv");
+            // очистить retained offer/answer после установления соединения (чтобы не мусорить брокер)
+            if (alive()) { client.publish(t + "/offer", "", true); client.publish(t + "/answer", "", true); }
+          };
+          pc.onconnectionstatechange = () => {
+            if (!alive()) return;
+            if (pc.connectionState === "failed") setStatus("recv", "err", "WebRTC: не удалось установить прямое соединение. Попробуйте другую сеть.");
+          };
+          const dcTimerR = setTimeout(() => {
+            if (!alive() || isOpen()) return;
+            setStatus("recv", "err", "Соединение не установлено за 30 сек. Проверьте код и интернет.");
+          }, 30000);
           try {
             pc.setRemoteDescription(JSON.parse(msg))
               .then(() => pc.createAnswer())
               .then(a => pc.setLocalDescription(a))
-              .then(() => { flushCands(); if (alive()) client.publish(t + "/answer", JSON.stringify(pc.localDescription.toJSON())); })
+              .then(() => { flushCands(); if (alive()) client.publish(t + "/answer", JSON.stringify(pc.localDescription.toJSON()), true); })
               .catch(er => setStatus("recv", "err", "Ошибка WebRTC: " + er.message));
-          } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); }
+          } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); clearTimeout(dcTimerR); }
         } else if (topic === t + "/cand") {
           handleCandidate(msg);
         }
