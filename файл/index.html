@@ -1,1 +1,575 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FileBridge — передача файлов напрямую</title>
+<meta name="description" content="Передача файлов между устройствами напрямую, без серверов. Бесплатно, без регистрации.">
+<meta name="theme-color" content="#0e1117">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FileBridge">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{
+  --bg:#0e1117;
+  --card:#171b24;
+  --card2:#1e2430;
+  --border:#2a3242;
+  --text:#e8ecf4;
+  --muted:#8b94a7;
+  --accent:#4f8cff;
+  --accent2:#38d0a0;
+  --danger:#ff6b6b;
+  --warning:#ffc857;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px 14px 60px;
+  line-height:1.5;
+}
+.wrap{width:100%;max-width:560px}
+header{text-align:center;margin:16px 0 24px}
+.logo{font-size:28px;font-weight:800;letter-spacing:.5px}
+.logo span{color:var(--accent)}
+.tag{color:var(--muted);font-size:14px;margin-top:6px}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-bottom:14px;
+}
+h2{font-size:16px;font-weight:700;margin-bottom:12px}
+.modes{display:flex;gap:8px;margin-bottom:14px}
+.mode-btn{
+  flex:1;padding:12px 8px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card2);color:var(--muted);font-size:15px;font-weight:600;
+  cursor:pointer;transition:.15s;
+}
+.mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.hidden{display:none!important}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px;border-radius:10px;border:none;
+  background:var(--accent);color:#fff;font-size:16px;font-weight:700;cursor:pointer;
+  transition:.15s;
+}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn.danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn.small{width:auto;padding:8px 14px;font-size:14px}
+.code-box{
+  display:flex;gap:8px;align-items:center;justify-content:center;
+  font-size:34px;font-weight:800;letter-spacing:8px;
+  padding:16px;border:2px dashed var(--accent);border-radius:var(--radius);
+  user-select:all;cursor:pointer;margin:12px 0;
+  font-variant-numeric:tabular-nums;
+}
+.code-input{
+  width:100%;padding:14px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card2);color:var(--text);font-size:26px;font-weight:700;
+  text-align:center;letter-spacing:6px;text-transform:uppercase;
+}
+.code-input:focus{outline:none;border-color:var(--accent)}
+input[type=text]{
+  width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+  background:var(--card2);color:var(--text);font-size:14px;
+}
+input[type=text]:focus{outline:none;border-color:var(--accent)}
+.status{
+  display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;
+  padding:10px 12px;border-radius:10px;background:var(--card2);
+  border:1px solid var(--border);margin-bottom:12px;
+}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--muted);flex:none}
+.dot.wait{background:var(--warning);animation:pulse 1.2s infinite}
+.dot.ok{background:var(--accent2)}
+.dot.err{background:var(--danger)}
+.dot.busy{background:var(--accent);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.progress{height:8px;background:var(--card2);border-radius:99px;overflow:hidden;margin:10px 0 4px}
+.progress>div{height:100%;width:0%;background:var(--accent);border-radius:99px;transition:width .15s}
+.p-label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+ul.files{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+ul.files li{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--card2);border:1px solid var(--border);border-radius:10px;font-size:14px;
+}
+.fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{color:var(--muted);font-size:12px;flex:none;font-variant-numeric:tabular-nums}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;flex:none}
+.badge.done{background:rgba(56,208,160,.15);color:var(--accent2)}
+.badge.queue{background:rgba(139,148,167,.15);color:var(--muted)}
+.badge.err{background:rgba(255,107,107,.15);color:var(--danger)}
+.badge.busy{background:rgba(79,140,255,.15);color:var(--accent)}
+.row{display:flex;gap:8px}
+.row .btn{flex:1}
+.hint{color:var(--muted);font-size:12px;text-align:center;margin-top:8px}
+.textlog{
+  margin-top:10px;max-height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;
+}
+.textlog .msg{
+  padding:8px 12px;border-radius:10px;background:var(--card2);border:1px solid var(--border);
+  font-size:14px;white-space:pre-wrap;word-break:break-word;
+}
+.textlog .msg small{color:var(--muted);display:block;font-size:11px;margin-bottom:2px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:20px}
+footer b{color:var(--text)}
+.err-msg{color:var(--danger);font-size:13px;margin-top:8px;text-align:center}
+@media (max-width:400px){
+  .code-box{font-size:28px;letter-spacing:5px}
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div class="wrap">
 
+<header>
+  <div class="logo">File<span>Bridge</span></div>
+  <div class="tag">Прямая передача файлов между устройствами.<br>Без серверов, без регистрации, бесплатно.</div>
+</header>
+
+<div class="card">
+  <div class="modes">
+    <button class="mode-btn active" id="mSend" onclick="setMode('send')">Отправить</button>
+    <button class="mode-btn" id="mRecv" onclick="setMode('recv')">Получить</button>
+  </div>
+
+  <!-- ОТПРАВИТЕЛЬ -->
+  <div id="panelSend">
+    <div class="status" id="stSend"><span class="dot" id="dotSend"></span><span id="stSendText">Выберите файлы для отправки</span></div>
+
+    <div id="sendStep1">
+      <button class="btn" onclick="document.getElementById('fileInput').click()">Выбрать файлы (до 100 МБ)</button>
+      <input type="file" id="fileInput" multiple hidden>
+      <ul class="files" id="sendFileList"></ul>
+      <button class="btn" id="btnCreateRoom" style="margin-top:12px" onclick="createRoom()" disabled>Создать код комнаты</button>
+    </div>
+
+    <div id="sendStep2" class="hidden">
+      <div class="hint">Назовите этот код получателю — на втором устройстве выберите «Получить» и введите его:</div>
+      <div class="code-box" id="roomCode" onclick="copyCode()" title="Нажмите, чтобы скопировать">------</div>
+      <div class="hint">Код одноразовый и живёт, пока открыта эта вкладка</div>
+      <div class="progress" id="sendProgressWrap" style="display:none"><div id="sendProgress"></div></div>
+      <div class="p-label" id="sendProgressLabel" style="display:none"><span id="sendCurFile"></span><span id="sendPct"></span></div>
+      <ul class="files" id="sendQueue"></ul>
+      <button class="btn danger" style="margin-top:12px" onclick="resetAll()">Завершить сессию</button>
+    </div>
+  </div>
+
+  <!-- ПОЛУЧАТЕЛЬ -->
+  <div id="panelRecv" class="hidden">
+    <div class="status" id="stRecv"><span class="dot" id="dotRecv"></span><span id="stRecvText">Введите код от отправителя</span></div>
+    <div id="recvStep1">
+      <input class="code-input" id="codeInput" maxlength="6" placeholder="X7K2PQ" autocomplete="off" spellcheck="false">
+      <button class="btn" style="margin-top:12px" id="btnJoin" onclick="joinRoom()">Подключиться</button>
+      <div class="err-msg" id="recvErr"></div>
+    </div>
+    <div id="recvStep2" class="hidden">
+      <ul class="files" id="recvList"></ul>
+      <div class="progress" id="recvProgressWrap" style="display:none"><div id="recvProgress"></div></div>
+      <div class="p-label" id="recvProgressLabel" style="display:none"><span id="recvCurFile"></span><span id="recvPct"></span></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="textOut" placeholder="Быстро отправить текст или ссылку…">
+        <button class="btn small" onclick="sendText()">Отправить</button>
+      </div>
+      <button class="btn danger" style="margin-top:12px" onclick="resetAll()">Отключиться</button>
+    </div>
+  </div>
+</div>
+
+<div class="card" id="textCard">
+  <h2>Текстовый обмен</h2>
+  <div class="textlog" id="textLog"><div class="msg" style="color:var(--muted)">Принятые тексты и ссылки появятся здесь</div></div>
+</div>
+
+<footer>
+  <b>FileBridge</b> · файлы передаются напрямую (P2P/WebRTC, шифрование DTLS) и нигде не хранятся.<br>
+  Оба устройства должны быть онлайн одновременно. Видео не поддерживаются.
+</footer>
+</div>
+<script>
+"use strict";
+/* ================= FileBridge: P2P-передача файлов (PeerJS / WebRTC) ================= */
+const $ = id => document.getElementById(id);
+const CHUNK = 16384;                 // размер бинарного чанка
+const HIGH_WATER = 1 << 21;          // ~2 МБ буфера — пауза на сброс
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // без 0/O/1/I
+const MAX_FILE = 100 * 1024 * 1024;
+
+let mode = "send";
+let peer = null, conn = null;
+let files = [];                      // отправитель: объекты File + meta
+let roomCode = "";
+let curSend = -1;                    // индекс передаваемого файла
+let recvState = null;                // состояние приёма текущего файла
+
+/* ---------- утилиты ---------- */
+function fmtSize(b){
+  if (b < 1024) return b + " Б";
+  if (b < 1048576) return (b/1024).toFixed(1) + " КБ";
+  if (b < 1073741824) return (b/1048576).toFixed(1) + " МБ";
+  return (b/1073741824).toFixed(2) + " ГБ";
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function genCode(){
+  const a = new Uint32Array(6); crypto.getRandomValues(a);
+  return [...a].map(v => ALPHABET[v % ALPHABET.length]).join("");
+}
+async function sha256(buf){
+  const h = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+function setStatus(who, state, text){
+  const dot = $(who === "send" ? "dotSend" : "dotRecv");
+  const txt = $(who === "send" ? "stSendText" : "stRecvText");
+  dot.className = "dot " + (state || "");
+  if (text) txt.textContent = text;
+}
+function esc(s){
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ---------- режимы ---------- */
+function setMode(m){
+  mode = m;
+  $("mSend").classList.toggle("active", m === "send");
+  $("mRecv").classList.toggle("active", m === "recv");
+  $("panelSend").classList.toggle("hidden", m !== "send");
+  $("panelRecv").classList.toggle("hidden", m !== "recv");
+}
+$("codeInput").addEventListener("keydown", e => { if (e.key === "Enter") joinRoom(); });
+
+/* ================= ОТПРАВИТЕЛЬ ================= */
+$("fileInput").addEventListener("change", e => {
+  files = [...e.target.files].slice(0, 50).map(f => ({
+    file: f, name: f.name, size: f.size, sent: 0, status: "queue", hash: null
+  }));
+  const over = files.find(f => f.size > MAX_FILE);
+  if (over) alert("Файл «" + over.name + "» больше 100 МБ — браузер на телефоне не выдержит. Разделите или заархивируйте.");
+  files = files.filter(f => f.size <= MAX_FILE);
+  renderSendList();
+  $("btnCreateRoom").disabled = files.length === 0;
+});
+
+function renderSendList(){
+  $("sendFileList").innerHTML = files.map(f =>
+    `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span></li>`).join("");
+}
+
+function createRoom(){
+  roomCode = genCode();
+  $("roomCode").textContent = roomCode;
+  $("sendStep1").classList.add("hidden");
+  $("sendStep2").classList.remove("hidden");
+  setStatus("send", "wait", "Создаём комнату…");
+  peer = new Peer("filebridge-v1-" + roomCode, { debug: 1 });
+  peer.on("open", () => setStatus("send", "wait", "Ждём получателя… код: " + roomCode));
+  peer.on("error", err => {
+    if (err.type === "unavailable-id") { // код занят — генерируем другой
+      destroyPeer(); createRoom(); return;
+    }
+    setStatus("send", "err", "Ошибка: " + err.type);
+  });
+  peer.on("connection", c => {
+    if (conn) { c.close(); return; } // одно соединение на комнату
+    conn = c;
+    setupConnCommon();
+    setStatus("send", "ok", "Получатель подключён");
+    conn.on("data", onSenderData);
+    conn.on("close", () => {
+      conn = null;
+      setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
+    });
+    sendFileList();
+  });
+}
+
+function sendFileList(){
+  conn.send({ t: "list", files: files.map(f => ({ name: f.name, size: f.size })) });
+  renderQueue();
+}
+
+function renderQueue(){
+  const badges = { queue: ["queue","в очереди"], busy: ["busy","передача"], done: ["done","отправлен"], err: ["err","ошибка"] };
+  $("sendQueue").innerHTML = files.map(f => {
+    const [cls, txt] = badges[f.status] || badges.queue;
+    const pct = f.status === "busy" && f.size ? " · " + Math.round(f.sent / f.size * 100) + "%" : "";
+    return `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span><span class="badge ${cls}">${txt}${pct}</span></li>`;
+  }).join("");
+}
+
+async function onSenderData(msg){
+  if (!msg || typeof msg !== "object") return;
+  if (msg.t === "hi" || msg.t === "req") {
+    const next = files.findIndex(f => f.status !== "done" && f.status !== "busy");
+    if (next === -1) { conn.send({ t: "all-done" }); return; }
+    await sendFile(next);
+  }
+}
+
+async function sendFile(i){
+  if (curSend !== -1) return;         // одна передача за раз
+  curSend = i;
+  const f = files[i];
+  f.status = "busy"; f.sent = 0;
+  renderQueue();
+  $("sendProgressWrap").style.display = "block";
+  $("sendProgressLabel").style.display = "flex";
+  try {
+    if (!f.hash) f.hash = await sha256(await f.file.arrayBuffer());
+    conn.send({ t: "fs", i, name: f.name, size: f.size, hash: f.hash });
+    const stream = f.file.stream();
+    const reader = stream.getReader();
+    let first = true;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      // отрезаем ровно видимую часть — буфер может быть больше вью
+      conn.send(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+      f.sent += value.byteLength;
+      if (first) { updateSendProgress(f); first = false; }
+      else if ((f.sent & 0x3FFFF) < CHUNK) updateSendProgress(f); // ~каждые 256 КБ
+      while (conn.dataChannel && conn.dataChannel.bufferedAmount > HIGH_WATER) await sleep(20);
+      if (!conn || !conn.open) throw new Error("connection closed");
+    }
+    conn.send({ t: "fe", i });
+    f.status = "done";
+    setStatus("send", "ok", "Файл «" + f.name + "» передан");
+  } catch (e) {
+    f.status = "err";
+    setStatus("send", "err", "Сбой передачи: " + (e.message || e));
+  } finally {
+    curSend = -1;
+    updateSendProgress(f, true);
+    renderQueue();
+  }
+}
+
+function updateSendProgress(f, hide){
+  if (hide) { $("sendProgressWrap").style.display = "none"; $("sendProgressLabel").style.display = "none"; return; }
+  const pct = Math.round(f.sent / f.size * 100);
+  $("sendProgress").style.width = pct + "%";
+  $("sendCurFile").textContent = f.name;
+  $("sendPct").textContent = pct + "%";
+}
+
+function copyCode(){
+  navigator.clipboard?.writeText(roomCode).then(() => {
+    const el = $("roomCode"); const old = el.textContent;
+    el.textContent = "СКОПИРОВАНО";
+    setTimeout(() => el.textContent = old, 900);
+  });
+}
+
+/* ================= ПОЛУЧАТЕЛЬ ================= */
+function joinRoom(){
+  const code = $("codeInput").value.trim().toUpperCase();
+  $("recvErr").textContent = "";
+  if (!/^[A-Z2-9]{6}$/.test(code)) { $("recvErr").textContent = "Код — 6 символов (латиница и цифры без 0/O/1/I)."; return; }
+  $("btnJoin").disabled = true;
+  setStatus("recv", "wait", "Подключаемся…");
+  peer = new Peer({ debug: 1 });
+  peer.on("open", () => {
+    conn = peer.connect("filebridge-v1-" + code, { reliable: true });
+    setupConnCommon();
+    conn.on("open", () => {
+      conn.send({ t: "hi" });
+      $("recvStep1").classList.add("hidden");
+      $("recvStep2").classList.remove("hidden");
+      setStatus("recv", "ok", "Подключено. Получаем список файлов…");
+    });
+    conn.on("data", onRecvData);
+    conn.on("close", () => {
+      setStatus("recv", "err", "Соединение закрыто отправителем");
+    });
+  });
+  peer.on("error", err => {
+    $("btnJoin").disabled = false;
+    if (err.type === "peer-unavailable") setStatus("recv", "err", "Комната не найдена. Проверьте код и что вкладка отправителя открыта.");
+    else setStatus("recv", "err", "Ошибка: " + err.type);
+  });
+}
+
+let recvFiles = []; // метаданные списка
+function onRecvData(data){
+  if (data instanceof ArrayBuffer) { onChunk(data); return; }
+  if (!data || typeof data !== "object") return;
+  switch (data.t) {
+    case "list":
+      recvFiles = data.files.map(f => ({ ...f, got: 0, status: "queue" }));
+      renderRecvList();
+      setStatus("recv", "ok", "Готово к приёму: " + recvFiles.length + " файл(ов)");
+      requestNext();
+      break;
+    case "fs":
+      recvState = { i: data.i, name: data.name, size: data.size, hash: data.hash, chunks: [], got: 0 };
+      recvFiles[data.i].status = "busy";
+      $("recvProgressWrap").style.display = "block";
+      $("recvProgressLabel").style.display = "flex";
+      $("recvCurFile").textContent = data.name;
+      renderRecvList();
+      break;
+    case "fe": finishFile(); break;
+    case "all-done":
+      setStatus("recv", "ok", "Все файлы получены ✔");
+      $("recvProgressWrap").style.display = "none";
+      $("recvProgressLabel").style.display = "none";
+      break;
+    case "text":
+      addTextMsg("Отправитель", data.body);
+      break;
+  }
+}
+
+function requestNext(){
+  const next = recvFiles.findIndex(f => f.status === "queue");
+  if (next !== -1 && conn && conn.open) conn.send({ t: "req", i: next });
+}
+
+function onChunk(buf){
+  if (!recvState) return;
+  recvState.chunks.push(buf);
+  recvState.got += buf.byteLength;
+  recvFiles[recvState.i].got = recvState.got;
+  const pct = Math.min(100, Math.round(recvState.got / recvState.size * 100));
+  $("recvProgress").style.width = pct + "%";
+  $("recvPct").textContent = pct + "%";
+}
+
+async function finishFile(){
+  const st = recvState; recvState = null;
+  const rf = recvFiles[st.i];
+  try {
+    const blob = new Blob(st.chunks);
+    const buf = await blob.arrayBuffer();
+    const hash = await sha256(buf);
+    if (hash !== st.hash) {
+      rf.status = "err";
+      setStatus("recv", "err", "Контрольная сумма не сошлась — файл повреждён, попросите отправить заново");
+    } else {
+      rf.status = "done";
+      saveBlob(blob, st.name);
+      setStatus("recv", "ok", "Принят и сохранён: " + st.name);
+    }
+  } catch (e) {
+    rf.status = "err";
+    setStatus("recv", "err", "Ошибка сборки файла");
+  }
+  $("recvProgressWrap").style.display = "none";
+  $("recvProgressLabel").style.display = "none";
+  renderRecvList();
+  conn.send({ t: "ack", i: st.i });
+  requestNext();
+}
+
+function renderRecvList(){
+  const badges = { queue: ["queue","в очереди"], busy: ["busy","приём"], done: ["done","получен ✔"], err: ["err","ошибка"] };
+  $("recvList").innerHTML = recvFiles.map(f => {
+    const [cls, txt] = badges[f.status] || badges.queue;
+    return `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span><span class="badge ${cls}">${txt}</span></li>`;
+  }).join("");
+}
+
+function saveBlob(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+}
+
+/* ================= ТЕКСТ ================= */
+function sendText(){
+  const inp = $("textOut");
+  const v = inp.value.trim();
+  if (!v || !conn || !conn.open) return;
+  conn.send({ t: "text", body: v });
+  addTextMsg("Вы", v);
+  inp.value = "";
+}
+function addTextMsg(from, body){
+  const log = $("textLog");
+  const stub = log.querySelector(".msg");
+  if (stub && stub.style.color) stub.remove();
+  const div = document.createElement("div");
+  div.className = "msg";
+  div.innerHTML = "<small>" + esc(from) + " · " + new Date().toLocaleTimeString() + "</small>" + esc(body);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  // клик — копировать
+  div.style.cursor = "pointer";
+  div.title = "Нажмите, чтобы скопировать";
+  div.onclick = () => navigator.clipboard?.writeText(body);
+}
+
+/* ============ общее ============ */
+function setupConnCommon(){
+  conn.on("error", e => console.warn("conn error", e));
+}
+function destroyPeer(){
+  try { conn && conn.close(); } catch(e){}
+  try { peer && peer.destroy(); } catch(e){}
+  conn = null; peer = null;
+}
+function resetAll(){
+  destroyPeer();
+  files = []; recvFiles = []; recvState = null; curSend = -1; roomCode = "";
+  $("fileInput").value = "";
+  $("sendFileList").innerHTML = "";
+  $("sendQueue").innerHTML = "";
+  $("recvList").innerHTML = "";
+  $("btnCreateRoom").disabled = true;
+  $("btnJoin").disabled = false;
+  $("codeInput").value = "";
+  $("sendStep2").classList.add("hidden");
+  $("sendStep1").classList.remove("hidden");
+  $("recvStep2").classList.add("hidden");
+  $("recvStep1").classList.remove("hidden");
+  setStatus("send", "", "Выберите файлы для отправки");
+  setStatus("recv", "", "Введите код от отправителя");
+  setMode("send");
+}
+window.addEventListener("beforeunload", destroyPeer);
+
+/* PWA: service worker */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
+/* блок отправки текста у отправителя — вставляем перед кнопкой завершения */
+(function(){
+  const row = document.createElement("div");
+  row.className = "row";
+  row.style.marginTop = "12px";
+  row.innerHTML = '<input type="text" id="textOutS" placeholder="Быстро отправить текст или ссылку…"><button class="btn small" id="btnTextS">Отправить</button>';
+  const btn = $("sendStep2").querySelector("button.danger");
+  $("sendStep2").insertBefore(row, btn);
+  $("btnTextS").onclick = () => {
+    const v = $("textOutS").value.trim();
+    if (!v || !conn || !conn.open) return;
+    conn.send({ t: "text", body: v });
+    addTextMsg("Вы", v);
+    $("textOutS").value = "";
+  };
+})();
+</script>
+</body>
+</html>
