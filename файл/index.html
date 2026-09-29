@@ -308,7 +308,7 @@ function brokerChain(){
 }
 function makePeer(id, broker){
   return new Peer(id, {
-    debug: 1,
+    debug: 0,
     host: broker.host,
     port: broker.port || 443,
     path: broker.path || "/",
@@ -359,39 +359,60 @@ function createRoom(){
   $("sendStep1").classList.add("hidden");
   $("sendStep2").classList.remove("hidden");
   const chain = brokerChain();
-  let idx = 0, roomTries = 0;
+  let idx = 0, roomTries = 0, gen = 0;
+
   const tryBroker = () => {
     if (idx >= chain.length) {
-      setStatus("send", "err", "Все брокеры недоступны. Впишите свой брокер в настройках ниже.");
+      setStatus("send", "err", "Все брокеры недоступны. Укажите свой брокер в настройках ниже, затем «Завершить сессию» и создайте комнату заново.");
       return;
     }
     const b = chain[idx++];
-    setStatus("send", "wait", idx > 1 ? "Брокер недоступен, пробуем «" + b.name + "»…" : "Создаём комнату…");
-    peer = makePeer("filebridge-v1-" + roomCode, b);
-    peer.on("open", () => {
+    setStatus("send", "wait", (idx > 1 ? "Брокер недоступен, пробуем «" + b.name + "»…" : "Создаём комнату…") + " (" + idx + "/" + chain.length + ")");
+    const myGen = ++gen;
+    const myPeer = (peer = makePeer("filebridge-v1-" + roomCode, b));
+    const dead = () => peer !== myPeer || myGen !== gen;
+    let opened = false;
+    // заблокированные сокеты часто висят без ошибки — свой таймаут
+    const timer = setTimeout(() => {
+      if (dead() || opened) return;
+      try { myPeer.destroy(); } catch(e){}
+      tryBroker();
+    }, 8000);
+
+    myPeer.on("open", () => {
+      if (dead()) return;
+      opened = true; clearTimeout(timer);
       showBroker(b.name);
       setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
-    peer.on("error", err => {
+    myPeer.on("error", err => {
+      if (dead()) return;
+      clearTimeout(timer);
       if (err.type === "unavailable-id") { // код занят на этом брокере — новый код
-        destroyPeer();
+        try { myPeer.destroy(); } catch(e){}
+        if (peer === myPeer) peer = null;
         if (++roomTries > 3) { setStatus("send", "err", "Не удалось создать комнату, попробуйте ещё раз."); return; }
         roomCode = genCode();
         $("roomCode").textContent = roomCode;
         idx = 0; tryBroker(); return;
       }
-      if (BROKER_FAIL.includes(err.type)) { destroyPeer(); tryBroker(); return; }
+      if (BROKER_FAIL.includes(err.type)) {
+        try { myPeer.destroy(); } catch(e){}
+        if (peer === myPeer) peer = null;
+        tryBroker(); return;
+      }
       setStatus("send", "err", "Ошибка: " + err.type);
     });
-    peer.on("disconnected", () => { try { peer.reconnect(); } catch(e){} });
-    peer.on("connection", c => {
+    myPeer.on("disconnected", () => { if (!dead() && opened) { try { myPeer.reconnect(); } catch(e){} } });
+    myPeer.on("connection", c => {
+      if (dead()) return;
       if (conn) { c.close(); return; } // одно соединение на комнату
       conn = c;
       setupConnCommon();
       setStatus("send", "ok", "Получатель подключён");
       conn.on("data", onSenderData);
       conn.on("close", () => {
-        conn = null;
+        if (conn === c) conn = null;
         setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
       });
       sendFileList();
@@ -484,7 +505,9 @@ function joinRoom(){
   if (!/^[A-Z2-9]{6}$/.test(code)) { $("recvErr").textContent = "Код — 6 символов (латиница и цифры без 0/O/1/I)."; return; }
   $("btnJoin").disabled = true;
   const chain = brokerChain();
-  let idx = 0, target = "filebridge-v1-" + code;
+  const target = "filebridge-v1-" + code;
+  let idx = 0, gen = 0;
+
   const tryBroker = () => {
     if (idx >= chain.length) {
       $("btnJoin").disabled = false;
@@ -492,25 +515,41 @@ function joinRoom(){
       return;
     }
     const b = chain[idx++];
-    setStatus("recv", "wait", idx > 1 ? "Ищем комнату на «" + b.name + "»…" : "Подключаемся…");
-    peer = makePeer(undefined, b);
-    peer.on("open", () => {
-      conn = peer.connect(target, { reliable: true });
+    setStatus("recv", "wait", (idx > 1 ? "Ищем комнату на «" + b.name + "»…" : "Подключаемся…") + " (" + idx + "/" + chain.length + ")");
+    const myGen = ++gen;
+    const myPeer = (peer = makePeer(undefined, b));
+    const dead = () => peer !== myPeer || myGen !== gen;
+    let opened = false;
+    const timer = setTimeout(() => {
+      if (dead() || opened) return;
+      try { myPeer.destroy(); } catch(e){}
+      tryBroker();
+    }, 8000);
+
+    myPeer.on("open", () => {
+      if (dead()) return;
+      opened = true; clearTimeout(timer);
+      const myConn = (conn = myPeer.connect(target, { reliable: true }));
       setupConnCommon();
-      conn.on("open", () => {
+      myConn.on("open", () => {
+        if (dead() || conn !== myConn) return;
         showBroker(b.name);
-        conn.send({ t: "hi" });
+        myConn.send({ t: "hi" });
         $("recvStep1").classList.add("hidden");
         $("recvStep2").classList.remove("hidden");
         setStatus("recv", "ok", "Подключено. Получаем список файлов…");
       });
-      conn.on("data", onRecvData);
-      conn.on("close", () => {
+      myConn.on("data", onRecvData);
+      myConn.on("close", () => {
+        if (dead() || conn !== myConn) return;
         setStatus("recv", "err", "Соединение закрыто отправителем");
       });
     });
-    peer.on("error", err => {
-      destroyPeer();
+    myPeer.on("error", err => {
+      if (dead()) return;
+      clearTimeout(timer);
+      try { myPeer.destroy(); } catch(e){}
+      if (peer === myPeer) { peer = null; conn = null; }
       if (err.type === "peer-unavailable") { tryBroker(); return; } // комната может быть на следующем брокере
       if (BROKER_FAIL.includes(err.type)) { tryBroker(); return; }
       $("btnJoin").disabled = false;
