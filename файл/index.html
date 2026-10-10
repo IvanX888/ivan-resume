@@ -16,7 +16,7 @@
 <script>
 /* Сброс старого кеша и service worker — один раз на версию */
 (function(){
-  const V = "fb-v1.2.6";                      // ← поднимать при каждом релизе (как VERSION в sw.js)
+  const V = "fb-v1.3.0";                      // ← поднимать при каждом релизе (как VERSION в sw.js)
   if (localStorage.getItem("fb_ver") === V) return;
   localStorage.setItem("fb_ver", V);
   if (!navigator.serviceWorker) return;
@@ -118,7 +118,7 @@ input[type=text]:focus{outline:none;border-color:var(--accent)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .progress{height:8px;background:var(--card2);border-radius:99px;overflow:hidden;margin:10px 0 4px}
 .progress>div{height:100%;width:0%;background:var(--accent);border-radius:99px;transition:width .15s}
-.p-label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+.p-label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
 ul.files{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:6px}
 ul.files li{
   display:flex;align-items:center;gap:10px;padding:10px 12px;
@@ -149,6 +149,7 @@ footer b{color:var(--text)}
   .code-box{font-size:28px;letter-spacing:5px}
 }
 </style>
+<base target="_blank">
 </head>
 <body>
 <div class="wrap">
@@ -169,7 +170,7 @@ footer b{color:var(--text)}
     <div class="status" id="stSend"><span class="dot" id="dotSend"></span><span id="stSendText">Выберите файлы для отправки</span></div>
 
     <div id="sendStep1">
-      <button class="btn" onclick="document.getElementById('fileInput').click()">Выбрать файлы (до 100 МБ)</button>
+      <button class="btn" onclick="document.getElementById('fileInput').click()">Выбрать файлы (до 1 ГБ каждый)</button>
       <input type="file" id="fileInput" multiple hidden>
       <ul class="files" id="sendFileList"></ul>
       <button class="btn" id="btnCreateRoom" style="margin-top:12px" onclick="createRoom()" disabled>Создать код комнаты</button>
@@ -178,7 +179,7 @@ footer b{color:var(--text)}
     <div id="sendStep2" class="hidden">
       <div class="hint">Назовите этот код получателю — на втором устройстве выберите «Получить» и введите его:</div>
       <div class="code-box" id="roomCode" onclick="copyCode()" title="Нажмите, чтобы скопировать">------</div>
-      <div class="hint">Код одноразовый и живёт, пока открыта эта вкладка</div>
+      <div class="hint">Код одноразовый и живёт, пока открыта эта вкладка. Обрыв связи — не страшен: передача возобновится сама.</div>
       <div class="hint" id="brokerInfo" style="display:none;font-weight:600"></div>
       <div class="progress" id="sendProgressWrap" style="display:none"><div id="sendProgress"></div></div>
       <div class="p-label" id="sendProgressLabel" style="display:none"><span id="sendCurFile"></span><span id="sendPct"></span></div>
@@ -221,25 +222,31 @@ footer b{color:var(--text)}
       <button class="btn small" onclick="saveBroker()">Сохранить</button>
       <button class="btn small ghost" onclick="clearBroker()">Сбросить на публичные</button>
     </div>
-    <div class="hint">Свой брокер = максимальная надёжность. Поднимается одной командой (Docker):<br><code style="font-size:11px">docker run -d -p 8084:8084 emqx/emqx</code><br>затем впишите wss://ваш-домен:8084/mqtt (TLS — через Caddy/nginx). Оба устройства должны использовать один брокер.</div>
+    <div class="hint">Свой брокер = максимальная надёжность (публичные HiveMQ/EMQX иногда перегружены и рвут сигнальный канал). Поднимается одной командой (Docker):<br><code style="font-size:11px">docker run -d -p 8084:8084 emqx/emqx</code><br>затем впишите wss://ваш-домен:8084/mqtt (TLS — через Caddy/nginx). Оба устройства должны использовать один брокер.</div>
   </div>
 </details>
 
 <footer>
   <b>FileBridge</b> · файлы передаются напрямую (P2P/WebRTC, шифрование DTLS) и нигде не хранятся.<br>
-  Оба устройства должны быть онлайн одновременно. Видео не поддерживаются.
+  Оба устройства должны быть онлайн одновременно. Обрыв связи — передача автоматически возобновляется с места обрыва.
 </footer>
 </div>
 
 <script>
 "use strict";
-/* ============ FileBridge v1.2 — P2P-передача файлов ============
+/* ============ FileBridge v1.3 — P2P-передача файлов ============
    Сигналинг: MQTT over WebSocket (публичные брокеры, fallback-цепочка).
-   Передача файлов: WebRTC DataChannel (DTLS), напрямую между устройствами. */
+   Передача: WebRTC DataChannel (DTLS), напрямую между устройствами.
+   Протокол v1.3: кумулятивные ACK + окно подтверждения → докачка после
+   обрыва; автоматическое переподключение WebRTC через сигнальный канал. */
 const $ = id => document.getElementById(id);
-const HIGH_WATER = 1 << 20;                 // ~1 МБ — пауза на сброс буфера
+const CHUNK       = 256 * 1024;   // размер куска файла
+const ACK_EVERY   = 4 * 1024 * 1024;  // receiver: ACK каждые 4 МБ
+const WINDOW      = 8 * 1024 * 1024;  // max неподтверждённых данных у отправителя
+const BUF_HIGH    = 4 * 1024 * 1024;  // пауза по bufferedAmount
+const STALL_MS    = 40000;        // нет ACK дольше — считаем канал мёртвым
+const MAX_FILE    = 1024 * 1024 * 1024; // 1 ГБ на файл
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // без 0/O/1/I
-const MAX_FILE = 100 * 1024 * 1024;
 const td = new TextDecoder();
 
 const RTC_CFG = { iceServers: [
@@ -258,7 +265,8 @@ const TBASE = c => "fbv1/" + c;
 let mode = "send";
 let mqtt = null, conn = null, pc = null;
 let files = [], recvFiles = [], recvState = null;
-let roomCode = "", curSend = -1;
+let roomCode = "", curRecvCode = "", curSend = -1;
+let wantTimer = null, sendArmGen = 0, recvArmGen = 0, rtcGen = 0, answering = false;
 
 /* ---------- утилиты ---------- */
 function fmtSize(b){
@@ -335,10 +343,8 @@ function MiniMqtt(url){
       const tl = (body[0] << 8) | body[1];
       const topic = td.decode(body.slice(2, 2 + tl));
       const payload = body.slice(2 + tl);
-      console.log("[MQTT] PUBLISH topic:", topic, "len:", payload.length);
       emit("message", topic, payload);
     }
-    // SUBACK(9), PINGRESP(13) — не нужны
   }
 
   function parse(){
@@ -414,7 +420,6 @@ function mqttChain(){
   if (typeof custom === "string" && /^(wss?:\/\/)/.test(custom)) chain.unshift(custom);
   return chain;
 }
-/* cb(null, client, url, idx) при успехе; cb(err, null, null, idx) если этот брокер не взошёл */
 function tryMqtt(chain, idx, cb){
   if (idx >= chain.length) { cb(new Error("all-brokers-down"), null, null, idx); return; }
   const url = chain[idx];
@@ -439,7 +444,6 @@ function tryMqtt(chain, idx, cb){
   });
 }
 
-/* ---------- RTCPeerConnection ---------- */
 function newPc(){
   return new RTCPeerConnection(RTC_CFG);
 }
@@ -457,11 +461,10 @@ $("codeInput").addEventListener("keydown", e => { if (e.key === "Enter") joinRoo
 /* ================= ОТПРАВИТЕЛЬ ================= */
 $("fileInput").addEventListener("change", e => {
   files = [...e.target.files].slice(0, 50).map(f => ({
-    file: f, name: f.name, size: f.size, sent: 0, status: "queue", hash: null
+    file: f, name: f.name, size: f.size, sent: 0, acked: 0, status: "queue", hash: null
   }));
-  console.log("[FILES] selected:", files.length, "items, total:", files.reduce((a,f)=>a+f.size,0));
   const over = files.find(f => f.size > MAX_FILE);
-  if (over) alert("Файл «" + over.name + "» больше 100 МБ — браузер на телефоне не выдержит. Разделите или заархивируйте.");
+  if (over) alert("Файл «" + over.name + "» больше 1 ГБ — разделите или заархивируйте.");
   files = files.filter(f => f.size <= MAX_FILE);
   renderSendList();
   $("btnCreateRoom").disabled = files.length === 0;
@@ -480,6 +483,7 @@ function createRoom(){
   const chain = mqttChain();
   const myGen = ++sendGen;
   const alive = () => myGen === sendGen;
+
   const step = (i) => {
     if (!alive()) return;
     if (i >= chain.length) {
@@ -492,54 +496,92 @@ function createRoom(){
       if (err) { step(idx + 1); return; }
       mqtt = client;
       showBroker(url);
-      const t = TBASE(roomCode);
-      client.subscribe(t + "/answer");
-      client.on("message", (topic, payload) => {
-        if (!alive()) return;
-        const msg = td.decode(payload);
-        console.log("[SENDER] MQTT msg on", topic, "len:", msg.length);
-        if (topic === t + "/answer" && msg) {
-          try { pc.setRemoteDescription(JSON.parse(msg)).then(() => console.log("[SENDER] setRemoteDescription OK")).catch(e => console.log("[SENDER] setRemoteDescription err:", e)); } catch(e){}
-        }
-      });
-      client.on("close", () => {
-        if (alive() && !isOpen()) setStatus("send", "err", "Связь с брокером потеряна до подключения получателя. «Завершить сессию» и создайте комнату заново.");
-      });
-      pc = newPc();
-      conn = pc.createDataChannel("fb");
-      wireConn("send");
-      console.log("[SENDER] DataChannel created");
-      pc.onconnectionstatechange = () => {
-        console.log("[SENDER] PC state:", pc.connectionState);
-        if (!alive()) return;
-        if (pc.connectionState === "failed") setStatus("send", "err", "WebRTC: не удалось установить прямое соединение. Попробуйте другую сеть (Wi-Fi ↔ мобильный интернет).");
-      };
-      // ждём полного сбора ICE, затем публикуем offer со всеми кандидатами
-      let offerPublished = false;
-      function publishOffer(){
-        if (offerPublished || !alive()) return;
-        offerPublished = true;
-        const desc = { type: pc.localDescription.type, sdp: pc.localDescription.sdp };
-        console.log("[SENDER] Publishing offer, size:", JSON.stringify(desc).length);
-        client.publish(t + "/offer", JSON.stringify(desc), true);
-      }
-      pc.onicegatheringstatechange = () => {
-        console.log("[SENDER] ICE gathering:", pc.iceGatheringState);
-        if (pc.iceGatheringState === "complete") publishOffer();
-      };
-      // fallback: если ICE не собрался за 8 с, публикуем то, что есть
-      setTimeout(() => { if (!offerPublished) publishOffer(); }, 8000);
-      // таймаут: если DataChannel не открылся за 30 с — ошибка
-      const dcTimer = setTimeout(() => {
-        if (!alive() || isOpen()) return;
-        setStatus("send", "err", "Получатель не подключился за 30 сек. Проверьте код и интернет на обоих устройствах.");
-      }, 30000);
-      conn.addEventListener("open", () => { console.log("[SENDER] DataChannel OPEN"); clearTimeout(dcTimer); });
-      pc.createOffer().then(o => pc.setLocalDescription(o)).catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
+      armSenderClient(client, url);
+      startWebRTC();
       setStatus("send", "wait", "Ждём получателя… код: " + roomCode);
     });
   };
   step(0);
+}
+
+/* подписки отправителя: ответы получателя и его запросы на переподключение */
+function armSender(url){
+  const myArm = ++sendArmGen;
+  const alive = () => myArm === sendArmGen && sendGen === sendArmGen - (sendArmGen - sendArmGen); // глупость нет
+}
+/* (переопределяем ниже корректно) */
+function armSenderClient(client, url){
+  const myArm = ++sendArmGen;
+  const myGen = sendGen;
+  const alive = () => myArm === sendArmGen && myGen === sendGen;
+  const t = TBASE(roomCode);
+  client.subscribe(t + "/answer");
+  client.subscribe(t + "/want");
+  client.on("message", (topic, payload) => {
+    if (!alive()) return;
+    const msg = td.decode(payload);
+    if (topic === t + "/answer" && msg && pc) {
+      try { pc.setRemoteDescription(JSON.parse(msg)).catch(e => console.log("[SENDER] setRemote err:", e)); } catch(e){}
+    } else if (topic === t + "/want" && !isOpen()) {
+      setStatus("send", "wait", "Получатель снова онлайн — восстанавливаем соединение…");
+      startWebRTC();
+    }
+  });
+  client.on("close", () => {
+    if (!alive()) return;
+    if (!isOpen()) setStatus("send", "err", "Связь с брокером потеряна до подключения получателя. «Завершить сессию» и создайте комнату заново.");
+    // если канал жив — передача по WebRTC продолжается; брокер переподключим для будущих реконнектов
+    setTimeout(() => {
+      if (!alive() || (mqtt && mqtt !== client)) return;
+      reconnectSenderMqtt();
+    }, 2500);
+  });
+}
+function reconnectSenderMqtt(){
+  const myGen = sendGen;
+  const alive = () => myGen === sendGen;
+  const chain = mqttChain();
+  const step = (i) => {
+    if (!alive()) return;
+    if (i >= chain.length) {
+      setTimeout(() => { if (alive()) reconnectSenderMqtt(); }, 8000);
+      return;
+    }
+    tryMqtt(chain, i, (err, client, url, idx) => {
+      if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
+      if (err) { step(idx + 1); return; }
+      mqtt = client;
+      armSenderClient(client, url);
+      if (!isOpen()) startWebRTC(); // перепубликуем оффер, чтобы получатель мог найти нас
+    });
+  };
+  step(0);
+}
+
+/* новый (или повторный) WebRTC-оффер от отправителя */
+function startWebRTC(){
+  if (pc) { try { pc.close(); } catch(e){} pc = null; }
+  conn = null;
+  const myRtc = ++rtcGen;
+  pc = newPc();
+  conn = pc.createDataChannel("fb", { ordered: true });
+  wireConn("send");
+  pc.onconnectionstatechange = () => {
+    if (myRtc !== rtcGen) return;
+    console.log("[SENDER] PC state:", pc.connectionState);
+    if (pc.connectionState === "failed") {
+      try { if (conn) conn.close(); } catch(e){}
+    }
+  };
+  let published = false;
+  const pub = () => {
+    if (published || myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return;
+    published = true;
+    mqtt.publish(TBASE(roomCode) + "/offer", JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp }), true);
+  };
+  pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") pub(); };
+  setTimeout(pub, 8000); // fallback: публикуем, что собралось
+  pc.createOffer().then(o => pc.setLocalDescription(o)).catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
 }
 
 function sendFileList(){
@@ -550,62 +592,124 @@ function renderQueue(){
   const badges = { queue: ["queue","в очереди"], busy: ["busy","передача"], done: ["done","отправлен"], err: ["err","ошибка"] };
   $("sendQueue").innerHTML = files.map(f => {
     const [cls, txt] = badges[f.status] || badges.queue;
-    const pct = f.status === "busy" && f.size ? " · " + Math.round(f.sent / f.size * 100) + "%" : "";
+    const pct = f.status === "busy" && f.size ? " · " + Math.round((f.sent || 0) / f.size * 100) + "%" : "";
     return `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span><span class="badge ${cls}">${txt}${pct}</span></li>`;
   }).join("");
 }
 
-async function onSenderCtrl(msg){
-  if (msg.t === "hi" || msg.t === "req") {
-    const next = files.findIndex(f => f.status !== "done" && f.status !== "busy");
-    if (next === -1) {
-      if (curSend === -1) csend({ t: "all-done" });   // очередь пуста И передача не идёт
-      return;
-    }
-    await sendFile(next);
-  }
+/* выбор следующего файла из очереди */
+function startNext(){
+  const next = files.findIndex(f => f.status === "queue");
+  if (next !== -1) sendFile(next, 0);
+  else csend({ t: "all-done" });
 }
 
-async function sendFile(i){
+/* ---------- передача файла с докачкой ---------- */
+async function sendFile(i, resumeFrom){
   if (curSend !== -1) return;
-  curSend = i;
   const f = files[i];
-  f.status = "busy"; f.sent = 0;
+  curSend = i;
+  f.status = "busy";
+  if (f.acked == null) f.acked = 0;
+  const myGen = sendGen;
+  const alive = () => myGen === sendGen;
   renderQueue();
   $("sendProgressWrap").style.display = "block";
   $("sendProgressLabel").style.display = "flex";
   try {
     if (!f.hash) f.hash = await sha256(await f.file.arrayBuffer());
-    csend({ t: "fs", i, name: f.name, size: f.size, hash: f.hash });
-    const reader = f.file.stream().getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      conn.send(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
-      f.sent += value.byteLength;
-      if ((f.sent & 0x3FFFF) < value.byteLength) updateSendProgress(f);
-      while (isOpen() && conn.bufferedAmount > HIGH_WATER) await sleep(20);
-      if (!isOpen()) throw new Error("соединение закрыто");
+    if (!alive()) return;
+    let off = (resumeFrom != null) ? resumeFrom : f.acked;
+    f.acked = Math.min(f.acked || 0, off);
+    f.sent = off;
+    f.lastAckT = performance.now();
+    f.speedMark = { t: performance.now(), b: off };
+    csend({ t: "fs", i, name: f.name, size: f.size, hash: f.hash, off });
+
+    while (off < f.size && alive()) {
+      if (!isOpen()) {
+        setStatus("send", "wait", "Передача приостановлена — ждём получателя… (" + Math.round(off / f.size * 100) + "%)");
+        await sleep(500);
+        continue;
+      }
+      // не переполняем буфер браузера
+      while (isOpen() && conn.bufferedAmount > BUF_HIGH) await sleep(25);
+      // окно подтверждения: без ACK дальше не шлём
+      while (isOpen() && off - f.acked >= WINDOW) {
+        await sleep(60);
+        if (performance.now() - f.lastAckT > STALL_MS) {
+          try { conn.close(); } catch(e){}   // канал завис — закрываем, пойдёт реконнект
+          break;
+        }
+      }
+      if (!isOpen()) continue;
+      const end = Math.min(off + CHUNK, f.size);
+      const buf = await f.file.slice(off, end).arrayBuffer();
+      if (!alive()) return;
+      if (!isOpen()) continue;   // не отправили — повторим тот же кусок
+      conn.send(buf);
+      off = end; f.sent = off;
+      if (off - f.speedMark.b >= 2 * 1024 * 1024) {
+        f.speed = (off - f.speedMark.b) / 1048576 / ((performance.now() - f.speedMark.t) / 1000);
+        f.speedMark = { t: performance.now(), b: off };
+      }
+      if ((off % (4 * CHUNK)) === 0 || off === f.size) updateSendProgress(f);
+      renderQueue();
     }
+    if (!alive()) return;
     csend({ t: "fe", i });
     f.status = "done";
-    setStatus("send", "ok", "Файл «" + f.name + "» передан");
+    setStatus("send", "ok", "Файл «" + f.name + "» передан ✔");
+    if (files.every(x => x.status === "done")) csend({ t: "all-done" });
   } catch (e) {
     f.status = "err";
     setStatus("send", "err", "Сбой передачи: " + (e.message || e));
   } finally {
-    curSend = -1;
-    updateSendProgress(f, true);
-    renderQueue();
+    if (alive()) {
+      curSend = -1;
+      renderQueue();
+      setTimeout(() => { if (curSend === -1) updateSendProgress(null); }, 1600);
+    }
   }
 }
 
-function updateSendProgress(f, hide){
-  if (hide) { $("sendProgressWrap").style.display = "none"; $("sendProgressLabel").style.display = "none"; return; }
-  const pct = Math.round(f.sent / f.size * 100);
+function onSenderCtrl(msg){
+  switch (msg.t) {
+    case "hi": {
+      // получатель сбрасывает прогресс, если он новый/перезагрузился
+      if (msg.restart) {
+        files.forEach(f => { if (f.status !== "done") { f.status = "queue"; f.sent = 0; f.acked = 0; } });
+        curSend = -1;
+      }
+      sendFileList();
+      const busy = files.findIndex(f => f.status === "busy");
+      if (busy !== -1 && curSend === -1) sendFile(busy, files[busy].acked);
+      else if (curSend === -1) startNext();
+      break;
+    }
+    case "ack":
+      if (files[msg.i]) {
+        files[msg.i].acked = Math.max(files[msg.i].acked || 0, msg.got);
+        files[msg.i].lastAckT = performance.now();
+      }
+      break;
+    case "req":
+      if (curSend !== -1) break;
+      if (msg.restart && files[msg.i]) {
+        files[msg.i].status = "queue"; files[msg.i].sent = 0; files[msg.i].acked = 0;
+      }
+      if (files[msg.i] && files[msg.i].status !== "done") sendFile(msg.i, files[msg.i].acked || 0);
+      else startNext();
+      break;
+  }
+}
+
+function updateSendProgress(f){
+  if (!f) { $("sendProgressWrap").style.display = "none"; $("sendProgressLabel").style.display = "none"; return; }
+  const pct = f.size ? Math.round((f.sent || 0) / f.size * 100) : 0;
   $("sendProgress").style.width = pct + "%";
-  $("sendCurFile").textContent = f.name;
-  $("sendPct").textContent = pct + "%";
+  $("sendCurFile").textContent = f.name + " · " + fmtSize(f.sent || 0) + " / " + fmtSize(f.size);
+  $("sendPct").textContent = pct + "%" + (f.speed ? " · " + f.speed.toFixed(1) + " МБ/с" : "");
 }
 
 function copyCode(){
@@ -617,17 +721,19 @@ function copyCode(){
 }
 
 /* ================= ПОЛУЧАТЕЛЬ ================= */
-let recvGen = 0;
+let recvGen = 0, firstConnectDone = false;
+
 function joinRoom(){
   const code = $("codeInput").value.trim().toUpperCase();
   $("recvErr").textContent = "";
   if (!/^[A-Z2-9]{6}$/.test(code)) { $("recvErr").textContent = "Код — 6 символов (латиница и цифры без 0/O/1/I)."; return; }
   $("btnJoin").disabled = true;
   mode = "recv";
+  curRecvCode = code;
   const myGen = ++recvGen;
   const alive = () => myGen === recvGen;
   const chain = mqttChain();
-  let curIdx = 0;
+  let curIdx = 0, hopTimer = null;
 
   const step = (i) => {
     if (!alive()) return;
@@ -642,65 +748,120 @@ function joinRoom(){
       if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
       if (err) { step(idx + 1); return; }
 
-      const t = TBASE(code);
-      let gotOffer = false;
-      client.subscribe(t + "/offer");
+      mqtt = client;
+      armReceiverClient(client, url, code);
+      startWantLoop(code);
       // оффера нет 12 секунд — комната, видимо, на другом брокере
-      const hop = setTimeout(() => {
-        if (gotOffer || !alive()) return;
+      clearTimeout(hopTimer);
+      hopTimer = setTimeout(() => {
+        if (firstConnectDone || !alive() || isOpen()) return;
         try { client.end(true); } catch(e){}
         step(curIdx + 1);
       }, 12000);
-
-      client.on("message", (topic, payload) => {
-        if (!alive()) return;
-        const msg = td.decode(payload);
-        if (topic === t + "/offer" && msg && !gotOffer) {
-          gotOffer = true; clearTimeout(hop);
-          showBroker(url);
-          console.log("[RECV] Got offer, len:", msg.length);
-          pc = newPc();
-          pc.ondatachannel = e => {
-            console.log("[RECV] DataChannel received!");
-            conn = e.channel; wireConn("recv");
-            if (alive()) { client.publish(t + "/offer", "", true); }
-          };
-          pc.onconnectionstatechange = () => {
-            console.log("[RECV] PC state:", pc.connectionState);
-            if (!alive()) return;
-            if (pc.connectionState === "failed") setStatus("recv", "err", "WebRTC: не удалось установить прямое соединение. Попробуйте другую сеть.");
-          };
-          let answerPublished = false;
-          function publishAnswer(){
-            if (answerPublished || !alive()) return;
-            answerPublished = true;
-            const desc = { type: pc.localDescription.type, sdp: pc.localDescription.sdp };
-            console.log("[RECV] Publishing answer, size:", JSON.stringify(desc).length);
-            client.publish(t + "/answer", JSON.stringify(desc), true);
-          }
-          pc.onicegatheringstatechange = () => {
-            console.log("[RECV] ICE gathering:", pc.iceGatheringState);
-            if (pc.iceGatheringState === "complete") publishAnswer();
-          };
-          setTimeout(() => { if (!answerPublished) publishAnswer(); }, 8000);
-          const dcTimerR = setTimeout(() => {
-            if (!alive() || isOpen()) return;
-            setStatus("recv", "err", "Соединение не установлено за 30 сек. Проверьте код и интернет.");
-          }, 30000);
-          try {
-            pc.setRemoteDescription(JSON.parse(msg))
-              .then(() => { console.log("[RECV] setRemoteDescription OK"); return pc.createAnswer(); })
-              .then(a => { console.log("[RECV] createAnswer OK"); return pc.setLocalDescription(a); })
-              .then(() => console.log("[RECV] setLocalDescription OK"))
-              .catch(er => setStatus("recv", "err", "Ошибка WebRTC: " + er.message));
-          } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); clearTimeout(dcTimerR); }
-        }
-      });
-      setStatus("recv", "wait", "Ищем комнату " + code + "… (" + (i + 1) + "/" + chain.length + ")");
+      setStatus("recv", "wait", "Ищем комнату " + code + "… (" + (idx + 1) + "/" + chain.length + ")");
     });
   };
   step(0);
 }
+
+/* подписки получателя: офферы отправителя (включая повторные при реконнекте) */
+function armReceiverClient(client, url, code){
+  const myArm = ++recvArmGen;
+  const myGen = recvGen;
+  const alive = () => myArm === recvArmGen && myGen === recvGen;
+  const t = TBASE(code);
+  client.subscribe(t + "/offer");
+  client.on("message", (topic, payload) => {
+    if (!alive()) return;
+    const msg = td.decode(payload);
+    if (topic !== t + "/offer" || !msg) return;
+    if (isOpen() || answering) return;   // уже есть живой канал или идёт рукопожатие
+    answering = true;
+    showBroker(url);
+    console.log("[RECV] Got offer, len:", msg.length);
+    handleOffer(client, t, msg, alive, () => { answering = false; });
+  });
+  client.on("close", () => {
+    if (!alive()) return;
+    // брокер отвалился — переподключимся, want-loop продолжит стучаться
+    setTimeout(() => {
+      if (!alive() || (mqtt && mqtt !== client)) return;
+      reconnectReceiverMqtt(code);
+    }, 2500);
+  });
+}
+function reconnectReceiverMqtt(code){
+  const myGen = recvGen;
+  const alive = () => myGen === recvGen;
+  const chain = mqttChain();
+  const step = (i) => {
+    if (!alive()) return;
+    if (i >= chain.length) { setTimeout(() => { if (alive()) reconnectReceiverMqtt(code); }, 8000); return; }
+    tryMqtt(chain, i, (err, client, url, idx) => {
+      if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
+      if (err) { step(idx + 1); return; }
+      mqtt = client;
+      armReceiverClient(client, url, code);
+    });
+  };
+  step(0);
+}
+
+function handleOffer(client, t, msg, alive, freeAnswering){
+  if (pc) { try { pc.close(); } catch(e){} pc = null; }
+  conn = null;
+  const myRtc = ++rtcGen;
+  pc = newPc();
+  pc.ondatachannel = e => {
+    conn = e.channel;
+    wireConn("recv");
+    if (alive()) { try { client.publish(t + "/offer", "", true); } catch(err){} } // оффер одноразовый
+  };
+  pc.onconnectionstatechange = () => {
+    if (myRtc !== rtcGen) return;
+    console.log("[RECV] PC state:", pc.connectionState);
+    if (pc.connectionState === "failed") {
+      try { if (conn) conn.close(); } catch(e){}
+      freeAnswering();
+    }
+  };
+  let published = false;
+  const pub = () => {
+    if (published || myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return;
+    published = true;
+    client.publish(t + "/answer", JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp }), true);
+  };
+  pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") pub(); };
+  setTimeout(pub, 8000);
+  const dcTimer = setTimeout(() => {
+    if (alive() && !isOpen()) {
+      setStatus("recv", "err", "Соединение не установлено за 30 сек. Проверьте код и интернет.");
+      freeAnswering();
+    }
+  }, 30000);
+  try {
+    pc.setRemoteDescription(JSON.parse(msg))
+      .then(() => pc.createAnswer())
+      .then(a => pc.setLocalDescription(a))
+      .then(() => {
+        // когда канал откроется, dcTimer очистится в wireConn
+        if (isOpen()) clearTimeout(dcTimer);
+        else setTimeout(() => { if (isOpen()) clearTimeout(dcTimer); }, 500);
+      })
+      .catch(er => { setStatus("recv", "err", "Ошибка WebRTC: " + er.message); freeAnswering(); });
+  } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); freeAnswering(); }
+}
+
+/* получатель просит отправителя переподключиться (пока канал мёртв) */
+function startWantLoop(code){
+  stopWantLoop();
+  wantTimer = setInterval(() => {
+    if (isOpen() || !mqtt || !code) return;
+    try { mqtt.publish(TBASE(code) + "/want", "1", false); } catch(e){}
+  }, 5000);
+  try { mqtt && mqtt.publish(TBASE(code) + "/want", "1", false); } catch(e){}
+}
+function stopWantLoop(){ if (wantTimer) { clearInterval(wantTimer); wantTimer = null; } }
 
 function onRecvCtrl(data){
   switch (data.t) {
@@ -710,15 +871,24 @@ function onRecvCtrl(data){
       setStatus("recv", "ok", "Готово к приёму: " + recvFiles.length + " файл(ов)");
       requestNext();
       break;
-    case "fs":
-      recvState = { i: data.i, name: data.name, size: data.size, hash: data.hash, chunks: [], got: 0 };
+    case "fs": {
+      if (recvState && recvState.i === data.i) {
+        if (recvState.got !== data.off) { recvState = null; csend({ t: "req", i: data.i, restart: 1 }); return; }
+        // resume OK — продолжаем принимать
+      } else if (data.off === 0) {
+        recvState = { i: data.i, name: data.name, size: data.size, hash: data.hash, chunks: [], got: 0, lastAck: 0 };
+      } else {
+        csend({ t: "req", i: data.i, restart: 1 });
+        return;
+      }
       recvFiles[data.i].status = "busy";
       $("recvProgressWrap").style.display = "block";
       $("recvProgressLabel").style.display = "flex";
-      $("recvCurFile").textContent = data.name;
       renderRecvList();
+      updateRecvProgress();
       break;
-    case "fe": finishFile(); break;
+    }
+    case "fe": finishFile(data.i); break;
     case "all-done":
       setStatus("recv", "ok", "Все файлы получены ✔");
       $("recvProgressWrap").style.display = "none";
@@ -739,15 +909,34 @@ function onChunk(buf){
   if (!recvState) return;
   recvState.chunks.push(buf);
   recvState.got += buf.byteLength;
-  recvFiles[recvState.i].got = recvState.got;
-  const pct = Math.min(100, Math.round(recvState.got / recvState.size * 100));
+  const rf = recvFiles[recvState.i];
+  if (rf) rf.got = recvState.got;
+  updateRecvProgress();
+  if (recvState.got - (recvState.lastAck || 0) >= ACK_EVERY) {
+    recvState.lastAck = recvState.got;
+    csend({ t: "ack", i: recvState.i, got: recvState.got });
+  }
+}
+
+function updateRecvProgress(){
+  if (!recvState) return;
+  const pct = recvState.size ? Math.min(100, Math.round(recvState.got / recvState.size * 100)) : 0;
   $("recvProgress").style.width = pct + "%";
+  $("recvCurFile").textContent = recvState.name + " · " + fmtSize(recvState.got) + " / " + fmtSize(recvState.size);
   $("recvPct").textContent = pct + "%";
 }
 
-async function finishFile(){
-  const st = recvState; recvState = null;
-  const rf = recvFiles[st.i];
+async function finishFile(i){
+  const st = recvState;
+  if (!st || st.i !== i) return;
+  if (st.got < st.size) {   // данных меньше, чем заявлено — перезапросим файл
+    recvState = null;
+    csend({ t: "req", i, restart: 1 });
+    return;
+  }
+  recvState = null;
+  const rf = recvFiles[i];
+  csend({ t: "ack", i, got: st.got });
   try {
     const blob = new Blob(st.chunks);
     st.chunks = [];
@@ -768,7 +957,6 @@ async function finishFile(){
   $("recvProgressWrap").style.display = "none";
   $("recvProgressLabel").style.display = "none";
   renderRecvList();
-  csend({ t: "ack", i: st.i });
   requestNext();
 }
 
@@ -776,7 +964,8 @@ function renderRecvList(){
   const badges = { queue: ["queue","в очереди"], busy: ["busy","приём"], done: ["done","получен ✔"], err: ["err","ошибка"] };
   $("recvList").innerHTML = recvFiles.map(f => {
     const [cls, txt] = badges[f.status] || badges.queue;
-    return `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span><span class="badge ${cls}">${txt}</span></li>`;
+    const pct = f.status === "busy" && f.size ? " · " + Math.min(100, Math.round((f.got || 0) / f.size * 100)) + "%" : "";
+    return `<li><span class="fname">${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span><span class="badge ${cls}">${txt}${pct}</span></li>`;
   }).join("");
 }
 
@@ -796,13 +985,19 @@ function wireConn(side){
     if (side === "send") {
       setStatus("send", "ok", "Получатель подключён");
       sendFileList();
-      conn.onclose = () => setStatus("send", "wait", "Получатель отключился. Ждём повторного подключения по коду " + roomCode);
+      conn.onclose = () => setStatus("send", "wait", "Соединение потеряно — ждём возвращения получателя…");
     } else {
-      csend({ t: "hi" });
+      firstConnectDone = true;
+      stopWantLoop();
+      const hasProgress = recvFiles.some(f => f.status === "busy" || f.status === "done") || !!recvState;
+      csend({ t: "hi", restart: !hasProgress });
       $("recvStep1").classList.add("hidden");
       $("recvStep2").classList.remove("hidden");
       setStatus("recv", "ok", "Подключено. Получаем список файлов…");
-      conn.onclose = () => setStatus("recv", "err", "Соединение закрыто отправителем");
+      conn.onclose = () => {
+        setStatus("recv", "wait", "Соединение потеряно — восстанавливаем…");
+        startWantLoop(curRecvCode);
+      };
     }
   };
   conn.onmessage = e => {
@@ -859,15 +1054,19 @@ function clearBroker(){
 
 /* ================= очистка ================= */
 function cleanup(){
-  sendGen++; recvGen++;
+  sendGen++; recvGen++; sendArmGen++; recvArmGen++; rtcGen++;
+  stopWantLoop();
+  // чистим retained-сообщения, чтобы код мог переиспользоваться
+  try { if (mqtt && roomCode) mqtt.publish(TBASE(roomCode) + "/offer", "", true); } catch(e){}
+  try { if (mqtt && curRecvCode) mqtt.publish(TBASE(curRecvCode) + "/answer", "", true); } catch(e){}
   try { conn && conn.close(); } catch(e){}
   try { pc && pc.close(); } catch(e){}
   try { mqtt && mqtt.end(true); } catch(e){}
-  conn = null; pc = null; mqtt = null;
+  conn = null; pc = null; mqtt = null; answering = false;
 }
 function resetAll(){
   cleanup();
-  files = []; recvFiles = []; recvState = null; curSend = -1; roomCode = "";
+  files = []; recvFiles = []; recvState = null; curSend = -1; roomCode = ""; curRecvCode = ""; firstConnectDone = false;
   $("fileInput").value = "";
   $("sendFileList").innerHTML = "";
   $("sendQueue").innerHTML = "";
