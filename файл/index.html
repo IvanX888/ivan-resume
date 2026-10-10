@@ -6,25 +6,26 @@
 <title>FileBridge — передача файлов напрямую</title>
 <meta name="description" content="Передача файлов между устройствами напрямую, без серверов хранения. Бесплатно, без регистрации.">
 <meta name="theme-color" content="#0e1117">
-<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="FileBridge">
 <script>
-/* Сброс старого кеша и service worker — один раз на версию */
+/* FileBridge v1.3.2 — ВАЖНО: service worker отключён намеренно.
+   В v1.2.x sw.js кэшировал страницу и отдавал УСТАРЕВШИЙ код даже после
+   обновления файла на сервере — из-за этого устройства «не видели» друг
+   друга на старых версиях. Здесь при каждой загрузке старый SW и кеш
+   уничтожаются (один раз за сессию), дальше браузер всегда берёт свежий файл. */
 (function(){
-  const V = "fb-v1.3.1";                      // ← поднимать при каждом релизе (как VERSION в sw.js)
-  if (localStorage.getItem("fb_ver") === V) return;
-  localStorage.setItem("fb_ver", V);
+  localStorage.setItem("fb_ver", "fb-v1.3.2");
   if (!navigator.serviceWorker) return;
   navigator.serviceWorker.getRegistrations().then(regs => {
     if (!regs.length) return;
     Promise.all(regs.map(r => r.unregister()))
       .then(() => window.caches ? caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k)))) : null)
-      .then(() => location.reload());
+      .then(() => {
+        if (!sessionStorage.getItem("fb_wiped_v132")) {
+          sessionStorage.setItem("fb_wiped_v132", "1");
+          location.reload();
+        }
+      });
   });
 })();
 </script>
@@ -217,35 +218,41 @@ footer b{color:var(--text)}
 <details class="card">
   <summary style="cursor:pointer;font-size:15px;font-weight:600">Продвинутые настройки: свой сигнальный брокер</summary>
   <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
-    <input type="text" id="brUrl" placeholder="wss://ваш-брокер.ru:8084/mqtt" autocomplete="off">
+    <input type="text" id="brUrl" placeholder="wss://ваш-домен.ru:8084/mqtt" autocomplete="off">
     <div class="row">
       <button class="btn small" onclick="saveBroker()">Сохранить</button>
       <button class="btn small ghost" onclick="clearBroker()">Сбросить на публичные</button>
     </div>
-    <div class="hint">Свой брокер = максимальная надёжность (публичные HiveMQ/EMQX иногда перегружены и рвут сигнальный канал). Поднимается одной командой (Docker):<br><code style="font-size:11px">docker run -d -p 8084:8084 emqx/emqx</code><br>затем впишите wss://ваш-домен:8084/mqtt (TLS — через Caddy/nginx). Оба устройства должны использовать один брокер.</div>
+    <div class="hint">Публичные брокеры могут быть недоступны из мобильных сетей (провайдеры режут нестандартные порты). Свой брокер = максимальная надёжность. Поднимается одной командой (Docker):<br><code style="font-size:11px">docker run -d --name emqx -p 8083:8083 -p 8084:8084 emqx/emqx</code><br>затем впишите wss://ваш-домен:8084/mqtt (TLS — через Caddy/nginx, см. readme). Оба устройства должны использовать один брокер.</div>
   </div>
+</details>
+
+<details class="card" id="diagCard">
+  <summary style="cursor:pointer;font-size:15px;font-weight:600">Диагностика соединения</summary>
+  <div id="diagLog" style="margin-top:10px;font-family:ui-monospace,monospace;font-size:11px;color:var(--muted);max-height:220px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
 </details>
 
 <footer>
   <b>FileBridge</b> · файлы передаются напрямую (P2P/WebRTC, шифрование DTLS) и нигде не хранятся.<br>
-  Оба устройства должны быть онлайн одновременно. Обрыв связи — передача автоматически возобновляется с места обрыва.
+  Оба устройства должны быть онлайн одновременно. Обрыв связи — передача автоматически возобновляется с места обрыва.<br>
+  <span id="verStamp" style="opacity:.7"></span>
 </footer>
 </div>
 
 <script>
 "use strict";
-/* ============ FileBridge v1.3 — P2P-передача файлов ============
-   Сигналинг: MQTT over WebSocket (публичные брокеры, fallback-цепочка).
-   Передача: WebRTC DataChannel (DTLS), напрямую между устройствами.
-   Протокол v1.3: кумулятивные ACK + окно подтверждения → докачка после
-   обрыва; автоматическое переподключение WebRTC через сигнальный канал. */
+/* ============ FileBridge v1.3.2 — P2P-передача файлов ============
+   Сигналинг: MQTT over WebSocket (цепочка брокеров, получатель крутит её
+   по кругу, пока не найдёт комнату). Передача: WebRTC DataChannel (DTLS).
+   Протокол: кумулятивные ACK + окно подтверждения → докачка после обрыва;
+   автопереподключение через want/offer. */
 const $ = id => document.getElementById(id);
-const CHUNK       = 256 * 1024;   // размер куска файла
-const ACK_EVERY   = 4 * 1024 * 1024;  // receiver: ACK каждые 4 МБ
-const WINDOW      = 8 * 1024 * 1024;  // max неподтверждённых данных у отправителя
-const BUF_HIGH    = 4 * 1024 * 1024;  // пауза по bufferedAmount
-const STALL_MS    = 40000;        // нет ACK дольше — считаем канал мёртвым
-const MAX_FILE    = 1024 * 1024 * 1024; // 1 ГБ на файл
+const CHUNK       = 256 * 1024;
+const ACK_EVERY   = 4 * 1024 * 1024;
+const WINDOW      = 8 * 1024 * 1024;
+const BUF_HIGH    = 4 * 1024 * 1024;
+const STALL_MS    = 40000;
+const MAX_FILE    = 1024 * 1024 * 1024; // 1 ГБ
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // без 0/O/1/I
 const td = new TextDecoder();
 
@@ -258,7 +265,8 @@ const RTC_CFG = { iceServers: [
 
 const MQTT_BROKERS = [
   "wss://broker.hivemq.com:8884/mqtt",
-  "wss://broker.emqx.io:8084/mqtt"
+  "wss://broker.emqx.io:8084/mqtt",
+  "wss://test.mosquitto.org:8081/mqtt"
 ];
 const TBASE = c => "fbv1/" + c;
 
@@ -266,7 +274,19 @@ let mode = "send";
 let mqtt = null, conn = null, pc = null;
 let files = [], recvFiles = [], recvState = null;
 let roomCode = "", curRecvCode = "", curSend = -1;
-let wantTimer = null, sendArmGen = 0, recvArmGen = 0, rtcGen = 0, answering = false;
+let wantTimer = null, sendArmGen = 0, recvArmGen = 0, rtcGen = 0, answering = false, sendToken = 0;
+let lastRtcStart = 0, pendingOffer = null;
+
+/* ---------- видимая диагностика (важно для телефонов без DevTools) ---------- */
+const diagLines = [];
+function diag(msg){
+  const line = new Date().toLocaleTimeString() + "  " + msg;
+  diagLines.push(line);
+  if (diagLines.length > 80) diagLines.shift();
+  const el = $("diagLog");
+  if (el) { el.textContent = diagLines.join("\n"); el.scrollTop = el.scrollHeight; }
+  console.log("[DIAG]", msg);
+}
 
 /* ---------- утилиты ---------- */
 function fmtSize(b){
@@ -284,11 +304,29 @@ async function sha256(buf){
   const h = await crypto.subtle.digest("SHA-256", buf);
   return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2,"0")).join("");
 }
+/* Хеш файла. Целиком — только для ≤64 МБ; для больших берём первые+последние
+   32 МБ: иначе arrayBuffer на 1 ГБ ×2 копии = OOM и падение вкладки на телефоне.
+   Приёмник проверяет ТАК ЖЕ (verifyHash), поэтому протокол сходится. */
+const HASH_FULL_MAX = 64 * 1024 * 1024;
+const HASH_PART = 32 * 1024 * 1024;
+async function fileHash(file){
+  if (file.size <= HASH_FULL_MAX) return await sha256(await file.arrayBuffer());
+  const head = await file.slice(0, HASH_PART).arrayBuffer();
+  const tail = await file.slice(file.size - HASH_PART).arrayBuffer();
+  return await sha256(await new Blob([head, tail]).arrayBuffer());
+}
+async function verifyHash(buf, size, expected){
+  if (size <= HASH_FULL_MAX) return (await sha256(buf)) === expected;
+  const head = buf.slice(0, HASH_PART);
+  const tail = buf.slice(buf.byteLength - HASH_PART);
+  return (await sha256(await new Blob([head, tail]).arrayBuffer())) === expected;
+}
 function setStatus(who, state, text){
   const dot = $(who === "send" ? "dotSend" : "dotRecv");
   const txt = $(who === "send" ? "stSendText" : "stRecvText");
   dot.className = "dot " + (state || "");
   if (text) txt.textContent = text;
+  if (state === "err") { const d = $("diagCard"); if (d) d.open = true; }
 }
 function esc(s){
   return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -321,25 +359,20 @@ function MiniMqtt(url){
   function sendConnect(){
     const cid = te.encode(clientId);
     packet(0x10, [
-      ...sbytes("MQTT"),  // протокол
-      4,                  // уровень 3.1.1
-      2,                  // clean session
-      ...u16(60),         // keepalive 60 с
+      ...sbytes("MQTT"), 4, 2, ...u16(60),
       ...u16(cid.length), ...cid
     ]);
   }
 
   function handle(type, body){
-    if (type === 2) {              // CONNACK
+    if (type === 2) {
       if (body.length >= 2 && body[1] === 0) {
         pingTimer = setInterval(() => { try { packet(0xC0, []); } catch(e){} }, 45000);
-        console.log("[MQTT] connected");
         emit("connect");
       } else {
-        console.log("[MQTT] CONNACK error code:", body[1]);
         emit("error", new Error("mqtt-connack-" + (body[1] !== undefined ? body[1] : "?")));
       }
-    } else if (type === 3) {       // PUBLISH (QoS 0)
+    } else if (type === 3) {
       const tl = (body[0] << 8) | body[1];
       const topic = td.decode(body.slice(2, 2 + tl));
       const payload = body.slice(2 + tl);
@@ -423,23 +456,27 @@ function mqttChain(){
 function tryMqtt(chain, idx, cb){
   if (idx >= chain.length) { cb(new Error("all-brokers-down"), null, null, idx); return; }
   const url = chain[idx];
+  diag("пробуем брокера: " + url);
   let c;
   try {
     c = MQTT.connect(url);
-  } catch(e) { cb(new Error("bad-url"), null, null, idx); return; }
+  } catch(e) { diag("брокер недоступен: " + url); cb(new Error("bad-url"), null, null, idx); return; }
   let settled = false;
   const timer = setTimeout(() => {
     if (settled) return; settled = true;
     try { c.end(true); } catch(e){}
+    diag("брокер не ответил за 9 с: " + url);
     cb(new Error("timeout"), null, null, idx);
   }, 9000);
   c.on("connect", () => {
     if (settled) return; settled = true; clearTimeout(timer);
+    diag("брокер OK: " + url);
     cb(null, c, url, idx);
   });
   c.on("error", () => {
     if (settled) return; settled = true; clearTimeout(timer);
     try { c.end(true); } catch(e){}
+    diag("ошибка подключения к брокеру: " + url);
     cb(new Error("conn-error"), null, null, idx);
   });
 }
@@ -487,7 +524,7 @@ function createRoom(){
   const step = (i) => {
     if (!alive()) return;
     if (i >= chain.length) {
-      setStatus("send", "err", "Все сигнальные брокеры недоступны. Укажите свой WSS-брокер в настройках ниже, затем «Завершить сессию» и создайте комнату заново.");
+      setStatus("send", "err", "Все сигнальные брокеры недоступны (провайдер может блокировать их порты). Укажите свой WSS-брокер в настройках ниже.");
       return;
     }
     setStatus("send", "wait", "Подключаемся к сигнальному брокеру… (" + (i + 1) + "/" + chain.length + ")");
@@ -505,11 +542,6 @@ function createRoom(){
 }
 
 /* подписки отправителя: ответы получателя и его запросы на переподключение */
-function armSender(url){
-  const myArm = ++sendArmGen;
-  const alive = () => myArm === sendArmGen && sendGen === sendArmGen - (sendArmGen - sendArmGen); // глупость нет
-}
-/* (переопределяем ниже корректно) */
 function armSenderClient(client, url){
   const myArm = ++sendArmGen;
   const myGen = sendGen;
@@ -521,16 +553,17 @@ function armSenderClient(client, url){
     if (!alive()) return;
     const msg = td.decode(payload);
     if (topic === t + "/answer" && msg && pc) {
+      diag("ответ получателя пришёл — применяем");
       try { pc.setRemoteDescription(JSON.parse(msg)).catch(e => console.log("[SENDER] setRemote err:", e)); } catch(e){}
     } else if (topic === t + "/want" && !isOpen()) {
-      setStatus("send", "wait", "Получатель снова онлайн — восстанавливаем соединение…");
-      startWebRTC();
+      diag("получатель стучится (want)");
+      startWebRTC();   // внутри throttle: чаще раза в 20 с pc не пересоздаётся
     }
   });
   client.on("close", () => {
     if (!alive()) return;
+    diag("связь с брокером разорвана");
     if (!isOpen()) setStatus("send", "err", "Связь с брокером потеряна до подключения получателя. «Завершить сессию» и создайте комнату заново.");
-    // если канал жив — передача по WebRTC продолжается; брокер переподключим для будущих реконнектов
     setTimeout(() => {
       if (!alive() || (mqtt && mqtt !== client)) return;
       reconnectSenderMqtt();
@@ -543,23 +576,34 @@ function reconnectSenderMqtt(){
   const chain = mqttChain();
   const step = (i) => {
     if (!alive()) return;
-    if (i >= chain.length) {
-      setTimeout(() => { if (alive()) reconnectSenderMqtt(); }, 8000);
-      return;
-    }
+    if (i >= chain.length) { setTimeout(() => { if (alive()) reconnectSenderMqtt(); }, 8000); return; }
     tryMqtt(chain, i, (err, client, url, idx) => {
       if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
       if (err) { step(idx + 1); return; }
       mqtt = client;
       armSenderClient(client, url);
-      if (!isOpen()) startWebRTC(); // перепубликуем оффер, чтобы получатель мог найти нас
+      if (!isOpen()) startWebRTC();
     });
   };
   step(0);
 }
 
-/* новый (или повторный) WebRTC-оффер от отправителя */
+/* повторная публикация уже готового оффера (обновляет retained на брокере) */
+function republishOffer(){
+  if (!mqtt || !pc || !pc.localDescription || !roomCode) return;
+  mqtt.publish(TBASE(roomCode) + "/offer", JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp }), true);
+}
+
+/* новый (или повторный) WebRTC-оффер от отправителя.
+   ВАЖНО: pc НЕ пересоздаём чаще раза в 20 с — иначе повторные want-сигналы
+   получателя сносят рукопожатие до завершения (главный баг v1.3.x). */
 function startWebRTC(){
+  const now = Date.now();
+  if (pc && now - lastRtcStart < 20000 && pc.connectionState !== "failed" && pc.connectionState !== "closed") {
+    republishOffer();
+    return;
+  }
+  lastRtcStart = now;
   if (pc) { try { pc.close(); } catch(e){} pc = null; }
   conn = null;
   const myRtc = ++rtcGen;
@@ -569,6 +613,7 @@ function startWebRTC(){
   pc.onconnectionstatechange = () => {
     if (myRtc !== rtcGen) return;
     console.log("[SENDER] PC state:", pc.connectionState);
+    if (pc.connectionState === "failed" || pc.connectionState === "disconnected") diag("WebRTC: " + pc.connectionState);
     if (pc.connectionState === "failed") {
       try { if (conn) conn.close(); } catch(e){}
     }
@@ -579,19 +624,23 @@ function startWebRTC(){
     published = true;
     const desc = JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp });
     mqtt.publish(TBASE(roomCode) + "/offer", desc, true);
-    console.log("[SENDER] offer published, len:", desc.length, "ICE:", pc.iceGatheringState);
+    diag("оффер опубликован (" + Math.round(desc.length / 1024) + " КБ, ICE: " + pc.iceGatheringState + ")");
     return true;
   };
   pc.onicegatheringstatechange = () => {
-    console.log("[SENDER] ICE gathering:", pc.iceGatheringState);
-    if (pc.iceGatheringState === "complete") pub();
+    if (pc.iceGatheringState === "complete") { diag("ICE-кандидаты собраны"); pub(); }
   };
-  // надёжная публикация: повторяем попытку, пока localDescription не появится
-  // (в v1.3.0 fallback срабатывал один раз и оффер мог потеряться навсегда)
+  // надёжная публикация: повторяем, пока localDescription не появится
   const pubTimer = setInterval(() => {
     if (myRtc !== rtcGen || published) { clearInterval(pubTimer); return; }
     if (pc && pc.localDescription) pub();
   }, 2000);
+  // пока получатель не подключился — периодически обновляем retained-оффер
+  const refreshTimer = setInterval(() => {
+    if (myRtc !== rtcGen || isOpen()) { clearInterval(refreshTimer); return; }
+    republishOffer();
+  }, 12000);
+  diag("создаём WebRTC-оффер…");
   pc.createOffer().then(o => pc.setLocalDescription(o)).catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
 }
 
@@ -623,12 +672,14 @@ async function sendFile(i, resumeFrom){
   f.status = "busy";
   if (f.acked == null) f.acked = 0;
   const myGen = sendGen;
-  const alive = () => myGen === sendGen;
+  const mySend = ++sendToken;   // жетон попытки: старая передача «умирает» мгновенно
+  let lastRender = 0;
+  const alive = () => myGen === sendGen && mySend === sendToken;
   renderQueue();
   $("sendProgressWrap").style.display = "block";
   $("sendProgressLabel").style.display = "flex";
   try {
-    if (!f.hash) f.hash = await sha256(await f.file.arrayBuffer());
+    if (!f.hash) f.hash = await fileHash(f.file);   // не считаем хеш целиком на больших файлах
     if (!alive()) return;
     let off = (resumeFrom != null) ? resumeFrom : f.acked;
     f.acked = Math.min(f.acked || 0, off);
@@ -643,13 +694,11 @@ async function sendFile(i, resumeFrom){
         await sleep(500);
         continue;
       }
-      // не переполняем буфер браузера
       while (isOpen() && conn.bufferedAmount > BUF_HIGH) await sleep(25);
-      // окно подтверждения: без ACK дальше не шлём
       while (isOpen() && off - f.acked >= WINDOW) {
         await sleep(60);
         if (performance.now() - f.lastAckT > STALL_MS) {
-          try { conn.close(); } catch(e){}   // канал завис — закрываем, пойдёт реконнект
+          try { conn.close(); } catch(e){}
           break;
         }
       }
@@ -657,15 +706,18 @@ async function sendFile(i, resumeFrom){
       const end = Math.min(off + CHUNK, f.size);
       const buf = await f.file.slice(off, end).arrayBuffer();
       if (!alive()) return;
-      if (!isOpen()) continue;   // не отправили — повторим тот же кусок
+      if (!isOpen()) continue;
       conn.send(buf);
       off = end; f.sent = off;
       if (off - f.speedMark.b >= 2 * 1024 * 1024) {
         f.speed = (off - f.speedMark.b) / 1048576 / ((performance.now() - f.speedMark.t) / 1000);
         f.speedMark = { t: performance.now(), b: off };
       }
-      if ((off % (4 * CHUNK)) === 0 || off === f.size) updateSendProgress(f);
-      renderQueue();
+      if (off === f.size || performance.now() - lastRender > 250) {
+        lastRender = performance.now();
+        updateSendProgress(f);
+        renderQueue();          // троттлинг: не чаще 4 раз/с, иначе 4000 перестроек DOM на 1 ГБ
+      }
     }
     if (!alive()) return;
     csend({ t: "fe", i });
@@ -687,7 +739,6 @@ async function sendFile(i, resumeFrom){
 function onSenderCtrl(msg){
   switch (msg.t) {
     case "hi": {
-      // получатель сбрасывает прогресс, если он новый/перезагрузился
       if (msg.restart) {
         files.forEach(f => { if (f.status !== "done") { f.status = "queue"; f.sent = 0; f.acked = 0; } });
         curSend = -1;
@@ -732,7 +783,7 @@ function copyCode(){
 }
 
 /* ================= ПОЛУЧАТЕЛЬ ================= */
-let recvGen = 0, firstConnectDone = false;
+let recvGen = 0;
 
 function joinRoom(){
   const code = $("codeInput").value.trim().toUpperCase();
@@ -741,35 +792,41 @@ function joinRoom(){
   $("btnJoin").disabled = true;
   mode = "recv";
   curRecvCode = code;
+  pendingOffer = null;
   const myGen = ++recvGen;
   const alive = () => myGen === recvGen;
   const chain = mqttChain();
-  let curIdx = 0, hopTimer = null;
+  let curIdx = 0, hopTimer = null, hops = 0;
+  const MAX_HOPS = 8;   // крутим брокеров по кругу, пока не найдём комнату
 
   const step = (i) => {
     if (!alive()) return;
-    if (i >= chain.length) {
+    if (hops >= MAX_HOPS) {
       $("btnJoin").disabled = false;
-      setStatus("recv", "err", "Комната не найдена: брокеры недоступны или отправитель ещё не создал комнату. Проверьте код и повторите.");
+      setStatus("recv", "err", "Комната не найдена за 80 секунд: отправитель офлайн, код неверный, либо устройства сидят на разных брокерах. Откройте «Диагностику соединения» ниже и сравните брокеров с отправителем.");
+      diag("поиск комнаты прекращён — брокеров не осталось");
       return;
     }
     curIdx = i;
-    setStatus("recv", "wait", "Подключаемся к сигнальному брокеру… (" + (i + 1) + "/" + chain.length + ")");
+    hops++;
+    setStatus("recv", "wait", "Подключаемся к сигнальному брокеру… (" + (i + 1) + "/" + chain.length + ", попытка " + hops + "/" + MAX_HOPS + ")");
     tryMqtt(chain, i, (err, client, url, idx) => {
       if (!alive()) { if (client) try { client.end(true); } catch(e){} return; }
-      if (err) { step(idx + 1); return; }
+      if (err) { step((idx + 1) % chain.length); return; }
 
       mqtt = client;
       armReceiverClient(client, url, code);
       startWantLoop(code);
-      // оффера нет 12 секунд — комната, видимо, на другом брокере
+      // оффера нет 10 секунд — идём к следующему брокеру (по кругу)
       clearTimeout(hopTimer);
-      hopTimer = setTimeout(() => {
-        if (firstConnectDone || !alive() || isOpen()) return;
+      hopTimer = setTimeout(function hop() {
+        if (!alive() || isOpen()) return;
+        if (answering) { hopTimer = setTimeout(hop, 10000); return; }
+        diag("оффера нет на этом брокере — следующий");
         try { client.end(true); } catch(e){}
-        step(curIdx + 1);
-      }, 12000);
-      setStatus("recv", "wait", "Ищем комнату " + code + "… (" + (idx + 1) + "/" + chain.length + ")");
+        step((curIdx + 1) % chain.length);
+      }, 10000);
+      setStatus("recv", "wait", "Ищем комнату " + code + "… брокер " + (idx + 1) + "/" + chain.length);
     });
   };
   step(0);
@@ -782,20 +839,29 @@ function armReceiverClient(client, url, code){
   const alive = () => myArm === recvArmGen && myGen === recvGen;
   const t = TBASE(code);
   client.subscribe(t + "/offer");
+  const tryOffer = (msg) => {
+    if (!alive() || isOpen()) { answering = false; pendingOffer = null; return; }
+    answering = true;
+    showBroker(url);
+    diag("оффер получен (" + Math.round(msg.length / 1024) + " КБ) — отвечаем…");
+    handleOffer(client, t, msg, alive, () => {
+      answering = false;
+      if (pendingOffer && alive() && !isOpen()) {
+        const o = pendingOffer; pendingOffer = null; tryOffer(o);   // свежий оффер важнее застрявшего
+      } else pendingOffer = null;
+    });
+  };
   client.on("message", (topic, payload) => {
     if (!alive()) return;
     const msg = td.decode(payload);
     if (topic !== t + "/offer" || !msg) return;
-    if (isOpen() || answering) return;   // уже есть живой канал или идёт рукопожатие
-    answering = true;
-    console.log("[RECV] offer received, len:", msg.length);
-    showBroker(url);
-    console.log("[RECV] Got offer, len:", msg.length);
-    handleOffer(client, t, msg, alive, () => { answering = false; });
+    if (isOpen()) return;
+    if (answering) { pendingOffer = msg; return; }
+    tryOffer(msg);
   });
   client.on("close", () => {
     if (!alive()) return;
-    // брокер отвалился — переподключимся, want-loop продолжит стучаться
+    diag("связь с брокером разорвана");
     setTimeout(() => {
       if (!alive() || (mqtt && mqtt !== client)) return;
       reconnectReceiverMqtt(code);
@@ -833,21 +899,25 @@ function handleOffer(client, t, msg, alive, freeAnswering){
     if (myRtc !== rtcGen) return;
     console.log("[RECV] PC state:", pc.connectionState);
     if (pc.connectionState === "failed") {
+      diag("WebRTC: failed");
       try { if (conn) conn.close(); } catch(e){}
       freeAnswering();
     }
   };
   let published = false;
   const pub = () => {
-    if (published || myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return;
+    if (published || myRtc !== rtcGen || !pc || !pc.localDescription) return;
     published = true;
     client.publish(t + "/answer", JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp }), true);
+    diag("ответ опубликован");
   };
   pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") pub(); };
   setTimeout(pub, 8000);
   const dcTimer = setTimeout(() => {
     if (alive() && !isOpen()) {
-      setStatus("recv", "err", "Соединение не установлено за 30 сек. Проверьте код и интернет.");
+      // не фатально: want-loop получателя продолжит стучаться, придёт новый оффер
+      setStatus("recv", "wait", "Рукопожатие не завершилось — повторим…");
+      diag("рукопожатие не завершилось за 30 с");
       freeAnswering();
     }
   }, 30000);
@@ -855,11 +925,6 @@ function handleOffer(client, t, msg, alive, freeAnswering){
     pc.setRemoteDescription(JSON.parse(msg))
       .then(() => pc.createAnswer())
       .then(a => pc.setLocalDescription(a))
-      .then(() => {
-        // когда канал откроется, dcTimer очистится в wireConn
-        if (isOpen()) clearTimeout(dcTimer);
-        else setTimeout(() => { if (isOpen()) clearTimeout(dcTimer); }, 500);
-      })
       .catch(er => { setStatus("recv", "err", "Ошибка WebRTC: " + er.message); freeAnswering(); });
   } catch(e){ setStatus("recv", "err", "Ошибка данных оффера"); freeAnswering(); }
 }
@@ -867,11 +932,12 @@ function handleOffer(client, t, msg, alive, freeAnswering){
 /* получатель просит отправителя переподключиться (пока канал мёртв) */
 function startWantLoop(code){
   stopWantLoop();
-  wantTimer = setInterval(() => {
+  const knock = () => {
     if (isOpen() || !mqtt || !code) return;
     try { mqtt.publish(TBASE(code) + "/want", "1", false); } catch(e){}
-  }, 5000);
-  try { mqtt && mqtt.publish(TBASE(code) + "/want", "1", false); } catch(e){}
+  };
+  knock();
+  wantTimer = setInterval(knock, 5000);
 }
 function stopWantLoop(){ if (wantTimer) { clearInterval(wantTimer); wantTimer = null; } }
 
@@ -886,7 +952,6 @@ function onRecvCtrl(data){
     case "fs": {
       if (recvState && recvState.i === data.i) {
         if (recvState.got !== data.off) { recvState = null; csend({ t: "req", i: data.i, restart: 1 }); return; }
-        // resume OK — продолжаем принимать
       } else if (data.off === 0) {
         recvState = { i: data.i, name: data.name, size: data.size, hash: data.hash, chunks: [], got: 0, lastAck: 0 };
       } else {
@@ -941,7 +1006,7 @@ function updateRecvProgress(){
 async function finishFile(i){
   const st = recvState;
   if (!st || st.i !== i) return;
-  if (st.got < st.size) {   // данных меньше, чем заявлено — перезапросим файл
+  if (st.got < st.size) {
     recvState = null;
     csend({ t: "req", i, restart: 1 });
     return;
@@ -953,8 +1018,7 @@ async function finishFile(i){
     const blob = new Blob(st.chunks);
     st.chunks = [];
     const buf = await blob.arrayBuffer();
-    const hash = await sha256(buf);
-    if (hash !== st.hash) {
+    if (!(await verifyHash(buf, st.size, st.hash))) {   // тот же способ хеширования, что у отправителя
       rf.status = "err";
       setStatus("recv", "err", "Контрольная сумма не сошлась — файл повреждён, попросите отправить заново");
     } else {
@@ -994,12 +1058,14 @@ function wireConn(side){
   conn.binaryType = "arraybuffer";
   conn.onopen = () => {
     console.log("[DATA] onopen — side:", side);
+    diag("канал WebRTC открыт (" + side + ")");
     if (side === "send") {
       setStatus("send", "ok", "Получатель подключён");
-      sendFileList();
-      conn.onclose = () => setStatus("send", "wait", "Соединение потеряно — ждём возвращения получателя…");
+      // список файлов шлём ТОЛЬКО на {t:"hi"} от приёмника (см. onSenderCtrl) —
+      // иначе двойной "list" обнуляет прогресс приёмника при докачке
+      conn.onclose = () => { diag("канал закрыт (send)"); setStatus("send", "wait", "Соединение потеряно — ждём возвращения получателя…"); };
     } else {
-      firstConnectDone = true;
+      answering = false;
       stopWantLoop();
       const hasProgress = recvFiles.some(f => f.status === "busy" || f.status === "done") || !!recvState;
       csend({ t: "hi", restart: !hasProgress });
@@ -1007,6 +1073,7 @@ function wireConn(side){
       $("recvStep2").classList.remove("hidden");
       setStatus("recv", "ok", "Подключено. Получаем список файлов…");
       conn.onclose = () => {
+        diag("канал закрыт (recv)");
         setStatus("recv", "wait", "Соединение потеряно — восстанавливаем…");
         startWantLoop(curRecvCode);
       };
@@ -1068,7 +1135,7 @@ function clearBroker(){
 function cleanup(){
   sendGen++; recvGen++; sendArmGen++; recvArmGen++; rtcGen++;
   stopWantLoop();
-  // чистим retained-сообщения, чтобы код мог переиспользоваться
+  pendingOffer = null;
   try { if (mqtt && roomCode) mqtt.publish(TBASE(roomCode) + "/offer", "", true); } catch(e){}
   try { if (mqtt && curRecvCode) mqtt.publish(TBASE(curRecvCode) + "/answer", "", true); } catch(e){}
   try { conn && conn.close(); } catch(e){}
@@ -1078,7 +1145,7 @@ function cleanup(){
 }
 function resetAll(){
   cleanup();
-  files = []; recvFiles = []; recvState = null; curSend = -1; roomCode = ""; curRecvCode = ""; firstConnectDone = false;
+  files = []; recvFiles = []; recvState = null; curSend = -1; roomCode = ""; curRecvCode = "";
   $("fileInput").value = "";
   $("sendFileList").innerHTML = "";
   $("sendQueue").innerHTML = "";
@@ -1114,12 +1181,9 @@ window.addEventListener("beforeunload", cleanup);
   };
 })();
 
-/* PWA: service worker */
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  });
-}
+$("verStamp").textContent = "v1.3.2 · service worker отключён (причина 'устаревшего кода' исправлена)";
+if (!window.isSecureContext || !crypto.subtle)
+  alert("FileBridge: страница открыта без HTTPS (или с file://) — SHA-256 и WebRTC могут быть недоступны. Открывайте сайт по https://");
 </script>
 </body>
 </html>
