@@ -554,7 +554,11 @@ function armSenderClient(client, url){
     const msg = td.decode(payload);
     if (topic === t + "/answer" && msg && pc) {
       diag("ответ получателя пришёл — применяем");
-      try { pc.setRemoteDescription(JSON.parse(msg)).catch(e => console.log("[SENDER] setRemote err:", e)); } catch(e){}
+      try {
+        pc.setRemoteDescription(JSON.parse(msg))
+          .then(() => diag("ответ применён, ждём открытия канала…"))
+          .catch(e => diag("ответ НЕ применён: " + e.message + " (возможно, устарел — придёт новый)"));
+      } catch(e){ diag("ответ: ошибка данных"); }
     } else if (topic === t + "/want" && !isOpen()) {
       diag("получатель стучится (want)");
       startWebRTC();   // внутри throttle: чаще раза в 20 с pc не пересоздаётся
@@ -599,7 +603,10 @@ function republishOffer(){
    получателя сносят рукопожатие до завершения (главный баг v1.3.x). */
 function startWebRTC(){
   const now = Date.now();
-  if (pc && now - lastRtcStart < 20000 && pc.connectionState !== "failed" && pc.connectionState !== "closed") {
+  const st = pc ? pc.connectionState : "none";
+  // пока рукопожатие живо (new/connecting) — НЕ пересоздаём pc минимум 60 с:
+  // иначе ответ получателя прилетает уже на новый pc и отбраковывается
+  if (pc && now - lastRtcStart < 60000 && (st === "new" || st === "connecting")) {
     republishOffer();
     return;
   }
@@ -618,23 +625,30 @@ function startWebRTC(){
       try { if (conn) conn.close(); } catch(e){}
     }
   };
-  let published = false;
+  let loggedOnce = false;
   const pub = () => {
-    if (published || myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return false;
-    published = true;
+    if (myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return;
+    // публикуем ВСЕГДА текущий SDP — он дополняется кандидатами по мере сбора,
+    // поэтому ранний оффер (без кандидатов) обязан перезаписываться полным
     const desc = JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp });
     mqtt.publish(TBASE(roomCode) + "/offer", desc, true);
-    diag("оффер опубликован (" + Math.round(desc.length / 1024) + " КБ, ICE: " + pc.iceGatheringState + ")");
-    return true;
+    if (!loggedOnce) {
+      loggedOnce = true;
+      diag("оффер опубликован (" + Math.round(desc.length / 1024) + " КБ, ICE: " + pc.iceGatheringState + ")");
+    }
   };
   pc.onicegatheringstatechange = () => {
-    if (pc.iceGatheringState === "complete") { diag("ICE-кандидаты собраны"); pub(); }
+    if (pc.iceGatheringState === "complete") {
+      diag("ICE-кандидаты собраны (" + Math.round(pc.localDescription.sdp.length / 1024) + " КБ)");
+      pub();
+    }
   };
-  // надёжная публикация: повторяем, пока localDescription не появится
+  // повторяем публикацию, пока рукопожатие не завершится: retained на брокере
+  // всегда содержит самый свежий (и после сбора — полный) SDP
   const pubTimer = setInterval(() => {
-    if (myRtc !== rtcGen || published) { clearInterval(pubTimer); return; }
-    if (pc && pc.localDescription) pub();
-  }, 2000);
+    if (myRtc !== rtcGen || isOpen()) { clearInterval(pubTimer); return; }
+    pub();
+  }, 3000);
   // пока получатель не подключился — периодически обновляем retained-оффер
   const refreshTimer = setInterval(() => {
     if (myRtc !== rtcGen || isOpen()) { clearInterval(refreshTimer); return; }
