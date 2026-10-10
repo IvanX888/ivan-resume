@@ -16,7 +16,7 @@
 <script>
 /* Сброс старого кеша и service worker — один раз на версию */
 (function(){
-  const V = "fb-v1.3.0";                      // ← поднимать при каждом релизе (как VERSION в sw.js)
+  const V = "fb-v1.3.1";                      // ← поднимать при каждом релизе (как VERSION в sw.js)
   if (localStorage.getItem("fb_ver") === V) return;
   localStorage.setItem("fb_ver", V);
   if (!navigator.serviceWorker) return;
@@ -575,12 +575,23 @@ function startWebRTC(){
   };
   let published = false;
   const pub = () => {
-    if (published || myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return;
+    if (published || myRtc !== rtcGen || !mqtt || !pc || !pc.localDescription) return false;
     published = true;
-    mqtt.publish(TBASE(roomCode) + "/offer", JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp }), true);
+    const desc = JSON.stringify({ type: pc.localDescription.type, sdp: pc.localDescription.sdp });
+    mqtt.publish(TBASE(roomCode) + "/offer", desc, true);
+    console.log("[SENDER] offer published, len:", desc.length, "ICE:", pc.iceGatheringState);
+    return true;
   };
-  pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === "complete") pub(); };
-  setTimeout(pub, 8000); // fallback: публикуем, что собралось
+  pc.onicegatheringstatechange = () => {
+    console.log("[SENDER] ICE gathering:", pc.iceGatheringState);
+    if (pc.iceGatheringState === "complete") pub();
+  };
+  // надёжная публикация: повторяем попытку, пока localDescription не появится
+  // (в v1.3.0 fallback срабатывал один раз и оффер мог потеряться навсегда)
+  const pubTimer = setInterval(() => {
+    if (myRtc !== rtcGen || published) { clearInterval(pubTimer); return; }
+    if (pc && pc.localDescription) pub();
+  }, 2000);
   pc.createOffer().then(o => pc.setLocalDescription(o)).catch(er => setStatus("send", "err", "Ошибка WebRTC: " + er.message));
 }
 
@@ -777,6 +788,7 @@ function armReceiverClient(client, url, code){
     if (topic !== t + "/offer" || !msg) return;
     if (isOpen() || answering) return;   // уже есть живой канал или идёт рукопожатие
     answering = true;
+    console.log("[RECV] offer received, len:", msg.length);
     showBroker(url);
     console.log("[RECV] Got offer, len:", msg.length);
     handleOffer(client, t, msg, alive, () => { answering = false; });
