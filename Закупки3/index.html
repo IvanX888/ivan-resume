@@ -165,7 +165,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v4.3.1-каркас</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v4.4-каркас</span></h1>
     <div class="sub">Каркас помощника закупок (без данных организации) · CRM: воронка закупок, поставщики, задачи, контакты · реестр 33 + журнал 7.2.1 (81 контрагент, 87 договоров) · контакты 18 компаний по офиц. сайтам · нормы сверены на 08.10.2026: ИПС «Эталон» + pravo.by (ПП № 168 ред. № 355, БВ = 45 руб.)</div>
   </div>
   <div style="display:flex;gap:8px">
@@ -662,6 +662,8 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <div style="margin-top:14px">
       <button class="btn" onclick="saveCase()">💾 Сохранить дело</button>
       <button class="btn ghost" onclick="printCase()">🖨 Печать в дело</button>
+      <button class="btn ghost" onclick="casePackDoc()">📦 Пакет документов (.doc)</button>
+      <button class="btn ghost" onclick="caseCardDoc()">📋 Карточка (.doc, альбомная)</button>
       <button class="btn ghost" onclick="closeCaseEdit()">← К списку дел</button>
       <button class="btn danger" style="float:right" id="ceDel" onclick="delCase()">Удалить</button>
     </div>
@@ -712,7 +714,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>Помощник специалиста по закупкам v4.3.1-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
+<footer>Помощник специалиста по закупкам v4.4-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealModal"><div class="box">
@@ -1554,7 +1556,7 @@ function wizToFlow(){
   CYC.mKey=map[w.procKey]||'';
   CYC.mName=w.proc||'';
   var normMap={direct:'п. 21 приложения 1 к постановлению № 168 (сумма не более 100 БВ)',prod:'п. 29 приложения 1 к постановлению № 168 (для собственного производства, до 1000 БВ)',oosOwn9:'п. 9 приложения 4 к Положению № 168 (100–1000 БВ, годовой лимит 5000 БВ)',oos9gos:'п. 9 приложения 4 к Положению № 168',eproc:'электронная конкурентная процедура (глава 5 Положения № 168)',contest:'конкурс (глава 3 Положения № 168)',zcp:'запрос ценовых предложений (глава 2 Положения № 168)',auction:'электронный аукцион (глава 4 Положения № 168)',contestDecision:'конкурс по решению закупающей организации'};
-  CYC.justif='Основание: '+(normMap[w.procKey]||w.proc||'—')+' и локальный Порядок закупок (внутренний ЛПА). Способ подобран помощником '+today()+' г.; при отклонении от рекомендации — указать причину с нормой.';
+  CYC.justif='Основание: '+(normMap[w.procKey]||w.proc||'—')+' и локальный Порядок закупок (внутренний ЛПА).';
   CYC.step=2; cycSave(); go('flow');
 }
 /* Из цикла — в экспресс-подбор (предмет и сумма переносятся) */
@@ -2080,6 +2082,7 @@ function migrateLog(L){
   var changed = false;
   for (var i = 0; i < L.length; i++){
     var r = L[i];
+    if (r.proc && r.proc.indexOf('(цикл)') !== -1 && (r.stage === undefined || r.stage === null || r.stage === 2) && r.status !== 'завершена' && r.status !== 'отменена'){ r.stage = 5; changed = true; }
     if (!r.id){ r.id = nextId(L); r.status = 'в работе'; r.files = r.files || []; r.stage = 1; changed = true; }
     if (!r.year){ r.year = (r.date || '').slice(0,4) || String(currentYear()); changed = true; }
     if (!r.procKey){
@@ -2931,6 +2934,20 @@ function renderCaseList(){
   }).join('')+'</table>';
   document.getElementById('caseTbl').innerHTML=html;
 }
+
+function casePackDoc(){
+  var i=+document.getElementById('ceId').value;
+  var c=cases[i];
+  if(!c||!c.pack){flAlert('Пакет ещё не сформирован: это дело создано не через цикл. Сохраните дело и завершите закупку через «Цикл закупки» — пакет появится автоматически.');return;}
+  flDoc('delo_zakupki_paket_'+(c.num||today())+'.doc','Пакет документов дела закупки',c.pack);
+}
+function caseCardDoc(){
+  var i=+document.getElementById('ceId').value;
+  var c=cases[i];
+  if(!c||!c.card){flAlert('Карточка формируется при завершении цикла закупки. Пустая форма — во вкладке «Формы документов» (форма 19).');return;}
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:1.2cm}body{font-family:"Times New Roman",serif;font-size:10pt;line-height:1.3}table{border-collapse:collapse;width:100%}</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+c.card+'</body></html>';
+  download('kartochka_dela_'+(c.num||today())+'.doc',html,'application/msword');
+}
 function openCase(i){
   document.getElementById('caseListCard').style.display='none';
   document.getElementById('caseEditCard').style.display='';
@@ -3248,7 +3265,7 @@ function flNav(prev){
     if(k!==rec){
       if(!flV('flJustif').trim()){flAlert('При выборе способа, отличного от рекомендованного, обязательно укажите обоснование со ссылкой на норму');return;}
       CYC.justif=flV('flJustif').trim();
-    } else CYC.justif='Согласно рекомендации помощника: '+CYC.point+' ПП № 168 (ред. № 355), БВ = 45 руб.';
+    } else CYC.justif='';
   }
   if(st===3){}
   if(st===4){
@@ -3383,7 +3400,8 @@ function flMemoHtml(){
   var a=+CYC.amount||0,bv=a/BV;
   var u=function(s){return '<u>&nbsp;'+esc(s||'')+'&nbsp;</u>'};
   var goal=flGoalName(CYC.goal), urg=flUrgName(CYC.urg);
-  var obos=(CYC.justif?CYC.justif+'; ':'')+goal.toLowerCase()+(urg&&urg!=='обычная'?'; срочность: '+urg.toLowerCase():'')+(CYC.note?'; '+CYC.note:'');
+  var justif=(CYC.justif&&CYC.justif.indexOf('Согласно рекомендации')!==0)?CYC.justif:'';
+  var obos=(justif?justif+'; ':'')+goal.toLowerCase()+(urg&&urg!=='обычная'?'; срочность: '+urg.toLowerCase():'')+(CYC.note?'; '+CYC.note:'');
   return '<p style="text-align:center"><strong>СЛУЖЕБНАЯ ЗАПИСКА<br>о потребности в проведении закупки</strong></p>'
   +'<p style="text-align:center">Директору '+esc(HCONFIG.ORG||'____________')+'</p>'
   +'<p style="text-align:center">от '+u(CYC.fio||'____________')+(CYC.dept?', '+esc(CYC.dept):'')+'</p>'
@@ -3770,6 +3788,179 @@ function flProtocolHtml(){
   +'<p><b>Победитель: '+esc(win)+'</b> — '+fmtH(ks.sum||0)+'<br>Обоснование: '+esc(flV('flWinJustif')||'')+'</p>'
   +'<p style="margin-top:20px">Председатель комиссии: ____________<br>Члены комиссии: ____________ / ____________ / ____________</p>';
 }
+
+/* ===== ПАКЕТ ДОКУМЕНТОВ ДЕЛА ЗАКУПКИ (весь комплект для хранения, п. 47 Положения № 168) ===== */
+function flDateRu(ds){
+  var p=(ds||today()).split('-');var M=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  return '«'+(p[2]||'__')+'» '+(M[+p[1]-1]||'________')+' '+(p[0]||'20__')+' г.';
+}
+function flPackType(point,mKey){
+  var p=String(point||'')+' '+String(mKey||'');
+  if(/п\.\s*21|p21/.test(p))return 'min';
+  if(/п\.\s*29|p29/.test(p))return 'min';
+  if(/п\.\s*28/.test(p))return 'min';
+  if(/п\.\s*14|p14/.test(p))return 'min';
+  if(/прил\.\s*4|п\.\s*9\b|п\.\s*67|p9|p67/.test(p))return 'one';
+  return 'comp';
+}
+function flPackData(win,winSum){
+  return {subj:CYC.subj||'',qty:CYC.qty||'',unit:CYC.unit||'',amount:+CYC.amount||0,
+    point:CYC.point||'',mName:CYC.mName||'',mKey:CYC.mKey||'',fio:CYC.fio||'',
+    goal:CYC.goal||'',urg:CYC.urg||'',note:CYC.note||'',needDate:CYC.needDate||'',
+    sups:CYC.sups||[],kps:CYC.kps||{},justif:CYC.justif||'',winner:win||'',winSum:+winSum||0,date:today()};
+}
+function flReshenieHtml(d){
+  var u=function(s){return '<u>&nbsp;'+esc(s||' ')+'&nbsp;</u>'};
+  var cb=function(c){return c?'<b>☑</b>':'☐'};
+  var is21=/21/.test(d.point),is28=/28/.test(d.point),is29=/29/.test(d.point);
+  var inoe=(!is21&&!is28&&!is29)?('пункт '+d.point+' приложения 1 к постановлению № 168'):'';
+  return '<p style="text-align:center"><strong>РЕШЕНИЕ<br>об осуществлении закупки без проведения процедур закупки</strong></p>'
+  +'<p>'+flDateRu(d.date)+'&nbsp;&nbsp;№ ______</p>'
+  +'<p>1. Предмет закупки: '+u(d.subj+(d.qty?' — '+d.qty+' '+d.unit:''))+'</p>'
+  +'<p>2. Сумма сделки, руб.: '+u(d.winSum?fmtH(d.winSum):fmtH(d.amount))+'</p>'
+  +'<p>3. Поставщик (подрядчик, исполнитель): '+u(d.winner||'')+'</p>'
+  +'<p>4. Основание осуществления закупки без проведения процедур (нужное отметить):</p>'
+  +'<p style="margin-left:24pt">'+cb(is21)+' пункт 21 приложения 1 к постановлению № 168 — сумма не более 100 БВ по одной сделке;</p>'
+  +'<p style="margin-left:24pt">'+cb(is28)+' пункт 28 приложения 1 к постановлению № 168 — закупка у организации одного холдинга;</p>'
+  +'<p style="margin-left:24pt">'+cb(is29)+' пункт 29 приложения 1 к постановлению № 168 — оборудование, инструменты, сырье, тара (упаковка), материалы и комплектующие для собственного производства на сумму не более 1000 БВ по одной сделке;</p>'
+  +'<p style="margin-left:24pt">'+cb(!!inoe)+' иное: '+u(inoe||'пункт ______ приложения 1 к постановлению № 168')+'</p>'
+  +'<p>5. Обоснование применения основания: '+u(d.justif||'')+'</p>'
+  +'<p>6. Сведения о заключенном договоре подлежат включению в ежеквартальную отчетность в ИС «Тендеры» (для пунктов 28, 29 — обязательно; часть первая пункта 4 Положения № 168).</p>'
+  +'<p style="margin-top:14pt">Ответственный за закупки _________________ / '+u(d.fio||'')+' /</p>'
+  +'<p><strong>УТВЕРЖДАЮ:</strong></p>'
+  +'<p>Директор ОАО «Щучинский ремонтный завод» _________________ /____________________/</p>'
+  +'<p style="font-size:10pt"><em>Примечание. Основание: пункт 3.3 Порядка закупок, приложение 1 к постановлению № 168. Не допускается искусственное дробление закупки для уклонения от процедур.</em></p>';
+}
+
+function flCardFillHtml(d){
+  var u=function(s){return '<u>&nbsp;'+esc(s||' ')+'&nbsp;</u>'};
+  var cb=function(c){return c?'<b>☑</b>':'☐'};
+  var is21=/21/.test(d.point),is29=/29/.test(d.point),is28=/28/.test(d.point),is9=/п\.\s*9\b|прил\.\s*4/.test(d.point);
+  var inoe=(!is21&&!is29&&!is28&&!is9);
+  var kps=d.kps||{},names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
+  if(!names.length&&d.winner)names=[d.winner];
+  var rows='';
+  names.slice(0,3).forEach(function(n,i){
+    var k=kps[n]||{};
+    rows+='<tr><td style="border:1px solid #000;padding:3px 5px;text-align:center">'+(i+1)+'</td>'
+    +'<td style="border:1px solid #000;padding:3px 5px">'+esc(n)+'</td>'
+    +'<td style="border:1px solid #000;padding:3px 5px"></td><td style="border:1px solid #000;padding:3px 5px"></td><td style="border:1px solid #000;padding:3px 5px"></td>'
+    +'<td style="border:1px solid #000;padding:3px 5px">'+(k.sum?fmtH(k.sum):'')+'</td>'
+    +'<td style="border:1px solid #000;padding:3px 5px">'+esc(k.term||'')+(k.pay?'; '+esc(k.pay):'')+'</td>'
+    +'<td style="border:1px solid #000;padding:3px 5px">'+(k.note?esc(k.note):'')+'</td>'
+    +'<td style="border:1px solid #000;padding:3px 5px;text-align:center">'+cb(n===d.winner)+'</td></tr>';
+  });
+  while(names.length<3){rows+='<tr><td style="border:1px solid #000;padding:3px 5px;text-align:center">'+(names.length+1)+'</td><td style="border:1px solid #000"></td><td style="border:1px solid #000"></td><td style="border:1px solid #000"></td><td style="border:1px solid #000"></td><td style="border:1px solid #000"></td><td style="border:1px solid #000"></td><td style="border:1px solid #000"></td><td style="border:1px solid #000;text-align:center">☐</td></tr>';names.push('');}
+  var green='background:#dcebe2;border:1px solid #000;padding:3px 5px';
+  var cell='border:1px solid #000;padding:3px 5px';
+  return '<div style="font-size:9pt">'
+  +'<p style="text-align:center;margin:0"><strong>ОАО «Щучинский ремонтный завод»</strong></p>'
+  +'<p style="text-align:center;margin:3pt 0 8pt"><strong>КАРТОЧКА ДЕЛА ЗАКУПКИ № ______ от '+flDateRu(d.date)+'</strong></p>'
+  +'<table style="width:100%;border-collapse:collapse">'
+  +'<tr><td style="width:32%;'+green+'"><strong>Предмет закупки (наименование, характеристика, количество)</strong></td><td style="'+cell+'">'+esc(d.subj)+(d.qty?' — '+esc(d.qty)+' '+esc(d.unit):'')+'</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Заказчик (ФИО по служебке) / ответственный за закупку</strong></td><td style="'+cell+'">'+esc(d.fio||'')+'</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Основание закупки (нужное отметить)</strong></td><td style="'+cell+'">'+cb(is21)+' п. 21 прил. 1 — до 100 БВ (4 500 руб.)&nbsp;'+cb(is29)+' п. 29 прил. 1 — до 1000 БВ, собств. производство&nbsp;'+cb(is28)+' п. 28 прил. 1 — холдинг&nbsp;'+cb(is9)+' п. 9 прил. 4 — 100–1000 БВ&nbsp;'+cb(inoe)+' иное: '+esc(inoe?d.point:'')+'</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Ориентировочная стоимость, руб. (с НДС)</strong></td><td style="'+cell+'">'+fmtH(d.amount)+'</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Сумма договора, руб. (с НДС)</strong></td><td style="'+cell+'">'+(d.winSum?fmtH(d.winSum):'')+'</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Договор: №, дата / счета (№, дата, сумма)</strong></td><td style="'+cell+'"></td></tr>'
+  +'</table>'
+  +'<p style="margin:6pt 0 3pt"><strong>ПОСТУПИВШИЕ ПРЕДЛОЖЕНИЯ / ПОСТАВЩИКИ</strong></p>'
+  +'<table style="width:100%;border-collapse:collapse"><tr>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>№</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Поставщик, УНП</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Производитель товара</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>1-й импортёр (да/нет)</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Страна происхождения</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Цена предложения, руб. (с НДС)</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Срок поставки / оплаты</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Приложенные документы</strong></td>'
+  +'<td style="background:#2f5d50;color:#fff;border:1px solid #000;padding:3px 5px;text-align:center"><strong>Победитель</strong></td></tr>'
+  +rows+'</table>'
+  +'<p style="margin:6pt 0 3pt"><strong>ИТОГ И СОСТАВ ДЕЛА</strong></p>'
+  +'<table style="width:100%;border-collapse:collapse">'
+  +'<tr><td style="width:32%;'+green+'"><strong>ПОБЕДИТЕЛЬ / выбранный поставщик</strong></td><td style="'+cell+'"><b>'+esc(d.winner||'')+'</b>'+(d.winSum?' — '+fmtH(d.winSum):'')+'</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Основание выбора</strong></td><td style="'+cell+'">'+cb(true)+' наименьшая цена&nbsp;☐ единственное предложение&nbsp;☐ единственный поставщик&nbsp;☐ иное: ______</td></tr>'
+  +'<tr><td style="'+green+'"><strong>Опись приложенных документов (отметить наличие)</strong></td><td style="'+cell+'">'+cb(true)+' служебная записка&nbsp;☐ распоряжение&nbsp;'+cb(flPackType(d.point,d.mKey)==='min')+' решение/обоснование (формы 3, 4)&nbsp;'+cb((d.sups||[]).length>0)+' запросы КП&nbsp;'+cb(names.filter(function(x){return x}).length>1)+' КП участников&nbsp;☐ справка конъюнктуры рынка&nbsp;☐ договор&nbsp;☐ счета&nbsp;☐ накладные/акты</td></tr>'
+  +'</table>'
+  +'<p style="margin-top:12pt">Ответственный за закупки: _________________ / '+u(d.fio||'')+' /&nbsp;&nbsp;&nbsp;&nbsp;Заказчик (ФИО): _________________ /____________/&nbsp;&nbsp;&nbsp;&nbsp;УТВЕРЖДАЮ: Директор _________________ /____________/</p>'
+  +'<p style="font-size:8pt"><em>Примечание. Дело закупки хранится 3 года (п. 47 Положения № 168 в ред. постановления № 355 от 10.07.2026; 1 БВ = 45 руб.). Сведения по п. 28, 29 прил. 1 включаются в квартальный отчёт в ИС «Тендеры» до 15-го числа.</em></p>'
+  +'</div>';
+}
+
+function flPackItems(d){
+  var T=flPackType(d.point,d.mKey);
+  var items=[];
+  var add=function(t,html,note){items.push({t:t,html:html,note:note||''})};
+  add('Служебная записка о потребности (форма 1)', flMemoHtml(), 'первый документ дела');
+  if(T==='min'){
+    add('Решение об осуществлении закупки без проведения процедур (форма 3)', flReshenieHtml(d), 'достаточно решения — процедуры не проводятся');
+  } else {
+    add('Распоряжение о проведении закупки (форма 2)', (typeof formHtmlWord==='function'?formHtmlWord('f2'):''), 'заполнить № и дату');
+  }
+  if(T==='one'){
+    add('Обоснование применения процедуры из одного источника (форма 4)', (typeof formHtmlWord==='function'?formHtmlWord('f4'):''), '');
+    add('Справка по результатам изучения конъюнктуры рынка (форма 6)', (typeof formHtmlWord==='function'?formHtmlWord('f6'):''), 'не менее 3 предложений по товарам');
+    if(CYC.letter)add('Запросы о представлении КП (письма поставщикам)', '<h3 style="text-align:center">Запрос о представлении ценового (коммерческого) предложения</h3><p>'+flDateRu(d.date)+'</p><div>'+esc(CYC.letter).replace(/\n/g,'<br>')+'</div>', 'направлены '+(d.sups||[]).length+' поставщикам');
+    add('Заявление (декларация) участника о соответствии (форма 11, п. 11 Положения)', (typeof formHtmlWord==='function'?formHtmlWord('f11'):''), 'заполняет поставщик');
+  }
+  if(T==='comp'){
+    add('Приказ о создании комиссии по закупкам (форма 8)', (typeof formHtmlWord==='function'?formHtmlWord('f8'):''), '');
+    add('Приглашение к участию в процедуре (форма 9)', (typeof formHtmlWord==='function'?formHtmlWord('f9'):''), '');
+    if(CYC.letter)add('Запрос ценовых предложений (письмо, форма 5)', '<h3 style="text-align:center">Запрос о представлении ценового (коммерческого) предложения</h3><p>'+flDateRu(d.date)+'</p><div>'+esc(CYC.letter).replace(/\n/g,'<br>')+'</div>', '');
+    add('Ценовое предложение участника (форма 10, бланк)', (typeof formHtmlWord==='function'?formHtmlWord('f10'):''), 'заполняют участники');
+    add('Заявление (декларация) участника (форма 11)', (typeof formHtmlWord==='function'?formHtmlWord('f11'):''), 'заполняют участники');
+    add('Справка по результатам изучения конъюнктуры рынка (форма 6)', (typeof formHtmlWord==='function'?formHtmlWord('f6'):''), '');
+  }
+  var names=Object.keys(d.kps||{}).filter(function(n){return d.kps[n]&&d.kps[n].sum>0});
+  if(names.length)add('Сравнительная таблица коммерческих предложений', flCmpHtml(), 'приложить оригиналы КП участников');
+  if(T==='comp')add('Протокол рассмотрения предложений и определения победителя (форма 12)', (typeof formHtmlWord==='function'?formHtmlWord('f12'):''), '');
+  add(T==='one'?'Протокол закупки (выбор поставщика)':'Протокол выбора победителя', flProtocolHtml(), '');
+  if(T==='comp'){
+    add('Сообщение о результате процедуры закупки (форма 14)', (typeof formHtmlWord==='function'?formHtmlWord('f14'):''), '');
+    add('Дело закупки: титульный лист и опись (форма 15)', (typeof formHtmlWord==='function'?formHtmlWord('f15'):''), '');
+  }
+  add('Карточка дела закупки (форма 19, заполненная)', flCardFillHtml(d), 'альбомная версия — отдельной кнопкой');
+  add('Договор / счёт / накладные / акты', '<p style="text-align:center;color:#666"><em>Сюда вкладываются подписанный договор (или счёт), накладные и акты приёмки. Скан/оригинал прикладывается к делу вручную.</em></p>', 'приложить после подписания');
+  return {type:T,items:items};
+}
+function flPackHtml(d){
+  var P=flPackItems(d);
+  P.items=P.items.filter(function(it){return it.html&&String(it.html).length>10});
+  var Tname={min:'без проведения процедур (приложение 1 к ПП № 168) — минимальный состав дела',one:'закупка из одного источника (приложение 4 к ПП № 168) — расширенный состав дела',comp:'конкурентная процедура (запрос ценовых предложений / конкурс / аукцион) — полный состав дела по Положению № 168'}[P.type];
+  var cover='<h3 style="text-align:center">ДЕЛО ЗАКУПКИ<br>пакет документов для хранения (п. 47 Положения № 168 — 3 года)</h3>'
+  +'<p><b>Предмет:</b> '+esc(d.subj)+(d.qty?' — '+esc(d.qty)+' '+esc(d.unit):'')+'<br><b>Основание:</b> '+esc(d.point)+' — '+esc(d.mName)+'<br><b>Дата:</b> '+flDateRu(d.date)+'&nbsp;&nbsp;<b>Ответственный:</b> '+esc(d.fio||'—')+'<br><b>Победитель:</b> '+esc(d.winner||'—')+(d.winSum?' — '+fmtH(d.winSum):'')+'</p>'
+  +'<p><b>Тип закупки:</b> '+Tname+'</p>'
+  +'<table style="border-collapse:collapse;width:100%"><tr><th style="border:1px solid #000;padding:4px">№</th><th style="border:1px solid #000;padding:4px">Документ</th><th style="border:1px solid #000;padding:4px">Примечание</th></tr>'
+  +P.items.map(function(it,i){return '<tr><td style="border:1px solid #000;padding:4px;text-align:center">'+(i+1)+'</td><td style="border:1px solid #000;padding:4px">'+esc(it.t)+'</td><td style="border:1px solid #000;padding:4px;font-size:10pt">'+esc(it.note)+'</td></tr>'}).join('')
+  +'</table>'
+  +'<p style="font-size:10pt"><em>Сведения по п. 28, 29 прил. 1 — в квартальный отчёт ИС «Тендеры» до 15-го числа (п. 4 Положения № 168). Для п. 9 прил. 4 — контроль годового лимита 5 000 БВ. Сформировано в «Помощнике специалиста по закупкам» '+flDateRu(d.date)+'.</em></p>';
+  var body=P.items.map(function(it){
+    return '<div style="page-break-before:always"><h4 style="text-align:center;color:#555">— '+esc(it.t)+' —</h4>'+it.html+'</div>';
+  }).join('');
+  return cover+body;
+}
+function flPackDownload(){
+  var html=window._lastPack;
+  if(!html){
+    var w=document.querySelector('input[name=flWin]:checked');
+    var win=w?w.value:(CYC.winner||'');var ks=(CYC.kps||{})[win]||{};
+    html=flPackHtml(flPackData(win,+ks.sum||0));
+  }
+  flDoc('delo_zakupki_paket_'+today()+'.doc','Пакет документов дела закупки',html);
+}
+function flCardDownload(){
+  var d;
+  if(window._lastCard){d=null;}
+  else{
+    var w=document.querySelector('input[name=flWin]:checked');
+    var win=w?w.value:(CYC.winner||'');var ks=(CYC.kps||{})[win]||{};
+    d=flPackData(win,+ks.sum||0);
+  }
+  var body=window._lastCard||flCardFillHtml(d);
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:1.2cm}body{font-family:"Times New Roman",serif;font-size:10pt;line-height:1.3}table{border-collapse:collapse;width:100%}</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+body+'</body></html>';
+  download('kartochka_dela_'+today()+'.doc',html,'application/msword');
+}
+
 function flFinish(){
   var w=document.querySelector('input[name=flWin]:checked');
   if(!w){flAlert('Выберите победителя');return;}
@@ -3785,7 +3976,7 @@ function flFinish(){
   L.unshift({id:nextId(L),subject:(CYC.subj||'')+(CYC.qty?' — '+CYC.qty+' '+(CYC.unit||''):''),amount:+ks.sum||(+CYC.amount||0),
     bv:((+ks.sum||(+CYC.amount||0))/BV),proc:(CYC.mName||'')+' (цикл)',procKey:CYC.mKey||'prod',contour:'own',fio:CYC.fio||'',
     date:today(),year:String(currentYear()),annual:0,std:false,ownProd:CYC.goal==='proizv',oisStroy:false,repeatProc:false,
-    status:'в работе',files:[],stage:2,note:'инициатор: '+(CYC.fio||'—')+'; победитель: '+win});
+    status:'в работе',files:[],stage:5,note:'инициатор: '+(CYC.fio||'—')+'; победитель: '+win});
   lsSet('zlog',L);
   var due=new Date();due.setDate(due.getDate()+10);
   tasks.unshift({id:uid('t'),t:'Заключить договор с «'+win+'» по «'+String(CYC.subj).slice(0,60)+'» ('+fmtH(+ks.sum||0)+')',due:due.toISOString().slice(0,10),sup:win,done:false});
@@ -3793,9 +3984,12 @@ function flFinish(){
   var parts=(CYC.sups||[]).map(function(n){var k2=kps[n]||{};return {sup:n,sum:+k2.sum||0,term:k2.term||'',pay:k2.pay||'',note:k2.note||'',win:(n===win)}});
   var docsMap={};CASE_DOCS.forEach(function(d){docsMap[d]=0});
   docsMap['Служебка инициатора']=1;docsMap['Сравнительная таблица КП']=1;docsMap['Служебка-обоснование выбора']=1;
+  var _pd=flPackData(win,+ks.sum||0);
+  window._lastPack=flPackHtml(_pd);
+  window._lastCard=flCardFillHtml(_pd);
   cases.unshift({num:'Д-'+new Date().getFullYear()+'-'+String(cases.length+1).padStart(3,'0'),date:today(),point:CYC.point||'прочее',
     subj:(CYC.subj||'')+(CYC.qty?' — '+CYC.qty+' '+(CYC.unit||''):''),fio:CYC.fio||'',total:+ks.sum||0,limit:0,
-    note:'Завершён полный цикл v3.1 · '+CYC.mName+' · '+CYC.justif,parts:parts,docs:docsMap});
+    note:'Завершён полный цикл v3.1 · '+CYC.mName+' · '+CYC.justif,parts:parts,docs:docsMap,pack:window._lastPack,card:window._lastCard});
   saveCases();
   var H=lsGet('srz_flow_hist',[]);
   H.unshift({d:today(),subj:CYC.subj,qty:CYC.qty,unit:CYC.unit,amount:CYC.amount,point:CYC.point,mName:CYC.mName,
@@ -3809,6 +4003,10 @@ function flFinish(){
   var B=document.getElementById('flBody');
   B.innerHTML='<div class="result" style="font-size:15px">✔ Цикл закупки завершён и сохранён</div>'
   +'<div class="note" style="margin-top:10px"><b>Что сохранено:</b> сделка в воронке (этап «'+((STAGES.filter(function(x){return x[0]===(stageMap[CYC.mKey]||'zayavka')})[0]||{})[1]||'—')+'») · запись в журнале закупок · задача «заключить договор» (срок '+due.toLocaleDateString('ru-RU')+') · записи в CRM-профилях поставщиков · журнал верификации.</div>'
+  +'<div style="margin:10px 0;padding:10px;border:2px solid var(--acc);border-radius:10px;background:#f4faf6"><b>📦 Пакет документов дела закупки</b> — весь комплект для хранения одним файлом (состав зависит от процедуры: п. 21/29/14 прил. 1 — минимальный, конкурентная — полный по Положению № 168).<br>'
+  +'<button class="btn" style="margin-top:8px" onclick="flPackDownload()">📦 Скачать пакет документов (.doc)</button> '
+  +'<button class="btn ghost" style="margin-top:8px" onclick="flPrint(\'Пакет документов дела закупки\',window._lastPack||\'\')">🖨 Печать пакета</button> '
+  +'<button class="btn ghost" style="margin-top:8px" onclick="flCardDownload()">📋 Карточка дела (.doc, альбомная)</button></div>'
   +'<button class="btn" onclick="flPrint(\'Протокол выбора\',flProtocolHtml())">🖨 Распечатать протокол выбора</button> '
   +'<button class="btn ghost" onclick="flDoc(\'protokol_vybora_'+today()+'.doc\',\'Протокол выбора\',flProtocolHtml())">Скачать .doc</button> '
   +'<button class="btn" onclick="go(\'case\');setTimeout(function(){try{openCase(0)}catch(e){}},150)">📁 Открыть дело закупки</button> '+'<button class="btn" onclick="flowNew()">🆕 Новая закупка</button> '
