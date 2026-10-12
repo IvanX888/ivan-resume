@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>КАРКАС · Помощник специалиста по закупкам — CRM ЩРЗ v2.0</title>
+<title>Помощник специалиста по закупкам — CRM ЩРЗ v2.0</title>
 <meta name="robots" content="noindex, nofollow">
 <style>
 :root{
@@ -140,12 +140,11 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 @media print{nav,#subnav,.btn{display:none}}
 </style>
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v3.6-каркас</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v3.7-каркас</span></h1>
     <div class="sub">КАРКАС системы (без данных организации) · после открытия: СИСТЕМА → загрузить JSON данных/профиля · законодательство РБ вшито (ПП № 168 ред. № 355, БВ = 45 руб. на 2026), реквизиты и внутренний Порядок — через профиль организации</div>
   </div>
   <div style="display:flex;gap:8px">
@@ -560,6 +559,11 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <h2>Журнал закупок</h2>
     <div class="small" style="margin-bottom:10px">Хранится локально в браузере (localStorage). Экспорт — кнопкой ниже.</div>
     <div id="lim9box"></div>
+    <div class="fbar" style="margin:12px 0 4px">
+      <div><label>Квартал (отчёт ИС «Тендеры»)</label><select id="logFQ" onchange="LOGF.q=this.value;renderLog()"><option value="">все</option></select></div>
+      <div><label>Основание / процедура</label><select id="logFP" onchange="LOGF.pk=this.value;renderLog()"><option value="">все</option></select></div>
+      <div><label>Поиск (предмет, инициатор)</label><input id="logFT" oninput="LOGF.txt=this.value.toLowerCase();renderLog()" placeholder="печатайте — фокус не теряется"></div>
+    </div>
     <div id="logTbl" style="margin-top:14px"></div>
     <div style="border-top:1px dashed var(--line);margin-top:16px;padding-top:12px">
       <h3>📊 Отчёты (печать и Word — из окна печати)</h3>
@@ -670,7 +674,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>ОАО «Щучинский ремонтный завод» · Помощник специалиста по закупкам v3.6 · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
+<footer>ОАО «Щучинский ремонтный завод» · Помощник специалиста по закупкам v3.7 · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealModal"><div class="box">
@@ -729,7 +733,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <div class="modal" id="mailModal"><div class="box" style="max-width:720px">
   <h2>✉ Отправка письма поставщику</h2>
   <input type="hidden" id="mlSup">
-  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e984889b828c9da99b8c8493889f868dc78b90">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: mail.g-cloud.by или Mail.ru)</span></div>
+  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="84e9e5f6efe1f0c4f6e1e9fee5f2ebe0aae6fd">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: mail.g-cloud.by или Mail.ru)</span></div>
   <div class="kv"><b>Кому:</b> <input id="mlTo" style="width:70%"></div>
   <label>Тема</label><input id="mlSubj">
   <label>Текст письма (редактируется)</label><textarea id="mlBody" rows="10" style="font-family:inherit"></textarea>
@@ -739,7 +743,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <div><label>Телефон (подпись)</label><input id="sgTel" onchange="signSave()"></div>
   </div>
   <label style="display:inline-flex;gap:6px;margin-top:6px;color:var(--ink)"><input type="checkbox" id="mlReq" checked style="width:auto">добавить реквизиты ОАО «ЩРЗ» в конец письма</label>
-  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7b161a09101e0f3b091e16011a0d141f551902">[email&#160;protected]</a></b>. Выберите способ — откроется почтовая программа, Mail.ru или веб-почта G-Cloud (войдите под <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e48985968f8190a49681899e85928b80ca869d">[email&#160;protected]</a> и нажмите «Отправить»). Вложения через ссылку не передаются: нажмите <b>«📄 Бланк для вложения»</b> — сформируется официальное письмо на фирменном бланке с реквизитами (форма 5 к Порядку закупок), сохраните его в PDF и приложите к письму. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
+  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7f121e0d141a0b3f0d1a12051e09101b511d06">[email&#160;protected]</a></b>. Выберите способ — откроется почтовая программа, Mail.ru или веб-почта G-Cloud — кнопка «G-Cloud» копирует текст и открывает mail.g-cloud.by, там войдите под <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9af7fbe8f1ffeedae8fff7e0fbecf5feb4f8e3">[email&#160;protected]</a> и вставьте текст (Ctrl+V). Вложения через ссылку не передаются: нажмите <b>«📄 Бланк для вложения»</b> — сформируется официальное письмо на фирменном бланке с реквизитами (форма 5 к Порядку закупок), сохраните его в PDF и приложите к письму. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
   <div style="margin-top:10px">
     <button class="btn" onclick="mlOpen('mailto')">📮 Почтовая программа</button>
     <button class="btn" onclick="mlOpen('mailru')">✉ Mail.ru</button>
@@ -1123,6 +1127,31 @@ function supEditCancel(){
   if(smNew){sup.shift();smNew=false;save();try{renderSupTable()}catch(e){}}
   closeModal('supModal');
 }
+/* Подсказка: такой поставщик уже есть в базе */
+function supDupCheck(){
+  var nm=(typeof normKey==='function'?normKey(document.getElementById('seName').value||''):(document.getElementById('seName').value||'').toLowerCase());
+  var unp=(document.getElementById('seUnp').value||'').trim();
+  var box=document.getElementById('seDup');
+  var lst=document.getElementById('seSupList');
+  if(lst&&!lst.options.length){lst.innerHTML=sup.map(function(x){return '<option value="'+esc(x.name||'')+'">'}).join('');}
+  var dup=null;
+  sup.forEach(function(x,idx){
+    if(idx===smCur.id)return;
+    var xn=(typeof normKey==='function'?normKey(x.name||''):(x.name||'').toLowerCase());
+    if(nm&&xn===nm)dup={i:idx,why:'совпадает наименование'};
+    if(unp&&x.unp&&String(x.unp)===unp)dup={i:idx,why:'совпадает УНП '+unp};
+  });
+  box.innerHTML=dup?'<div class="note alert" style="margin-top:6px">⚠ Такой поставщик уже есть в базе: <b>'+esc(sup[dup.i].name)+'</b> ('+dup.why+'). <a href="#" onclick="supDupOpen('+dup.i+');return false">Открыть его карточку</a> — дубль создавать не нужно.</div>':'';
+}
+function supDupOpen(idx){
+  if(smNew){sup.splice(smCur.id,1);smNew=false;save();if(idx>smCur.id)idx--;}
+  smCur.id=idx;smCur.tab='prof';
+  var sp=sup[idx];if(!sp)return;
+  document.getElementById('smName').textContent=sp.name+((sp.site&&sp.site.length)?' · '+sp.site[0]:'');
+  smTab('prof');
+  try{renderSupTable()}catch(e){}
+}
+
 function smTab(t){
   smCur.tab=t;
   document.querySelectorAll('#smTabs button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===t)});
@@ -1131,10 +1160,10 @@ function smTab(t){
   if(t==='edit'){
     el.innerHTML='<h3>'+(smNew?'Новый поставщик':'Редактирование карточки')+'</h3>'
     +'<div class="grid2"><div>'
-    +'<label>Наименование *</label><input id="seName" value="'+esc(s.name||'')+'">'
+    +'<label>Наименование *</label><input id="seName" value="'+esc(s.name||'')+'" oninput="supDupCheck()" list="seSupList"><datalist id="seSupList"></datalist><div id="seDup"></div>'
     +'<label>Группа товара</label><input id="seGroup" value="'+esc(s.group||'')+'">'
     +'<label>Статус</label><select id="seStatus">'+['поставщик','производитель','сбытовая организация','официальный дилер','прочее'].map(function(x){return '<option'+(s.status===x?' selected':'')+'>'+x+'</option>'}).join('')+'</select>'
-    +'<label>УНП</label><input id="seUnp" value="'+esc(s.unp||'')+'">'
+    +'<label>УНП</label><input id="seUnp" value="'+esc(s.unp||'')+'" oninput="supDupCheck()">'
     +'<label>Адрес</label><input id="seAddr" value="'+esc(s.addr||'')+'">'
     +'</div><div>'
     +'<label>E-mail (через ;)</label><input id="seEmail" value="'+esc((s.email||[]).join('; '))+'">'
@@ -1458,7 +1487,8 @@ function wizToFlow(){
   CYC.contour=w.contour||'own';
   CYC.mKey=map[w.procKey]||'';
   CYC.mName=w.proc||'';
-  CYC.justif='Согласно рекомендации подбора процедуры: '+(w.proc||'');
+  var normMap={direct:'п. 21 приложения 1 к постановлению № 168 (сумма не более 100 БВ)',prod:'п. 29 приложения 1 к постановлению № 168 (для собственного производства, до 1000 БВ)',oosOwn9:'п. 9 приложения 4 к Положению № 168 (100–1000 БВ, годовой лимит 5000 БВ)',oos9gos:'п. 9 приложения 4 к Положению № 168',eproc:'электронная конкурентная процедура (глава 5 Положения № 168)',contest:'конкурс (глава 3 Положения № 168)',zcp:'запрос ценовых предложений (глава 2 Положения № 168)',auction:'электронный аукцион (глава 4 Положения № 168)',contestDecision:'конкурс по решению закупающей организации'};
+  CYC.justif='Основание: '+(normMap[w.procKey]||w.proc||'—')+' и Порядок закупок ОАО «ЩРЗ» (внутренний ЛПА). Способ подобран помощником '+today()+' г.; при отклонении от рекомендации — указать причину с нормой.';
   CYC.step=2; cycSave(); go('flow');
 }
 /* Из цикла — в экспресс-подбор (предмет и сумма переносятся) */
@@ -2499,16 +2529,15 @@ function logQuarter(r){
   var m=(r.date||'').match(/^(\d{4})-(\d{2})/);
   return m?m[1]+'-Q'+(Math.floor((+m[2]-1)/3)+1):'';
 }
-function logFilterBar(L){
+function logFillFilters(L){
+  var qEl=document.getElementById('logFQ'),pEl=document.getElementById('logFP');
+  if(!qEl||!pEl)return;
   var qs={},pks={};
   L.forEach(function(r){var q=logQuarter(r);if(q)qs[q]=1;if(r.procKey)pks[r.procKey]=1;});
-  var optsQ=Object.keys(qs).sort().reverse().map(function(q){return '<option'+(LOGF.q===q?' selected':'')+'>'+q+'</option>'}).join('');
-  var optsP=Object.keys(pks).sort().map(function(k){return '<option value="'+k+'"'+(LOGF.pk===k?' selected':'')+'>'+k+'</option>'}).join('');
-  return '<div class="fbar" style="margin:12px 0 4px">'
-    +'<div><label>Квартал (для отчёта в ИС «Тендеры»)</label><select onchange="LOGF.q=this.value;renderLog()"><option value="">все</option>'+optsQ+'</select></div>'
-    +'<div><label>Основание / процедура</label><select onchange="LOGF.pk=this.value;renderLog()"><option value="">все</option>'+optsP+'</select></div>'
-    +'<div><label>Поиск (предмет, инициатор)</label><input value="'+esc(LOGF.txt)+'" oninput="LOGF.txt=this.value.toLowerCase();renderLog()"></div>'
-    +'</div>';
+  var qo=Object.keys(qs).sort().reverse(),po=Object.keys(pks).sort();
+  if(qEl.dataset.sig!==qo.join('|')){qEl.innerHTML='<option value="">все</option>'+qo.map(function(q){return '<option>'+q+'</option>'}).join('');qEl.dataset.sig=qo.join('|');}
+  if(pEl.dataset.sig!==po.join('|')){pEl.innerHTML='<option value="">все</option>'+po.map(function(k){return '<option value="'+k+'">'+k+'</option>'}).join('');pEl.dataset.sig=po.join('|');}
+  qEl.value=LOGF.q;pEl.value=LOGF.pk;
 }
 function logPass(r){
   if(LOGF.q&&logQuarter(r)!==LOGF.q)return false;
@@ -2607,7 +2636,7 @@ function renderLog(){
       h += '</div>';
     }
   }
-  h += logFilterBar(L);
+  logFillFilters(L);
   h += '<table><tr><th>ID</th><th>Дата</th><th>Контур</th><th>Предмет</th><th>Сумма</th><th>б.в.</th><th>Процедура</th><th>Статус</th><th>Действия</th></tr>';
   for (var i = 0; i < L.length; i++){
     var r = L[i];
@@ -3113,10 +3142,9 @@ function mlUri(){
 function mlOpen(kind){
   signSave();
   if(kind==='gcloud'){
-    var to=document.getElementById('mlTo').value.trim();
-    window.open('https://mail.g-cloud.by/?_task=mail&_action=compose&_to='+encodeURIComponent(to)
-      +'&_subject='+encodeURIComponent(document.getElementById('mlSubj').value)
-      +'&_body='+encodeURIComponent(mlFullBody()),'_blank');
+    mlCopySilent();
+    window.open('https://mail.g-cloud.by/','_blank');
+    alert('Открыта веб-почта G-Cloud. Текст письма уже СКОПИРОВАН в буфер.\n\n1) Войдите под market@remzavod.by\n2) Создайте новое письмо\n3) Вставьте текст (Ctrl+V) и укажите адрес получателя\n4) Приложите бланк (кнопка «📄 Бланк для вложения») и отправьте');
     return;
   }
   var u=mlUri();
@@ -3136,9 +3164,14 @@ function mlBlank(){
   var sign='<p style="margin-top:26px">Ответственный за закупки ______________ / '+(d.fio?esc(d.fio):'______________')+' /<br><span style="font-size:12px;color:#555">'+esc(d.pos)+', тел. '+esc(d.tel)+'</span></p>';
   flPrint('Письмо на бланке ОАО «ЩРЗ»',head+meta+body+sign);
 }
-function mlCopy(){
+function mlCopySilent(){
   var t='Кому: '+document.getElementById('mlTo').value+'\nТема: '+document.getElementById('mlSubj').value+'\n\n'+mlFullBody();
-  navigator.clipboard.writeText(t).then(function(){alert('Текст письма скопирован — вставьте его в письмо в вашей почте');});
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){});}
+  else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta);}
+}
+function mlCopy(){
+  mlCopySilent();
+  alert('Текст письма скопирован — вставьте его в письмо в вашей почте');
 }
 function mlConfirm(){
   var supName=document.getElementById('mlSup').value;
