@@ -140,8 +140,9 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 #wires .ahp{fill:#9db8af;stroke:none}
 @media print{nav,#subnav,.btn{display:none}}
 
-.formWord{font-family:"Times New Roman",serif;font-size:12pt;background:#fff;color:#000;max-width:820px;margin:0 auto;padding:60px 50px 60px 80px;border:1px solid #d0d0d0;border-radius:2px;line-height:1.4;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.formWord{font-family:"Times New Roman",serif;font-size:14pt;background:#fff;color:#000;max-width:820px;margin:0 auto;padding:60px 50px 60px 80px;border:1px solid #d0d0d0;border-radius:2px;line-height:1.4;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .formWord p{margin:6px 0}
+.fwBody>p:first-child,.fwBody>p:first-child+p{text-align:center}
 .formWord table{border-collapse:collapse;width:100%;margin:8px 0}
 .formWord td,.formWord th{border:1px solid #000;padding:4px 6px;font-size:11pt;vertical-align:top}
 
@@ -164,7 +165,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v4.2-каркас</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v4.3-каркас</span></h1>
     <div class="sub">Каркас помощника закупок (без данных организации) · CRM: воронка закупок, поставщики, задачи, контакты · реестр 33 + журнал 7.2.1 (81 контрагент, 87 договоров) · контакты 18 компаний по офиц. сайтам · нормы сверены на 08.10.2026: ИПС «Эталон» + pravo.by (ПП № 168 ред. № 355, БВ = 45 руб.)</div>
   </div>
   <div style="display:flex;gap:8px">
@@ -711,7 +712,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>Помощник специалиста по закупкам v4.2-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
+<footer>Помощник специалиста по закупкам v4.3-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealModal"><div class="box">
@@ -3336,23 +3337,30 @@ function renderFormsCard(){
   h+='</select><div id="formView" style="margin-top:12px"></div>';
   el.innerHTML=h;
 }
+function formHtmlWord(id){
+  var f=FORMS[id]; if(!f)return '';
+  var h=f.html;
+  h=h.replace('<p><strong>','<p style="text-align:center"><strong>');
+  return '<p style="text-align:right;margin:0"><strong>Форма '+id.slice(1)+'</strong></p>'+h;
+}
 function formShow(id){
   var v=document.getElementById('formView'); if(!v)return;
   if(!id||!FORMS[id]){v.innerHTML='';return;}
   var f=FORMS[id];
   var wide=(id==='f19')?' style="max-width:1160px"':'';
+  var label='<p style="text-align:right;margin:0"><strong>Форма '+id.slice(1)+'</strong></p>';
   v.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
     +'<button class="btn sm" onclick="formPrintDoc(\''+id+'\')">Печать</button>'
     +'<button class="btn sm ghost" onclick="formDlDoc(\''+id+'\')">Скачать .doc</button></div>'
-    +'<div class="formWord"'+wide+'>'+f.html+'</div>';
+    +'<div class="formWord"'+wide+'>'+label+'<div class="fwBody">'+f.html+'</div></div>';
 }
 function formPrintDoc(id){
   var f=FORMS[id]; if(!f)return;
-  flPrint('Форма '+id.slice(1)+'. '+f.title, f.html);
+  flPrint('Форма '+id.slice(1)+'. '+f.title, formHtmlWord(id));
 }
 function formDlDoc(id){
   var f=FORMS[id]; if(!f)return;
-  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Форма</title><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>'+f.html+'</body></html>';
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Форма</title><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+formHtmlWord(id)+'</body></html>';
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['﻿'+html],{type:'application/msword'}));
   a.download='forma_'+id.slice(1)+'.doc'; a.click();
@@ -3360,33 +3368,40 @@ function formDlDoc(id){
 function flPrint(title,bodyHtml){
   var w=window.open('','_blank');
   w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title>'
-  +'<style>body{font-family:"Times New Roman",serif;font-size:12pt;max-width:800px;margin:24px auto}#np{margin-bottom:14px;padding:8px;background:#f0f0f0;border-radius:6px}#np button{padding:6px 14px;margin-right:8px;cursor:pointer}@media print{#np{display:none}}</style></head><body>'
+  +'<style>body{font-family:"Times New Roman",serif;font-size:14pt;max-width:800px;margin:24px auto}#np{margin-bottom:14px;padding:8px;background:#f0f0f0;border-radius:6px}#np button{padding:6px 14px;margin-right:8px;cursor:pointer}@media print{#np{display:none}}</style></head><body>'
   +'<div id="np"><button onclick="window.print()">🖨 Печать</button><button onclick="dlDoc()">💾 Скачать в Word (.doc)</button><span style="font-size:12px;color:#555">.doc открывается и редактируется в Microsoft Word / LibreOffice</span></div>'
   +'<div id="db">'+bodyHtml+'</div>'
-  +'<scr'+'ipt>function dlDoc(){var h="<html><head><meta charset=utf-8><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:Times New Roman,serif;font-size:12pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>"+document.getElementById("db").innerHTML+"</body></html>";var b=new Blob(["\ufeff"+h],{type:"application/msword"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(document.title||"document").replace(/[\\/:*?"<>|«»]/g,"_")+".doc";a.click();}</scr'+'ipt>'
+  +'<scr'+'ipt>function dlDoc(){var h="<html><head><meta charset=utf-8><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:Times New Roman,serif;font-size:14pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body><table style=width:100%><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>"+document.getElementById("db").innerHTML+"</body></html>";var b=new Blob(["\ufeff"+h],{type:"application/msword"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(document.title||"document").replace(/[\\/:*?"<>|«»]/g,"_")+".doc";a.click();}</scr'+'ipt>'
   +'</body></html>');
   w.document.close();
 }
 function flDoc(fname,title,bodyHtml){
-  download(fname,'<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>'+bodyHtml+'</body></html>','application/msword');
+  download(fname,'<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+bodyHtml+'</body></html>','application/msword');
 }
 function flMemoHtml(){
   var a=+CYC.amount||0,bv=a/BV;
-  return '<div style="text-align:center;font-weight:bold">'+esc(HCONFIG.ORG||'')+'</div>'
-  +'<div style="text-align:center;font-size:12px">'+esc(HCONFIG.ORG_ADDR||'')+(HCONFIG.ORG_UNP?' · УНП '+esc(HCONFIG.ORG_UNP):'')+'</div>'
-  +'<h3 style="text-align:center">СЛУЖЕБНАЯ ЗАПИСКА<br>о необходимости осуществления закупки</h3>'
-  +'<p>Директору '+esc(HCONFIG.ORG||'____________')+'<br>от '+esc(CYC.fio||'____________')+(CYC.dept?', '+esc(CYC.dept):'')+'</p>'
-  +'<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%">'
-  +'<tr><th>Предмет закупки</th><td>'+esc(CYC.subj||'')+(CYC.qty?' — '+esc(CYC.qty)+' '+esc(CYC.unit||''):'')+'</td></tr>'
-  +'<tr><th>Ориентировочная стоимость</th><td>'+fmtH(a)+' ('+bv.toFixed(1)+' б.в., БВ = 45 руб.)</td></tr>'
-  +'<tr><th>Цель / назначение</th><td>'+flGoalName(CYC.goal)+'</td></tr>'
-  +'<tr><th>Срочность</th><td>'+flUrgName(CYC.urg)+(CYC.needDate?', требуемый срок поставки: '+CYC.needDate:'')+'</td></tr>'
-  +(CYC.note?'<tr><th>Технические требования</th><td>'+esc(CYC.note)+'</td></tr>':'')
-  +'<tr><th>Способ закупки</th><td><b>'+esc(CYC.mName||'')+'</b> ('+esc(CYC.point||'')+', ПП № 168 от 07.04.2026 в ред. № 355 от 10.07.2026)</td></tr>'
-  +'<tr><th>Обоснование</th><td>'+esc(CYC.justif||'')+'</td></tr>'
-  +'</table>'
-  +'<p style="margin-top:24px">Инициатор: ____________ / '+esc(CYC.fio||'')+' /<br><br>Согласовано: ____________ / руководитель подразделения /</p>'
-  +'<p style="color:#666;font-size:11px">Нормативная база сверена по ИПС «Эталон» и pravo.by на 11.10.2026.</p>';
+  var u=function(s){return '<u>&nbsp;'+esc(s||'')+'&nbsp;</u>'};
+  var goal=flGoalName(CYC.goal), urg=flUrgName(CYC.urg);
+  var obos=(CYC.justif?CYC.justif+'; ':'')+goal.toLowerCase()+(urg&&urg!=='обычная'?'; срочность: '+urg.toLowerCase():'')+(CYC.note?'; '+CYC.note:'');
+  return '<p style="text-align:center"><strong>СЛУЖЕБНАЯ ЗАПИСКА<br>о потребности в проведении закупки</strong></p>'
+  +'<p style="text-align:center">Директору '+esc(HCONFIG.ORG||'____________')+'</p>'
+  +'<p style="text-align:center">от '+u(CYC.fio||'____________')+(CYC.dept?', '+esc(CYC.dept):'')+'</p>'
+  +'<p style="text-align:center;font-size:10pt">(должность, структурное подразделение, Ф.И.О.)</p>'
+  +'<p>Прошу рассмотреть вопрос о проведении закупки за счет собственных средств Организации:</p>'
+  +'<p>1. Предмет закупки (наименование товара (работы, услуги), характеристики): '+u(CYC.subj||'')+'</p>'
+  +'<p>2. Количество (объем): '+u((CYC.qty||'')+(CYC.unit?' '+CYC.unit:''))+'</p>'
+  +'<p>3. Ориентировочная стоимость, руб.: '+u(fmtH(a)+' ('+bv.toFixed(1)+' б.в., БВ = 45 руб.)')+'</p>'
+  +'<p>4. Источник финансирования: собственные средства Организации.</p>'
+  +'<p>5. Обоснование потребности (для чего приобретается, в т.ч. срочность, наличие замены): '+u(obos)+'</p>'
+  +'<p>6. Предполагаемый способ закупки (запрос ценовых предложений, конкурс, электронный аукцион, закупка из одного источника — с указанием пункта приложения 4 к Положению № 168, без проведения процедур — с указанием пункта приложения 1 к постановлению № 168): '+u((CYC.mName||'')+' ('+(CYC.point||'')+', ПП № 168 от 07.04.2026 в ред. № 355 от 10.07.2026)')+'</p>'
+  +'<p>7. Желаемый срок поставки (выполнения, оказания): '+u(CYC.needDate||'')+'</p>'
+  +'<p>8. Предполагаемый поставщик (при наличии): '+u((CYC.sups&&CYC.sups.length?CYC.sups.join(', '):''))+'</p>'
+  +'<p style="margin-top:18pt">_______________ _________________ / '+u(CYC.fio||'____________')+' /</p>'
+  +'<p style="font-size:10pt">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(должность)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(подпись)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(И.О. Фамилия)</p>'
+  +(function(){var p=today().split('-');var M=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    return '<p>«'+p[2]+'» '+M[+p[1]-1]+' '+p[0]+' г.</p>';})()
+  +'<p><strong>Резолюция директора:</strong> ___________________________________________________</p>'
+  +'<p style="font-size:10pt"><em>Примечание. Основание: пункт 5.1 Порядка закупок. Служебная записка — первый документ дела закупки (хранится 3 года, пункт 47 Положения № 168).</em></p>';
 }
 
 function flStep3(){
@@ -3536,7 +3551,7 @@ function mlBlank(){
 /* Бланк сразу файлом .doc (для вложения в письмо) */
 function mlBlankDoc(){
   signSave();
-  var h='<ht'+'ml xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}p{margin:0 0 6pt;text-align:left}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>'+mlBlankHtml()+'</body></ht'+'ml>';
+  var h='<ht'+'ml xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}p{margin:0 0 6pt;text-align:left}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>'+'<table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+mlBlankHtml()+'</body></ht'+'ml>';
   var b=new Blob(['﻿'+h],{type:'application/msword'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);
   var to=(document.getElementById('mlTo').value||'postavshik').replace(/[^A-Za-z0-9А-Яа-яЁё@._-]+/g,'_');
