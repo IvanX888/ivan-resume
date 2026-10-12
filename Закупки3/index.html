@@ -140,7 +140,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 #wires .ahp{fill:#9db8af;stroke:none}
 @media print{nav,#subnav,.btn{display:none}}
 
-.formWord{font-family:"Times New Roman",serif;font-size:14pt;background:#fff;color:#000;max-width:820px;margin:0 auto;padding:60px 50px 60px 80px;border:1px solid #d0d0d0;border-radius:2px;line-height:1.4;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.formWord{font-family:"Times New Roman",serif;font-size:12pt;background:#fff;color:#000;max-width:820px;margin:0 auto;padding:60px 50px 60px 80px;border:1px solid #d0d0d0;border-radius:2px;line-height:1.4;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .formWord p{margin:6px 0}
 .fwBody>p:first-child,.fwBody>p:first-child+p{text-align:center}
 .formWord table{border-collapse:collapse;width:100%;margin:8px 0}
@@ -165,7 +165,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v4.3-каркас</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v4.3.1-каркас</span></h1>
     <div class="sub">Каркас помощника закупок (без данных организации) · CRM: воронка закупок, поставщики, задачи, контакты · реестр 33 + журнал 7.2.1 (81 контрагент, 87 договоров) · контакты 18 компаний по офиц. сайтам · нормы сверены на 08.10.2026: ИПС «Эталон» + pravo.by (ПП № 168 ред. № 355, БВ = 45 руб.)</div>
   </div>
   <div style="display:flex;gap:8px">
@@ -712,7 +712,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>Помощник специалиста по закупкам v4.3-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
+<footer>Помощник специалиста по закупкам v4.3.1-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealModal"><div class="box">
@@ -793,7 +793,8 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <button class="btn" onclick="mlOpen('mailru')">✉ Mail.ru</button>
     <button class="btn" onclick="mlOpen('gcloud')">✉ G-Cloud (почта завода)</button>
     <button class="btn ghost" onclick="mlCopy()">Копировать текст</button>
-    <button class="btn ghost" onclick="mlBlank()">📄 Бланк для вложения</button>
+    <button class="btn ghost" onclick="mlBlankDoc()">📄 Скачать бланк (.doc)</button>
+    <button class="btn ghost" onclick="mlBlank()">🖨 Печать бланка</button>
   </div>
   <div style="margin-top:8px">
     <button class="btn" style="background:var(--ok,#15803d)" onclick="mlConfirm()">✔ Подтвердить отправку</button>
@@ -3356,11 +3357,11 @@ function formShow(id){
 }
 function formPrintDoc(id){
   var f=FORMS[id]; if(!f)return;
-  flPrint('Форма '+id.slice(1)+'. '+f.title, formHtmlWord(id));
+  flPrint('Форма '+id.slice(1)+'. '+f.title, '<div style="font-size:12pt">'+formHtmlWord(id)+'</div>');
 }
 function formDlDoc(id){
   var f=FORMS[id]; if(!f)return;
-  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Форма</title><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+formHtmlWord(id)+'</body></html>';
+  var html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>Форма</title><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+formHtmlWord(id)+'</body></html>';
   var a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['﻿'+html],{type:'application/msword'}));
   a.download='forma_'+id.slice(1)+'.doc'; a.click();
