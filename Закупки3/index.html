@@ -140,12 +140,13 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 @media print{nav,#subnav,.btn{display:none}}
 </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 <header>
   <div>
     <h1>Помощник специалиста по закупкам <span class="badge">v3.7-каркас</span></h1>
-    <div class="sub">КАРКАС системы (без данных организации) · после открытия: СИСТЕМА → загрузить JSON данных/профиля · законодательство РБ вшито (ПП № 168 ред. № 355, БВ = 45 руб. на 2026), реквизиты и внутренний Порядок — через профиль организации</div>
+    <div class="sub">ОАО «Щучинский ремонтный завод» · CRM: воронка закупок, поставщики, задачи, контакты · реестр 33 + журнал 7.2.1 (81 контрагент, 87 договоров) · контакты 18 компаний по офиц. сайтам · нормы сверены на 08.10.2026: ИПС «Эталон» + pravo.by (ПП № 168 ред. № 355, БВ = 45 руб.)</div>
   </div>
   <div style="display:flex;gap:8px">
     <button class="btn sm" style="background:#ffe08a;color:#5b4a00" onclick="go('flow')" title="Главный инструмент: пошаговый цикл закупки от заявки до победителя">▶ Новая закупка</button>
@@ -733,7 +734,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <div class="modal" id="mailModal"><div class="box" style="max-width:720px">
   <h2>✉ Отправка письма поставщику</h2>
   <input type="hidden" id="mlSup">
-  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="84e9e5f6efe1f0c4f6e1e9fee5f2ebe0aae6fd">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: mail.g-cloud.by или Mail.ru)</span></div>
+  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6d000c1f0608192d1f0800170c1b0209430f14">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: ms10.g-cloud.by или Mail.ru)</span></div>
   <div class="kv"><b>Кому:</b> <input id="mlTo" style="width:70%"></div>
   <label>Тема</label><input id="mlSubj">
   <label>Текст письма (редактируется)</label><textarea id="mlBody" rows="10" style="font-family:inherit"></textarea>
@@ -743,7 +744,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <div><label>Телефон (подпись)</label><input id="sgTel" onchange="signSave()"></div>
   </div>
   <label style="display:inline-flex;gap:6px;margin-top:6px;color:var(--ink)"><input type="checkbox" id="mlReq" checked style="width:auto">добавить реквизиты ОАО «ЩРЗ» в конец письма</label>
-  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7f121e0d141a0b3f0d1a12051e09101b511d06">[email&#160;protected]</a></b>. Выберите способ — откроется почтовая программа, Mail.ru или веб-почта G-Cloud — кнопка «G-Cloud» копирует текст и открывает mail.g-cloud.by, там войдите под <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9af7fbe8f1ffeedae8fff7e0fbecf5feb4f8e3">[email&#160;protected]</a> и вставьте текст (Ctrl+V). Вложения через ссылку не передаются: нажмите <b>«📄 Бланк для вложения»</b> — сформируется официальное письмо на фирменном бланке с реквизитами (форма 5 к Порядку закупок), сохраните его в PDF и приложите к письму. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
+  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="345955465f5140744651594e55425b501a564d">[email&#160;protected]</a></b>. Выберите способ — откроется почтовая программа, Mail.ru или веб-почта G-Cloud — кнопка «G-Cloud» копирует текст и открывает ms10.g-cloud.by, там войдите под <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4f222e3d242a3b0f3d2a22352e39202b612d36">[email&#160;protected]</a> и вставьте текст (Ctrl+V). Вложения через ссылку не передаются: нажмите <b>«📄 Бланк для вложения»</b> — сформируется официальное письмо на фирменном бланке с реквизитами (форма 5 к Порядку закупок), сохраните его в PDF и приложите к письму. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
   <div style="margin-top:10px">
     <button class="btn" onclick="mlOpen('mailto')">📮 Почтовая программа</button>
     <button class="btn" onclick="mlOpen('mailru')">✉ Mail.ru</button>
@@ -3143,7 +3144,7 @@ function mlOpen(kind){
   signSave();
   if(kind==='gcloud'){
     mlCopySilent();
-    window.open('https://mail.g-cloud.by/','_blank');
+    window.open('https://ms10.g-cloud.by/','_blank');
     alert('Открыта веб-почта G-Cloud. Текст письма уже СКОПИРОВАН в буфер.\n\n1) Войдите под market@remzavod.by\n2) Создайте новое письмо\n3) Вставьте текст (Ctrl+V) и укажите адрес получателя\n4) Приложите бланк (кнопка «📄 Бланк для вложения») и отправьте');
     return;
   }
