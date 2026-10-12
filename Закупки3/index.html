@@ -737,7 +737,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <div class="modal" id="mailModal"><div class="box" style="max-width:720px">
   <h2>✉ Отправка письма поставщику</h2>
   <input type="hidden" id="mlSup">
-  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bed3dfccd5dbcafeccdbd3c4dfc8d1da90dcc7">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: ms10.g-cloud.by или Mail.ru)</span></div>
+  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c6aba7b4ada3b286b4a3abbca7b0a9a2e8a4bf">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: ms10.g-cloud.by или Mail.ru)</span></div>
   <div class="kv"><b>Кому:</b> <input id="mlTo" style="width:70%"></div>
   <label>Тема</label><input id="mlSubj">
   <label>Текст письма (редактируется)</label><textarea id="mlBody" rows="10" style="font-family:inherit"></textarea>
@@ -753,7 +753,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <button class="btn sm ghost" onclick="mlCopyF(3)">Текст ⧉</button>
     <label style="display:inline-flex;gap:6px;margin-left:8px;color:var(--ink)"><input type="checkbox" id="mlAutoBlank" checked style="width:auto">при отправке авто-скачать бланк (.doc) для вложения</label>
   </div>
-  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7a171b08111f0e3a081f17001b0c151e541803">[email&#160;protected]</a></b>. <b>Mail.ru</b> — откроется форма с уже заполненными «Кому», «Тема» и текстом: вы только прикрепляете бланк и жмёте «Отправить». <b>G-Cloud</b> — текст копируется, бланк .doc скачивается автоматически, открывается ms10.g-cloud.by: входите, создаёте письмо, вставляете (Ctrl+V) и прикрепляете бланк. Вложения через ссылку браузер передать не может — поэтому бланк скачивается отдельным файлом. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
+  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cca1adbea7a9b88cbea9a1b6adbaa3a8e2aeb5">[email&#160;protected]</a></b>. <b>Mail.ru</b> — откроется форма с уже заполненными «Кому», «Тема» и текстом: вы только прикрепляете бланк и жмёте «Отправить». <b>G-Cloud</b> — текст копируется, бланк .doc скачивается автоматически, открывается ms10.g-cloud.by: входите, создаёте письмо, вставляете (Ctrl+V) и прикрепляете бланк. Вложения через ссылку браузер передать не может — поэтому бланк скачивается отдельным файлом. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
   <div style="margin-top:10px">
     <button class="btn" onclick="mlOpen('mailto')">📮 Почтовая программа</button>
     <button class="btn" onclick="mlOpen('mailru')">✉ Mail.ru</button>
@@ -2572,7 +2572,7 @@ function repTenderUI(half){
   var opts='';for(var i=y-1;i<=y+1;i++)opts+='<option'+(i===y?' selected':'')+'>'+i+'</option>';
   var h='<div style="border:1px solid var(--line);border-radius:10px;padding:12px;background:#fafcff">';
   if(!half){
-    h+='<b>Квартальный отчёт для ИС «Тендеры» (icetrade.by)</b> — сведения об общей стоимости договоров на закупку, заключённых в отчётном квартале по результатам процедур закупок, в т.ч. в разрезе товаров (работ, услуг) и со страной происхождения (ч. 1 п. 4 Положения № 168).<br><span class="small">Срок: <b>не позднее 15-го числа месяца, следующего за кварталом</b>. Подаётся даже «нулевой». Плата за размещение — 1 БВ. Путь: личный кабинет icetrade.by → «добавить квартальный отчёт» → вставить сформированные сведения.</span>'
+    h+='<b>Квартальный отчёт для ИС «Тендеры» (icetrade.by)</b> — <b>обезличенные</b> сведения об общей стоимости договоров на закупку, заключённых в отчётном квартале по результатам процедур закупок, в разрезе товаров (работ, услуг) и по странам происхождения (ч. 1 п. 4 Положения № 168, форма по разъяснению МАРТ № 14-01-06/3500 К). Без номеров договоров и поставщиков.<br><span class="small">Срок: <b>не позднее 15-го числа месяца, следующего за кварталом</b>. Подаётся даже «нулевой». Плата — 1 БВ. Путь: личный кабинет icetrade.by → «добавить квартальный отчёт» → вставить сформированные сведения. Включаются договоры по процедурам Положения и по п. 28–29 прил. 1.</span>'
      +'<div style="margin-top:8px">Год: <select id="rtY">'+opts+'</select> Квартал: <select id="rtQ"><option value="1">I</option><option value="2">II</option><option value="3" selected>III</option><option value="4">IV</option></select> <button class="btn sm" onclick="repTender()">Сформировать</button></div>';
   }else{
     h+='<b>Полугодовой отчёт: минимальная доля белорусских товаров</b> (п. 3 Положения № 168, размещается в ИС «Тендеры» дважды в год).<br><span class="small">Срок: не позднее 15-го числа месяца, следующего за полугодием (15.07 и 15.01).</span>'
@@ -2588,17 +2588,23 @@ function repTender(half){
     var mm=+m[2];
     if(half)return (q===1?mm<=6:mm>=7);
     return Math.floor((mm-1)/3)+1===q;
-  }).filter(function(d){return !/не отчитыв|вне постановления/i.test(d.note||'');});
+  }).filter(function(d){
+    var nt=d.note||'';
+    if(/не отчитыв|вне постановления/i.test(nt))return false;
+    if(/п\.\s*(21|14)\s*прил/i.test(nt))return false;
+    return true;
+  });
   var QN={'1':'I','2':'II','3':'III','4':'IV'};
   var per=half?(q===1?'1 полугодии':'2 полугодии'):(QN[q]+' квартале');
   var dlM=half?(q===1?7:13):(q*3+1),dlY=y;if(dlM>12){dlM=1;dlY++;}
   var dl='15.'+(dlM<10?'0':'')+dlM+'.'+dlY;
-  var h='<div class="note"><b>Период:</b> '+per+' '+y+' г. · <b>Разместить в ИС «Тендеры» до '+dl+'</b>. Договоров: '+rows.length+'. Проверьте колонки «Вид» и «Страна происхождения» — подставлены из карточек сделок, при необходимости поправьте перед копированием.</div>';
+  var h='<div class="note"><b>Период:</b> '+per+' '+y+' г. · <b>Разместить в ИС «Тендеры» до '+dl+'</b>. Договоров в выборке: '+rows.length+'.</div>';
   if(!rows.length){
     var nz='В '+per+' '+y+' г. по результатам процедур закупок, проведённых в соответствии с постановлением Совета Министров Республики Беларусь от 07.04.2026 № 168, договоры не заключались.';
     h+='<p>'+nz+'</p><button class="btn sm" onclick="cbCopy(this.dataset.t)" data-t="'+nz+'">📋 Скопировать текст нулевого отчёта</button>';
     document.getElementById('rtOut').innerHTML=h;return;
   }
+  h+='<div class="small" style="margin:6px 0 4px"><b>1. Рабочая таблица</b> (внутренняя, на icetrade <b>не</b> размещается) — проверьте колонки «Вид» и «Страна происхождения», из них автоматически считается публичный отчёт ниже:</div>';
   h+='<table id="rtT"><tr><th>№</th><th>Договор</th><th>Дата</th><th>Предмет</th><th>Поставщик</th><th>Основание</th><th>Сумма, руб.</th><th>Вид</th><th>Страна происхождения</th></tr>';
   rows.forEach(function(d,i){
     var p=rtDef(d);
@@ -2606,8 +2612,9 @@ function repTender(half){
     var tp=['товары','работы','услуги'].map(function(c){return '<option>'+c+'</option>'}).join('');
     h+='<tr><td>'+(i+1)+'</td><td>'+esc(p.num)+'</td><td>'+esc(d.date||'')+'</td><td>'+esc(p.subj)+'</td><td>'+esc(d.sup||'—')+'</td><td>'+esc(p.pt)+'</td><td style="text-align:right" class="rtS" data-v="'+(+d.sum||0)+'">'+fmtH(+d.sum||0)+'</td><td><select class="rtType" onchange="rtRecalc()">'+tp+'</select></td><td><select class="rtCtry" onchange="rtRecalc()">'+ctry+'</select></td></tr>';
   });
-  h+='</table><div id="rtTot" style="margin-top:8px"></div>'
-   +'<div style="margin-top:8px"><button class="btn sm" onclick="rtCopy()">📋 Скопировать для icetrade</button> <button class="btn sm ghost" onclick="rtWord()">💾 Word / печать</button></div>';
+  h+='</table><div id="rtTot" style="margin-top:6px"></div>';
+  h+='<h3 style="margin-top:16px">2. 📤 Публичный отчёт — обезличенный, именно он размещается на icetrade</h3><div id="rtPub"></div>'
+   +'<div style="margin-top:8px"><button class="btn sm" onclick="rtCopy()">📋 Скопировать отчёт для icetrade</button> <button class="btn sm ghost" onclick="rtWord()">💾 Word / печать отчёта</button></div>';
   var out=document.getElementById('rtOut');
   out.innerHTML=h;
   out.dataset.per=per+' '+y;
@@ -2616,62 +2623,69 @@ function repTender(half){
 }
 function rtRecalc(){
   var t=document.getElementById('rtT');if(!t)return;
-  var sums={tov:0,rab:0,usl:0,all:0,by:0},ns={tov:0,rab:0,usl:0,all:0,by:0};
+  var agg={},order=[],allT=0,allR=0,n=0;
   for(var i=1;i<t.rows.length;i++){
     var sum=+t.rows[i].querySelector('.rtS').dataset.v||0;
-    var tp=t.rows[i].querySelector('.rtType').value,ct=t.rows[i].querySelector('.rtCtry').value;
-    sums.all+=sum;ns.all++;
-    if(tp==='товары'){sums.tov+=sum;ns.tov++;}else if(tp==='работы'){sums.rab+=sum;ns.rab++;}else{sums.usl+=sum;ns.usl++;}
-    if(ct==='Беларусь'){sums.by+=sum;ns.by++;}
+    var tp=t.rows[i].querySelector('.rtType').value;
+    var ct=t.rows[i].querySelector('.rtCtry').value;
+    var col=(tp==='товары')?'T':'R';
+    if(!agg[ct]){agg[ct]={T:0,R:0};order.push(ct);}
+    agg[ct][col]+=sum;
+    if(col==='T')allT+=sum;else allR+=sum;
+    n++;
   }
-  window._rtSums={sums:sums,ns:ns};
-  var pct=sums.all?Math.round(sums.by/sums.all*1000)/10:0;
-  document.getElementById('rtTot').innerHTML='<b>ИТОГО: '+ns.all+' дог. на '+fmtH(sums.all)+'</b> · товары: '+ns.tov+' / '+fmtH(sums.tov)+' · работы: '+ns.rab+' / '+fmtH(sums.rab)+' · услуги: '+ns.usl+' / '+fmtH(sums.usl)+' · <b>Беларусь: '+fmtH(sums.by)+' ('+pct+'%)</b>';
+  order.sort(function(a,b){if(a==='Беларусь')return -1;if(b==='Беларусь')return 1;return a<b?-1:1;});
+  window._rtAgg={agg:agg,order:order,allT:allT,allR:allR,n:n};
+  var by=agg['Беларусь']||{T:0,R:0};
+  document.getElementById('rtTot').innerHTML='<b>ИТОГО: '+n+' дог. на '+fmtH(allT+allR)+'</b> · товары: '+fmtH(allT)+' · работы/услуги: '+fmtH(allR)+' · <b>Беларусь: '+fmtH(by.T+by.R)+' ('+(allT+allR?Math.round((by.T+by.R)/(allT+allR)*1000)/10:0)+'%)</b>';
+  var p='<table id="rtPubT" style="max-width:820px"><tr><th style="text-align:left"></th><th>Товары</th><th>Работы, услуги</th><th>Итого</th></tr>'
+   +'<tr><td style="text-align:left"><b>Общая стоимость заключённых договоров</b></td><td>'+fmtH(allT)+'</td><td>'+fmtH(allR)+'</td><td><b>'+fmtH(allT+allR)+'</b></td></tr>'
+   +'<tr><td style="text-align:left">в том числе из:</td><td></td><td></td><td></td></tr>';
+  order.forEach(function(c){
+    var a=agg[c];
+    var lbl=c==='другое'?'<b style="color:#b91c1c">другое — уточните страну!</b>':esc(c);
+    p+='<tr><td style="text-align:left;padding-left:20px">'+lbl+'</td><td>'+fmtH(a.T)+'</td><td>'+fmtH(a.R)+'</td><td>'+fmtH(a.T+a.R)+'</td></tr>';
+  });
+  p+='</table>';
+  var warn=agg['другое']?'<div class="note alert">Есть строки со страной «другое» — выберите конкретную страну в рабочей таблице выше, отчёт пересчитается сам.</div>':'';
+  document.getElementById('rtPub').innerHTML=warn+p;
 }
 function rtCopy(){
   var out=document.getElementById('rtOut');
   var per=out.dataset.per||'',half=out.dataset.half==='1';
-  var s=window._rtSums||{sums:{tov:0,rab:0,usl:0,all:0,by:0},ns:{tov:0,rab:0,usl:0,all:0,by:0}};
+  var a=window._rtAgg;if(!a)return;
   var org=(typeof HCONFIG!=='undefined'?HCONFIG.ORG:'ОАО «Щучинский ремонтный завод»')+', УНП '+(typeof HCONFIG!=='undefined'?HCONFIG.ORG_UNP:'');
   var txt;
   if(half){
-    txt=org+'\nСведения об обеспечении минимальной доли закупок белорусских товаров за '+per+' г. (п. 3 Положения о порядке осуществления закупок товаров (работ, услуг) за счёт собственных средств, утв. постановлением Совета Министров РБ от 07.04.2026 № 168)\n\n'
-     +'Общая стоимость договоров: '+fmtH(s.sums.all)+' ('+s.ns.all+' дог.)\n'
-     +'из них товары белорусского происхождения: '+fmtH(s.sums.by)+' ('+s.ns.by+' дог.)\n'
-     +'Доля белорусских товаров: '+(s.sums.all?Math.round(s.sums.by/s.sums.all*1000)/10:0)+' %';
+    var by=a.agg['Беларусь']||{T:0,R:0},byS=by.T+by.R,all=a.allT+a.allR;
+    txt=org+'\nСведения об обеспечении минимальной доли закупок белорусских товаров за '+per+' г. (п. 3 Положения, утв. постановлением Совета Министров РБ от 07.04.2026 № 168)\n\n'
+     +'Общая стоимость договоров: '+fmtH(all)+' ('+a.n+' дог.)\n'
+     +'из них товары белорусского происхождения: '+fmtH(byS)+'\n'
+     +'Доля белорусских товаров: '+(all?Math.round(byS/all*1000)/10:0)+' %';
   }else{
-    txt=org+'\nСведения об общей стоимости договоров на закупку, заключённых в '+per+' г. по результатам процедур закупок (ч. 1 п. 4 Положения о порядке осуществления закупок товаров (работ, услуг) за счёт собственных средств, утв. постановлением Совета Министров РБ от 07.04.2026 № 168)\n\n'
-     +'ВСЕГО: '+s.ns.all+' дог. на '+fmtH(s.sums.all)+'\n'
-     +'в разрезе товаров (работ, услуг):\n'
-     +'- товары: '+s.ns.tov+' дог. на '+fmtH(s.sums.tov)+'\n'
-     +'- работы: '+s.ns.rab+' дог. на '+fmtH(s.sums.rab)+'\n'
-     +'- услуги: '+s.ns.usl+' дог. на '+fmtH(s.sums.usl)+'\n'
-     +'Страна происхождения товаров: Беларусь — '+fmtH(s.sums.by)+'; иные страны — '+fmtH(s.sums.all-s.sums.by)+'\n\n'
-     +'Перечень договоров:\n№\tДоговор\tДата\tПредмет\tПоставщик\tСумма, руб.\tВид\tСтрана\tОснование\n';
-    var t=document.getElementById('rtT');
-    for(var i=1;i<t.rows.length;i++){
-      var c=t.rows[i].cells;
-      txt+=i+'\t'+c[1].textContent+'\t'+c[2].textContent+'\t'+c[3].textContent+'\t'+c[4].textContent+'\t'+c[6].textContent+'\t'+t.rows[i].querySelector('.rtType').value+'\t'+t.rows[i].querySelector('.rtCtry').value+'\t'+c[5].textContent+'\n';
-    }
+    txt=org+'\nСведения об общей стоимости договоров на закупку, заключённых в '+per+' г. по результатам процедур закупок (ч. 1 п. 4 Положения, утв. постановлением Совета Министров РБ от 07.04.2026 № 168)\n\n'
+     +'\tТовары\tРаботы, услуги\tИтого\n'
+     +'Общая стоимость заключённых договоров\t'+fmtH(a.allT)+'\t'+fmtH(a.allR)+'\t'+fmtH(a.allT+a.allR)+'\n'
+     +'в том числе из:\t\t\t\n';
+    a.order.forEach(function(c){var g=a.agg[c];txt+=(c==='другое'?'другое (уточнить страну)':c)+'\t'+fmtH(g.T)+'\t'+fmtH(g.R)+'\t'+fmtH(g.T+g.R)+'\n';});
   }
   cbCopy(txt);
-  alert('Сведения скопированы. Вставьте их в экранную форму отчёта в личном кабинете icetrade.by. Перед публикацией сверьте суммы и страны происхождения.');
+  alert('Обезличенный отчёт скопирован — вставьте его в экранную форму в личном кабинете icetrade.by («добавить квартальный отчёт»).');
 }
 function rtWord(){
-  var t=document.getElementById('rtT');if(!t)return;
-  var per=document.getElementById('rtOut').dataset.per||'';
-  var s=window._rtSums;
-  var h='<p style="text-align:center"><b>'+esc(typeof HCONFIG!=='undefined'?HCONFIG.ORG||'':'')+'</b><br>Сведения по постановлению Совета Министров РБ от 07.04.2026 № 168 за '+esc(per)+' г.</p>';
-  h+='<table border="1" cellspacing="0" cellpadding="4" style="border-collapse:collapse;font-size:12px;width:100%"><tr><th>№</th><th>Договор</th><th>Дата</th><th>Предмет</th><th>Поставщик</th><th>Основание</th><th>Сумма, руб.</th><th>Вид</th><th>Страна происхождения</th></tr>';
-  for(var i=1;i<t.rows.length;i++){
-    var c=t.rows[i].cells;
-    h+='<tr><td>'+i+'</td><td>'+c[1].textContent+'</td><td>'+c[2].textContent+'</td><td>'+c[3].textContent+'</td><td>'+c[4].textContent+'</td><td>'+c[5].textContent+'</td><td style="text-align:right">'+c[6].textContent+'</td><td>'+t.rows[i].querySelector('.rtType').value+'</td><td>'+t.rows[i].querySelector('.rtCtry').value+'</td></tr>';
-  }
-  h+='</table><p><b>ИТОГО:</b> '+s.ns.all+' дог. на '+fmtH(s.sums.all)+'; товары — '+fmtH(s.sums.tov)+', работы — '+fmtH(s.sums.rab)+', услуги — '+fmtH(s.sums.usl)+'; Беларусь — '+fmtH(s.sums.by)+'</p>';
+  var t=document.getElementById('rtPubT');if(!t)return;
+  var out=document.getElementById('rtOut');
+  var per=out.dataset.per||'',half=out.dataset.half==='1';
+  var h='<p style="text-align:center"><b>'+esc(typeof HCONFIG!=='undefined'?HCONFIG.ORG||'':'')+'</b><br>'
+   +(half?'Сведения об обеспечении минимальной доли закупок белорусских товаров':'Сведения об общей стоимости договоров на закупку')+' за '+esc(per)+' г.<br>'
+   +'<span style="font-size:12px">'+(half?'п. 3':'ч. 1 п. 4')+' Положения, утв. постановлением Совета Министров РБ от 07.04.2026 № 168</span></p>';
+  h+='<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-size:12px;width:100%">'+t.innerHTML+'</table>';
   flPrint('Отчёт ИС Тендеры '+per,h);
 }
 
 /* ============ ОТЧЁТЫ ЖУРНАЛА ============ */
+var PKNAME={p21:'п. 21 прил. 1 — до 100 БВ, без процедур',p29:'п. 29 прил. 1 — для собственного производства, до 1000 БВ',p67:'п. 67 прил. 4 — ремонт/сервис, из одного источника',p9:'п. 9 прил. 4 — из одного источника (100–1000 БВ)',p14:'п. 14 прил. 1 — закупка-исключение',eproc:'ЭТП — электронная конкурентная процедура',direct:'п. 21 прил. 1 — до 100 БВ, без процедур',prod:'п. 29 прил. 1 — для собственного производства',oosOwn9:'п. 9 прил. 4 — из одного источника (100–1000 БВ)',contest:'конкурс',zcp:'запрос ценовых предложений',auction:'электронный аукцион',contestDecision:'конкурс (по решению комиссии)'};
+function pkName(r){var k=r.procKey||'';return PKNAME[k]||r.proc||k||'не указано';}
 function repTable(title,head,rows){
   var tot=0;
   var h='<h3 id="repTitle">'+esc(title)+' — сформирован '+today()+'</h3><table id="repTable"><tr>'+head.map(function(x){return '<th>'+esc(x)+'</th>'}).join('')+'</tr>';
@@ -2681,7 +2695,7 @@ function repTable(title,head,rows){
 function repShow(kind){
   var L=getLog(),h='',bv=HCONFIG.BV||45;
   if(kind==='points'){
-    var g={};L.forEach(function(r){var k=r.procKey||r.proc||'не указано';g[k]=g[k]||{n:0,sum:0};g[k].n++;g[k].sum+=+r.amount||0;});
+    var g={};L.forEach(function(r){var k=pkName(r);g[k]=g[k]||{n:0,sum:0};g[k].n++;g[k].sum+=+r.amount||0;});
     h=repTable('Отчёт по основаниям закупок (пункты приложений 1/4 к ПП № 168)',['Основание / процедура','Закупок','Сумма, руб.'],Object.keys(g).sort().map(function(k){return ['<b>'+esc(k)+'</b>',g[k].n,fmtH(g[k].sum)]}));
   }
   if(kind==='sups'){
