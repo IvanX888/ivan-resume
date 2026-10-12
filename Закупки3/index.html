@@ -737,7 +737,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <div class="modal" id="mailModal"><div class="box" style="max-width:720px">
   <h2>✉ Отправка письма поставщику</h2>
   <input type="hidden" id="mlSup">
-  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="167b77647d73625664737b6c7760797238746f">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: ms10.g-cloud.by или Mail.ru)</span></div>
+  <div class="kv"><b>От:</b> <span class="tag b"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bed3dfccd5dbcafeccdbd3c4dfc8d1da90dcc7">[email&#160;protected]</a></span> <span class="small">(веб-почта завода: ms10.g-cloud.by или Mail.ru)</span></div>
   <div class="kv"><b>Кому:</b> <input id="mlTo" style="width:70%"></div>
   <label>Тема</label><input id="mlSubj">
   <label>Текст письма (редактируется)</label><textarea id="mlBody" rows="10" style="font-family:inherit"></textarea>
@@ -753,7 +753,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <button class="btn sm ghost" onclick="mlCopyF(3)">Текст ⧉</button>
     <label style="display:inline-flex;gap:6px;margin-left:8px;color:var(--ink)"><input type="checkbox" id="mlAutoBlank" checked style="width:auto">при отправке авто-скачать бланк (.doc) для вложения</label>
   </div>
-  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b0ddd1c2dbd5c4f0c2d5ddcad1c6dfd49ed2c9">[email&#160;protected]</a></b>. <b>Mail.ru</b> — откроется форма с уже заполненными «Кому», «Тема» и текстом: вы только прикрепляете бланк и жмёте «Отправить». <b>G-Cloud</b> — текст копируется, бланк .doc скачивается автоматически, открывается ms10.g-cloud.by: входите, создаёте письмо, вставляете (Ctrl+V) и прикрепляете бланк. Вложения через ссылку браузер передать не может — поэтому бланк скачивается отдельным файлом. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
+  <div class="note">Письма отправляем с ящика <b><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7a171b08111f0e3a081f17001b0c151e541803">[email&#160;protected]</a></b>. <b>Mail.ru</b> — откроется форма с уже заполненными «Кому», «Тема» и текстом: вы только прикрепляете бланк и жмёте «Отправить». <b>G-Cloud</b> — текст копируется, бланк .doc скачивается автоматически, открывается ms10.g-cloud.by: входите, создаёте письмо, вставляете (Ctrl+V) и прикрепляете бланк. Вложения через ссылку браузер передать не может — поэтому бланк скачивается отдельным файлом. После отправки нажмите «✔ Подтвердить отправку» — событие запишется в таймлайн поставщика и журнал.</div>
   <div style="margin-top:10px">
     <button class="btn" onclick="mlOpen('mailto')">📮 Почтовая программа</button>
     <button class="btn" onclick="mlOpen('mailru')">✉ Mail.ru</button>
@@ -2879,7 +2879,7 @@ function renderParts(parts){
   document.getElementById('ceParts').innerHTML='<tr><th>Победитель</th><th style="min-width:220px">Поставщик</th><th>УНП</th><th>Статус</th><th>Сумма предложения</th><th>Срок</th><th>КП</th><th>ЕГР</th><th>МАРТ</th><th>Оценка 0–10</th><th></th></tr>'
    +parts.map(function(p,i){
      return '<tr><td style="text-align:center"><input type="radio" name="ceWinR" '+(p.win?'checked':'')+' onchange="caseWinnerInfo()"></td>'
-     +'<td><input list="supList" value="'+esc(p.sup)+'" oninput="casePartSup('+i+',this.value)" placeholder="название поставщика"><datalist id="supList">'+opts+'</datalist></td>'
+     +'<td><input id="cpSup'+i+'" list="supList" value="'+esc(p.sup)+'" oninput="casePartSup('+i+',this.value)" placeholder="название поставщика"><datalist id="supList">'+opts+'</datalist></td>'
      +'<td><input style="width:90px" value="'+esc(p.unp||'')+'" oninput="casePart('+i+',\'unp\',this.value)"></td>'
      +'<td><select onchange="casePart('+i+',\'status\',this.value)">'+CASE_STATUS.map(function(st){return '<option'+(p.status===st?' selected':'')+'>'+st+'</option>'}).join('')+'</select></td>'
      +'<td><input type="number" step="0.01" style="width:110px" value="'+esc(p.sum||'')+'" oninput="casePart('+i+',\'sum\',this.value);caseWinnerInfo()"></td>'
@@ -2895,7 +2895,7 @@ function renderParts(parts){
 function caseAddPart(){window.__caseParts.push({sup:'',unp:'',status:'поставщик',sum:'',term:'',kp:false,egr:false,mart:false,score:''});renderParts(window.__caseParts)}
 function caseDelPart(i){window.__caseParts.splice(i,1);renderParts(window.__caseParts);caseWinnerInfo()}
 function casePart(i,k,v){window.__caseParts[i][k]=v}
-function casePartSup(i,v){window.__caseParts[i].sup=v;var s=supByName(v);if(s&&s.unp&&!window.__caseParts[i].unp){window.__caseParts[i].unp=s.unp;renderParts(window.__caseParts)}}
+function casePartSup(i,v){window.__caseParts[i].sup=v;var s=supByName(v);if(s&&s.unp&&!window.__caseParts[i].unp){window.__caseParts[i].unp=s.unp;keepFocus(function(){renderParts(window.__caseParts)})}}
 function casePointChange(){
   var lim=caseLimitOf(cePoint.value);
   ceLimit.value=lim?lim:'без лимита';
@@ -3179,7 +3179,7 @@ function flStep4(){
   });
   var h='<h3>Шаг 4. Поставщики для запроса КП</h3>'
   +'<div class="note">Подсветка: <span class="tag g">✉ e-mail</span> — можно отправить запрос прямо из системы; <span class="tag b">☎ телефон</span> — звонок. Для конъюнктуры по п. 9 — не менее 5 запросов (≥ 3 отечественным производителям), для конкурентной процедуры желательно ≥ 3.</div>'
-  +'<div class="fbar"><div><label>Поиск</label><input value="'+esc(CYC.supQ||'')+'" oninput="CYC.supQ=this.value;cycSave();renderFlow()" placeholder="название, товар, сайт…"></div>'
+  +'<div class="fbar"><div><label>Поиск</label><input id="flSupQ" value="'+esc(CYC.supQ||'')+'" oninput="CYC.supQ=this.value;cycSave();keepFocus(renderFlow)" placeholder="название, товар, сайт… — фокус не слетит"></div>'
   +'<div><label>Группа</label><select onchange="CYC.supG=this.value;cycSave();renderFlow()"><option value="">все</option>'+groups().map(function(x){return '<option'+(g===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'
   +'<div style="flex:0"><button class="btn" onclick="openEdit(-1)">+ Новый поставщик</button></div></div>'
   +'<div style="max-height:52vh;overflow:auto"><table><tr><th></th><th>Поставщик</th><th>Контакты для запроса</th><th>Проверка</th></tr>'
@@ -3308,6 +3308,13 @@ function mlBlankDoc(){
   document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 /* Копирование в буфер (общее) и по полям письма */
+/* Перерисовка без потери фокуса и позиции курсора в поле ввода */
+function keepFocus(fn){
+  var a=document.activeElement,id=a&&a.id,st=null,en=null;
+  try{st=a.selectionStart;en=a.selectionEnd;}catch(e){}
+  fn();
+  if(id){var el=document.getElementById(id);if(el){el.focus();try{el.setSelectionRange(st,en);}catch(e){}}}
+}
 function cbCopy(t){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){});}
   else{var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch(e){}document.body.removeChild(ta);}
