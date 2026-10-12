@@ -164,7 +164,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v4.1-каркас</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v4.2-каркас</span></h1>
     <div class="sub">Каркас помощника закупок (без данных организации) · CRM: воронка закупок, поставщики, задачи, контакты · реестр 33 + журнал 7.2.1 (81 контрагент, 87 договоров) · контакты 18 компаний по офиц. сайтам · нормы сверены на 08.10.2026: ИПС «Эталон» + pravo.by (ПП № 168 ред. № 355, БВ = 45 руб.)</div>
   </div>
   <div style="display:flex;gap:8px">
@@ -711,7 +711,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>Помощник специалиста по закупкам v4.1-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
+<footer>Помощник специалиста по закупкам v4.2-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealModal"><div class="box">
@@ -3340,10 +3340,11 @@ function formShow(id){
   var v=document.getElementById('formView'); if(!v)return;
   if(!id||!FORMS[id]){v.innerHTML='';return;}
   var f=FORMS[id];
+  var wide=(id==='f19')?' style="max-width:1160px"':'';
   v.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
     +'<button class="btn sm" onclick="formPrintDoc(\''+id+'\')">Печать</button>'
     +'<button class="btn sm ghost" onclick="formDlDoc(\''+id+'\')">Скачать .doc</button></div>'
-    +'<div class="formWord">'+f.html+'</div>';
+    +'<div class="formWord"'+wide+'>'+f.html+'</div>';
 }
 function formPrintDoc(id){
   var f=FORMS[id]; if(!f)return;
@@ -3500,18 +3501,18 @@ function mlOpen(kind){
   var withBlank=ab&&ab.checked;
   if(kind==='gcloud'){
     mlCopySilent();
-    if(withBlank)mlBlankDoc();
     var _to=document.getElementById('mlTo').value.trim();
     var _subj=document.getElementById('mlSubj').value;
     var _body=mlFullBody();
     window.open('https://ms10.g-cloud.by/?_task=mail&_action=compose&_to='+encodeURIComponent(_to)+'&_subject='+encodeURIComponent(_subj)+'&_body='+encodeURIComponent(_body),'_blank');
+    if(withBlank)mlBlankDoc();
     alert('Открыта веб-почта G-Cloud: поля «Кому», «Тема» и текст письма должны подставиться автоматически.'+(withBlank?' Бланк .doc скачан — приложите его к письму.':'')+'\n\nЕсли поля оказались пустыми — текст уже СКОПИРОВАН: вставьте его в письмо (Ctrl+V), адрес и тему копируйте кнопками ⧉ рядом с полями.\n\nПосле отправки вернитесь сюда — «✔ Подтвердить отправку».');
     return;
   }
   var u=mlUri();
-  if(withBlank)mlBlankDoc();
   if(kind==='mailru'){window.open('https://e.mail.ru/compose/?mailto='+encodeURIComponent(u),'_blank');}
   else{window.location.href=u;}
+  if(withBlank)mlBlankDoc();
 }
 /* Официальное письмо на фирменном бланке (форма 5) — печать/сохранение в PDF для вложения */
 function mlBlankHtml(){
@@ -3519,10 +3520,13 @@ function mlBlankHtml(){
   var d=signGet();var h=(typeof HCONFIG!=='undefined')?HCONFIG:{};
   var head='<div style="text-align:center"><b>'+esc(h.ORG||'')+'</b><br>'+esc(h.ORG_ADDR||'')
     +'<br>УНП '+(h.ORG_UNP||'')+(h.ORG_OKPO?'; ОКПО '+h.ORG_OKPO:'')+'; тел. (приемная): '+(h.ORG_TEL||'')+'; e-mail: '+(h.ORG_INFO||'')
-    +(h.ORG_BANK?'<br><span style="font-size:12px">'+esc(h.ORG_BANK)+'</span>':'')+'</div><hr>';
+    +(h.ORG_BANK?'<br><span style="font-size:10pt">'+esc(h.ORG_BANK)+'</span>':'')+'</div><hr>';
   var meta='<table style="width:100%;margin:12px 0"><tr><td>Исх. № ______<br>от '+today()+'</td><td style="text-align:right">'+(supName?'<b>Кому:</b> '+esc(supName):'')+'</td></tr></table>';
-  var body='<div style="font-size:14px;line-height:1.4;text-align:justify">'+esc(mlFullBody()).replace(/\n/g,'<br>')+'</div>';
-  var sign='<p style="margin-top:26px">Ответственный за закупки ______________ / '+(d.fio?esc(d.fio):'______________')+' /<br><span style="font-size:12px;color:#555">'+esc(d.pos)+', тел. '+esc(d.tel)+'</span></p>';
+  var paras=mlFullBody().split('\n').map(function(l){
+    return '<p style="margin:0 0 6pt;text-align:left">'+(l.trim()?esc(l):'&nbsp;')+'</p>';
+  }).join('');
+  var body='<div style="font-size:14pt;line-height:1.4">'+paras+'</div>';
+  var sign='<p style="margin-top:24pt">Ответственный за закупки ______________ / '+(d.fio?esc(d.fio):'______________')+' /<br><span style="font-size:10pt">'+esc(d.pos)+', тел. '+esc(d.tel)+'</span></p>';
   return head+meta+body+sign;
 }
 function mlBlank(){
@@ -3532,7 +3536,7 @@ function mlBlank(){
 /* Бланк сразу файлом .doc (для вложения в письмо) */
 function mlBlankDoc(){
   signSave();
-  var h='<ht'+'ml xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14px;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>'+mlBlankHtml()+'</body></ht'+'ml>';
+  var h='<ht'+'ml xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4;margin:2cm 1.5cm 2cm 3cm}body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}p{margin:0 0 6pt;text-align:left}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px}</style></head><body>'+mlBlankHtml()+'</body></ht'+'ml>';
   var b=new Blob(['﻿'+h],{type:'application/msword'});
   var a=document.createElement('a');a.href=URL.createObjectURL(b);
   var to=(document.getElementById('mlTo').value||'postavshik').replace(/[^A-Za-z0-9А-Яа-яЁё@._-]+/g,'_');
