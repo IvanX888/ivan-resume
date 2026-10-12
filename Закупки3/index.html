@@ -917,7 +917,7 @@ function showTab(t){
   if(t==='map'){try{window.__initSchemeMap()}catch(e){if(typeof flAlert==='function')flAlert('Карта решений: '+e.message);console.log('map',e)}}
   if(t==='flow'){try{renderFlow()}catch(e){console.log('flow',e)}}
   if(t==='log'){try{renderLog()}catch(e){console.log('log',e)}}
-  if(t==='case'){try{renderCaseList()}catch(e){console.log('case',e)}}
+  if(t==='case'){try{document.getElementById('caseListCard').style.display='';document.getElementById('caseEditCard').style.display='none';renderCaseList()}catch(e){console.log('case',e)}}
 }
 document.getElementById('nav').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b)return;
@@ -2963,6 +2963,7 @@ function delCase(){var i=+ceId.value;if(i<0)return;if(!confirm('Удалить �
 function delCaseAt(i){if(!confirm('Удалить дело '+cases[i].num+'?'))return;logVer('Удалено дело '+cases[i].num);cases.splice(i,1);saveCases();renderCaseList()}
 function caseFromDeal(i){
   saveDeal();
+  closeModal('dealModal');go('case');
   var d=deals.filter(function(x){return x.subj===dSubj.value.trim()})[0];
   if(!d)return;
   var s=supByName(d.sup);
