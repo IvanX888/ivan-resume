@@ -234,6 +234,19 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <div style="overflow:auto;margin-top:8px"><table id="supTbl"></table></div>
   </div>
 </section>
+<!-- ============ ТОВАРЫ И ЦЕНЫ ============ -->
+<section id="goods" style="display:none">
+  <div class="card">
+    <h2>История закупок: товары и цены</h2>
+    <div class="small" style="margin-bottom:8px">Все наименования из прихода (выгрузка Excel): цена за единицу, поставщик, страна, дата. Галочка ☑ — позиция вошла в квартальный отчёт (ИС «Тендеры», п. 28/29 прил. 1 к ПП № 168) — так видно, что относить к п. 29 или п. 21. Поставщик с ☑ помечается в базе значком «📋 был в отчёте».</div>
+    <div class="fbar">
+      <div style="flex:1"><label>Поиск по товару / поставщику / стране</label><input id="gQ" oninput="renderGoods()" placeholder="например: подшипник, кислород, электроды, АГРОВИТАСЕРВИС"></div>
+      <div><label>Отчёт</label><select id="gRep" onchange="renderGoods()"><option value="">все позиции</option><option value="1">☑ вошли в отчёт</option><option value="0">не в отчёте</option></select></div>
+    </div>
+    <div id="gCount" class="small" style="margin:6px 0"></div>
+    <div style="overflow:auto"><table id="gTbl"></table></div>
+  </div>
+</section>
 <!-- ============ ЗАДАЧИ ============ -->
 <section id="tasks" style="display:none">
   <div class="card">
@@ -757,7 +770,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   <input type="hidden" id="dId">
   <div class="grid2">
     <div>
-      <label>Товар / предмет закупки *</label><input id="dSubj" placeholder="например: электроды УОНИ-13/55 — 200 кг">
+      <label>Товар / предмет закупки *</label><input id="dSubj" list="dGoodsList" onchange="dFillPrice()" oninput="dFillPrice()" placeholder="например: электроды УОНИ-13/55 — 200 кг"><datalist id="dGoodsList"></datalist><div id="dPriceHint" class="small" style="margin-top:2px"></div>
       <label>Поставщик</label><select id="dSup"></select>
       <label>Сумма, руб. *</label><input type="number" id="dSum" step="0.01" placeholder="0.00">
       <label>Пункт закупки (норма)</label><select id="dPoint" onchange="pointWarn()">
@@ -913,6 +926,7 @@ function seedSuppliers(){
   return arr;
 }
 var sup=load(LS.sup)||seedSuppliers();
+var goods=lsGet('crm2_goods',[]);
 var deals=load(LS.deals)||SEED_DEALS.map(function(d,i){
   var nt=d.note||'';
   var pt=(nt.match(/п\.\s?\d+\s?прил\.\s?\d+/)||[''])[0];
@@ -956,7 +970,7 @@ function supLink(s){return '<a href="#" onclick="openSupByName(\''+esc(s.name).r
 /* ================= НАВИГАЦИЯ ================= */
 var GROUPS=[
  {id:'zak',name:'ЗАКУПКА ОТ А ДО Я',items:[['dash','Рабочий стол'],['flow','Цикл закупки (главный)'],['wiz','Подбор процедуры'],['pipe','Реестр сделок'],['log','Журнал и отчёты'],['case','Дело закупки']]},
- {id:'crm',name:'ПОСТАВЩИКИ',items:[['sup','База поставщиков'],['tasks','Задачи']]},
+ {id:'crm',name:'ПОСТАВЩИКИ',items:[['sup','База поставщиков'],['goods','Товары и цены'],['tasks','Задачи']]},
  {id:'hlp',name:'ИНСТРУМЕНТЫ',items:[['map','Карта решений'],['calc','Оценка КП'],['tz','Конструктор ТЗ'],['cls','Классификатор'],['doc','Комиссия и документы'],['forms','📄 Формы документов']]},
  {id:'norm',name:'НОРМЫ',items:[['kb','База знаний'],['refs','Справочники порогов'],['chk','Чек-лист дела'],['lib','Библиотека ОКРБ']]},
  {id:'sys',name:'СИСТЕМА',items:[['data','Данные и бэкап']]}
@@ -982,6 +996,7 @@ function showTab(t){
   if(t==='dash'){try{renderDash()}catch(e){console.log('dash',e)}}
   if(t==='case'){try{document.getElementById('caseListCard').style.display='';document.getElementById('caseEditCard').style.display='none';renderCaseList()}catch(e){console.log('case',e)}}
   if(t==='forms'){try{renderFormsCard()}catch(e){console.log('forms',e)}}
+  if(t==='goods'){try{renderGoods()}catch(e){console.log('goods',e)}}
 }
 document.getElementById('nav').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b)return;
@@ -1158,6 +1173,7 @@ function fillSupSelect(id,withEmpty){
 }
 function openDeal(i,presetStage){
   fillSupSelect('dSup',false);
+  document.getElementById('dGoodsList').innerHTML=goodsNames().map(function(g){return '<option>'+esc(g)+'</option>'}).join('');
   document.getElementById('dStage').innerHTML=STAGES.map(function(s){return '<option value="'+s[0]+'">'+s[1]+'</option>'}).join('');
   document.getElementById('dDocs').innerHTML=DOCS.map(function(dc,i){
     return '<label><input type="checkbox" id="doc'+i+'"> '+dc+'</label>';
@@ -1222,15 +1238,82 @@ function delDeal(){
 }
 
 /* ================= ПОСТАВЩИКИ: ТАБЛИЦА ================= */
+/* ====== ТОВАРЫ И ЦЕНЫ (история закупок из Excel) ====== */
+function goodsSave(){lsSet('crm2_goods',goods);}
+function gIdx(){if(!window._gIdx){window._gIdx={};goods.forEach(function(g){var k=normKey(g.s);(window._gIdx[k]=window._gIdx[k]||[]).push(g);});}return window._gIdx;}
+function supGoods(nm){return gIdx()[normKey(nm||'')]||[];}
+function supInReport(nm){return supGoods(nm).some(function(g){return g.r;});}
+function goodsNames(){return [...new Set(goods.map(function(g){return g.n}))].sort();}
+function supGoodsMatched(nm,q){
+  var mg=supGoods(nm).filter(function(y){return normKey(y.n).indexOf(q)>=0;});
+  if(!mg.length)return '';
+  return '<div class="small" style="color:#2f5d50">поставлял: '+esc(mg.slice(0,3).map(function(y){return y.n}).join('; '))+(mg.length>3?' …':'')+'</div>';
+}
+function supGoodsHtml(nm){
+  var gs=supGoods(nm);
+  if(!gs.length)return '';
+  var last=gs.slice().sort(function(a,b){return (b.d||'').localeCompare(a.d||'')}).slice(0,12);
+  var uniq=[...new Set(gs.map(function(g){return g.n}))];
+  return '<div class="kv"><b>Товары по истории закупок ('+uniq.length+' наимен.):</b> '+(supInReport(nm)?'<span class="tag b" title="Поставщик попадал в квартальный отчёт (п. 28/29 прил. 1)">📋 был в отчёте</span>':'')
+   +'<div class="small" style="max-height:170px;overflow:auto;border:1px solid #dbe5e0;border-radius:6px;padding:4px 8px;margin-top:4px">'
+   +last.map(function(g){return '<div>'+(g.r?'☑':'☐')+' '+esc(g.n)+' — <b>'+fmt(g.p)+'</b> <span style="color:#777">('+esc(g.d)+')</span></div>'}).join('')
+   +(gs.length>12?'<div style="color:#777">…и ещё '+(gs.length-12)+' строк — смотрите вкладку «Товары и цены»</div>':'')+'</div></div>';
+}
+function renderGoods(){
+  var el=document.getElementById('gTbl');if(!el)return;
+  var q=normKey((document.getElementById('gQ')||{}).value||'');
+  var rf=(document.getElementById('gRep')||{}).value||'';
+  if(!goods.length){
+    document.getElementById('gCount').innerHTML='История товаров пуста. Восстановите актуальный бэкап — в нём выгрузка из Excel (1 685 позиций с ценами).';
+    el.innerHTML='';return;
+  }
+  var list=goods.map(function(g,i){return{g:g,i:i}}).filter(function(x){
+    if(rf!==''&&!!x.g.r!==(rf==='1'))return false;
+    if(q&&normKey(x.g.n+' '+x.g.s+' '+x.g.c).indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return (b.g.d||'').localeCompare(a.g.d||'')});
+  var full=list.length,capped=full>200&&!window._gAll;
+  if(capped)list=list.slice(0,200);
+  var cnt='Найдено: <b>'+full+'</b> · всего позиций: '+goods.length+' · наименований: '+goodsNames().length+' · ☑ в отчёте: '+goods.filter(function(g){return g.r}).length;
+  if(capped)cnt+=' — показаны 200 самых свежих · <a href="#" onclick="window._gAll=1;renderGoods();return false">показать все</a>';
+  document.getElementById('gCount').innerHTML=cnt;
+  el.innerHTML='<tr><th style="width:33%">Товар</th><th>Цена ед., руб.</th><th>Кол-во</th><th>Дата</th><th style="width:26%">Поставщик</th><th>Страна</th><th title="Вошла в квартальный отчёт">Отчёт</th></tr>'
+   +list.map(function(x){var g=x.g;
+     return '<tr><td><b>'+esc(g.n)+'</b></td>'
+      +'<td style="text-align:right"><b>'+fmt(g.p)+'</b></td>'
+      +'<td style="text-align:right">'+esc(String(g.q))+'</td>'
+      +'<td class="small" style="white-space:nowrap">'+esc(g.d)+'</td>'
+      +'<td><a href="#" onclick="openSupByName2(\''+esc(g.s).replace(/'/g,"\\'")+'\');return false">'+esc(g.s)+'</a>'+(supInReport(g.s)?' <span class="tag b" title="Поставщик попадал в отчёт">📋</span>':'')+'</td>'
+      +'<td class="small">'+esc(g.c||'—')+'</td>'
+      +'<td style="text-align:center"><input type="checkbox"'+(g.r?' checked':'')+' onchange="gTglRep('+x.i+')" title="Позиция вошла в отчёт (п. 28/29 прил. 1)"></td></tr>';
+   }).join('');
+  if(!full)el.innerHTML+='<tr><td colspan="7" class="small">Ничего не найдено</td></tr>';
+}
+function gTglRep(i){goods[i].r=goods[i].r?0:1;goodsSave();renderGoods();}
+function openSupByName2(n){var i=sup.findIndex(function(s){return normKey(s.name)===normKey(n)});if(i>=0)openSup(i);else alert('В базе поставщиков нет: '+n+'\n\nДобавьте через «+ Поставщик» — история товаров подтянется по названию автоматически.');}
+function dFillPrice(){
+  var v=(document.getElementById('dSubj').value||'').trim();
+  var hint=document.getElementById('dPriceHint');if(!hint)return;
+  if(!v){hint.innerHTML='';return;}
+  var k=normKey(v);
+  var gs=goods.filter(function(x){return normKey(x.n)===k}).sort(function(a,b){return (b.d||'').localeCompare(a.d||'')});
+  if(!gs.length){hint.innerHTML='';return;}
+  var g=gs[0];
+  hint.innerHTML='📊 Последняя закупка: <b>'+fmt(g.p)+'/ед.</b>, кол-во '+esc(String(g.q))+' — '+esc(g.s)+', '+esc(g.d)+(g.r?' · ☑ была в отчёте':'')+'. Всего в истории: '+gs.length+' стр.';
+}
+
 function groups(){return [...new Set(sup.map(s=>s.group))].sort()}
 function renderSupTable(){
-  fillSupSelect('fGroup',true);fillSupSelect('tSup',true);
+  fillSupSelect('tSup',true);
+  var _fg=fGroup.value;
+  fGroup.innerHTML='<option value="">— все товары / группы —</option>'+goodsNames().map(function(g){return '<option>'+esc(g)+'</option>'}).join('');
+  fGroup.value=_fg;
   document.getElementById('groupList').innerHTML=groups().map(g=>'<option>'+esc(g)+'</option>').join('');
   var q=normKey(fQ.value), g=fGroup.value, v=fVer.value;
   var list=sup.map(function(s,i){return{s:s,i:i}}).filter(function(x){
-    if(g&&x.s.group!==g)return false;
+    if(g&&!(x.s.group===g||supGoods(x.s.name).some(function(y){return y.n===g})))return false;
     if(v!==''&&!!x.s.verified!==(v==='1'))return false;
-    if(q&&normKey(x.s.name+' '+x.s.group+' '+x.s.contact+' '+(x.s.site||[]).join(' ')+' '+(x.s.email||[]).join(' ')+' '+(x.s.unp||'')).indexOf(q)<0)return false;
+    if(q&&normKey(x.s.name+' '+x.s.group+' '+x.s.contact+' '+(x.s.site||[]).join(' ')+' '+(x.s.email||[]).join(' ')+' '+(x.s.unp||'')+' '+supGoods(x.s.name).map(function(y){return y.n}).join(' ')).indexOf(q)<0)return false;
     return true;
   });
   var _full=list.length; var _capped=(_full>150&&!window._supShowAll); if(_capped)list=list.slice(0,150);
@@ -1246,7 +1329,9 @@ function renderSupTable(){
     var sites=(s.site||[]).map(function(x){return '<a href="https://'+esc(x)+'" target="_blank" rel="noopener">'+esc(x)+'</a>'}).join(', ');
     return '<tr><td>'+supDot(s)+'</td><td><a href="#" onclick="openSup('+x.i+');return false"><b>'+dispName(s)+'</b></a>'
       +(s.journal?' <span class="tag b">журнал</span>':'')+(s.unp?'<div class="small">УНП '+esc(s.unp)+'</div>':'')
-      +'<div class="small">'+esc(s.group)+'</div></td>'
+      +'<div class="small">'+esc(s.group)+'</div>'
+      +(q?supGoodsMatched(s.name,q):'')
+      +(supInReport(s.name)?'<div><span class="tag b" title="Поставщик попадал в квартальный отчёт (п. 28/29 прил. 1)">📋 был в отчёте</span></div>':'')+'</td>'
       +'<td class="small">'+esc(s.contact||'—')+'</td>'
       +'<td class="small">'+((s.phone||[]).join('<br>')||'—')+'</td>'
       +'<td class="small">'+((s.email||[]).map(function(e){return '<a href="#" title="Написать через систему (Mail.ru / G-Cloud / почтовая программа)" onclick="mailSend(\''+esc(e)+'\',mailTpl(\'kp\').subj,mailTpl(\'kp\').body,\'\');return false">'+esc(e)+'</a>'}).join('<br>')||'—')+'</td>'
@@ -1352,6 +1437,7 @@ function smTab(t){
      +'<div class="kv"><b>Статус:</b> '+esc(s.status)+(s.journal?' <span class="tag b">журнал 7.2.1</span>':'')+'</div>'
      +'<div class="kv"><b>Группа:</b> '+esc(s.group)+'</div>'
      +(s.unp?'<div class="kv"><b>УНП:</b> '+esc(s.unp)+'</div>':'')
+     +supGoodsHtml(s.name)
      +(s.addr?'<div class="kv"><b>Адрес:</b> '+esc(s.addr)+'</div>':'')
      +'<div class="kv"><b>Проверка:</b> '+(s.verified?'<span class="tag g">✔ проверен</span>':'<span class="tag r">⚠ требует проверки</span>')
      +' <button class="btn sm ghost" onclick="quickVerify(smCur.id);smTab(\'prof\')">'+(s.verified?'отметка проверки ✔':'✔ отметить проверенным')+'</button></div>'
@@ -1557,21 +1643,31 @@ function restore(ev){
 }
 /* Полная резервная копия всех данных системы (CRM + журнал + дела + цикл закупки) */
 function backupAll(){
-  var data={
-    app:'Pomoshchnik zakupok ShchRZ', ver:'4.5.2', date:new Date().toISOString(),
-    reg:lsGet('crm2_reg',null), docs:lsGet('crm2_docs',[]),
-    sup:sup, deals:deals, tasks:tasks, checks:checks, verlog:verlog,
-         org:JSON.parse(localStorage.getItem('crm2_org')||'null'), sign:JSON.parse(localStorage.getItem('crm2_sign')||'null'),
-    zlog:lsGet('zlog',[]), comm:lsGet('comm',null), lastscore:lsGet('lastscore',null),
-    cases:(typeof cases!=='undefined'?cases:[]),
-    forms:(typeof FORMS!=='undefined'?FORMS:null),
-    flows:lsGet('srz_flows',[]),
-    flow:lsGet('srz_flow',null), flowHist:lsGet('srz_flow_hist',[]),
-    qreports:lsGet('qreports',{})
-  };
-  download('shchuchin_rz_backup_'+today()+'.json',JSON.stringify(data,null,1),'application/json');
-  logVer('Сделана резервная копия данных');
+  var docs=lsGet('crm2_docs',[]);
+  var jobs=docs.map(function(x){return x.id?idbGet(x.id):Promise.resolve(null);});
+  jobs.push(idbGet('reg'));
+  Promise.all(jobs).then(function(blobs){
+    var regB=blobs.pop();
+    var reg=lsGet('crm2_reg',null);
+    if(reg&&regB)reg=Object.assign({},reg,{data:regB});
+    var docsOut=docs.map(function(x,k){var y=Object.assign({},x);if(blobs[k])y.data=blobs[k];return y;});
+    var data={
+      app:'Pomoshchnik zakupok ShchRZ', ver:'4.5.2', date:new Date().toISOString(),
+      reg:reg, docs:docsOut, goods:goods,
+      sup:sup, deals:deals, tasks:tasks, checks:checks, verlog:verlog,
+           org:JSON.parse(localStorage.getItem('crm2_org')||'null'), sign:JSON.parse(localStorage.getItem('crm2_sign')||'null'),
+      zlog:lsGet('zlog',[]), comm:lsGet('comm',null), lastscore:lsGet('lastscore',null),
+      cases:(typeof cases!=='undefined'?cases:[]),
+      forms:(typeof FORMS!=='undefined'?FORMS:null),
+      flows:lsGet('srz_flows',[]),
+      flow:lsGet('srz_flow',null), flowHist:lsGet('srz_flow_hist',[]),
+      qreports:lsGet('qreports',{})
+    };
+    download('shchuchin_rz_backup_'+today()+'.json',JSON.stringify(data,null,1),'application/json');
+    logVer('Сделана резервная копия данных');
+  }).catch(function(e){alert('Не удалось собрать бэкап: '+(e&&e.message||e));});
 }
+
 function restoreAll(inp){
   var f=inp&&inp.files?inp.files[0]:null; if(!f)return;
   var r=new FileReader();
@@ -1594,14 +1690,16 @@ function restoreAll(inp){
       if(d.qreports)lsSet('qreports',d.qreports);
       if(d.org)localStorage.setItem('crm2_org',JSON.stringify(d.org));
       if(d.sign)localStorage.setItem('crm2_sign',JSON.stringify(d.sign));
-      if(d.reg)lsSet('crm2_reg',d.reg);
-      if(d.docs)lsSet('crm2_docs',d.docs);
+      var _jobs=[];
+      if(d.reg){var _rg=Object.assign({},d.reg); if(_rg.data){_jobs.push(idbPut('reg',_rg.data)); _rg.sz=Math.round(_rg.data.length*3/4/1024); delete _rg.data;} lsSet('crm2_reg',_rg);}
+      if(d.docs){var _ds=d.docs.map(function(x,k){var y=Object.assign({},x); y.id=y.id||('doc'+Date.now()+'_'+k); if(y.data){_jobs.push(idbPut(y.id,y.data)); y.sz=Math.round(y.data.length*3/4/1024); delete y.data;} return y;}); lsSet('crm2_docs',_ds);}
+      if(d.goods){goods=d.goods;lsSet('crm2_goods',goods);window._gIdx=null;}
       save();
       logVer('Данные восстановлены из резервной копии');
       try{renderLog()}catch(e){}
       try{renderCaseList()}catch(e){}
       renderAll();
-      alert('Данные восстановлены. Рекомендуется обновить страницу (F5).');
+      Promise.all(_jobs).then(function(){alert('Данные восстановлены. Рекомендуется обновить страницу (F5).');},function(e){alert('Данные восстановлены, но вложения не записались: '+(e&&e.message||e));});
     }catch(e){alert('Не удалось восстановить: '+e.message)}
   };
   r.readAsText(f);
@@ -1620,16 +1718,45 @@ function renderAll(){renderDash();renderPipe();renderSupTable();renderTasks();re
 /* ====== МОДУЛИ ПОМОЩНИКА (перенесено из index.html, этап 5) ====== */
 function lsGet(key, def){ try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e){ return def; } }
 function lsSet(key, val){ try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch(e){ alert('Не удалось сохранить: локальное хранилище переполнено. Удалите часть вложений или сделайте бэкап.'); return false; } }
+
+/* ====== ХРАНИЛИЩЕ ВЛОЖЕНИЙ IndexedDB (PDF вне лимита localStorage) ====== */
+var _idb=null;
+function idbOpen(){return new Promise(function(res,rej){
+  if(_idb)return res(_idb);
+  var rq=indexedDB.open('shrz_blobs',1);
+  rq.onupgradeneeded=function(){rq.result.createObjectStore('blobs');};
+  rq.onsuccess=function(){_idb=rq.result;res(_idb);};
+  rq.onerror=function(){rej(rq.error);};
+});}
+function idbPut(k,v){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('blobs','readwrite');tx.objectStore('blobs').put(v,k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
+function idbGet(k){return idbOpen().then(function(db){return new Promise(function(res,rej){var rq=db.transaction('blobs','readonly').objectStore('blobs').get(k);rq.onsuccess=function(){res(rq.result||null);};rq.onerror=function(){rej(rq.error);};});});}
+function idbDel(k){return idbOpen().then(function(db){return new Promise(function(res,rej){var tx=db.transaction('blobs','readwrite');tx.objectStore('blobs').delete(k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
+function b64blob(b64){if(!b64)return null;var b=atob(b64),u=new Uint8Array(b.length);for(var k=0;k<b.length;k++)u[k]=b.charCodeAt(k);return new Blob([u],{type:'application/pdf'});}
+function backupDocsPart(){
+  var docs=lsGet('crm2_docs',[]);
+  var jobs=docs.map(function(x){return x.id?idbGet(x.id):Promise.resolve(null);});
+  jobs.push(idbGet('reg'));
+  Promise.all(jobs).then(function(blobs){
+    var regB=blobs.pop();
+    var reg=lsGet('crm2_reg',null);
+    if(reg&&regB)reg=Object.assign({},reg,{data:regB});
+    var d={app:'Pomoshchnik zakupok ShchRZ',ver:'4.5.2',date:new Date().toISOString(),part:'docs',reg:reg,
+      docs:docs.map(function(x,k){var y=Object.assign({},x);if(blobs[k])y.data=blobs[k];return y;})};
+    download('normativnye_dokumenty_'+today()+'.json',JSON.stringify(d,null,1),'application/json');
+    logVer('Частичная выгрузка: docs');
+  }).catch(function(e){alert('Не удалось собрать выгрузку: '+(e&&e.message||e));});
+}
+
 /* ====== ВНУТРЕННИЙ ПОРЯДОК ЗАКУПОК (PDF + поиск по тексту) ====== */
 function renderReg(){
   var el=document.getElementById('regBox'); if(!el)return;
   var r=lsGet('crm2_reg',null);
-  if(!r||!r.data){
+  if(!r||!r.name){
     el.innerHTML='<div class="small">Файл не загружен. Восстановите данные из резервной копии — Порядок появится автоматически, либо загрузите PDF вручную:</div>'
       +'<label class="btn sm ghost" style="display:inline-block;margin-top:8px;cursor:pointer">📎 Загрузить PDF<input type="file" accept=".pdf,application/pdf" style="display:none" onchange="regUpload(this)"></label>';
     return;
   }
-  var kb=Math.round((r.data.length*3/4)/1024);
+  var kb=r.sz||Math.round(((r.data||'').length*3/4)/1024);
   el.innerHTML='<p style="font-size:14px;margin:4px 0"><b>📕 '+esc(r.name||'Порядок закупок.pdf')+'</b> <span class="small">('+kb+' КБ'+(r.date?', в данных с '+esc(r.date):'')+(r.text?' · поиск по тексту доступен':'')+')</span></p>'
    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'
    +'<button class="btn sm" onclick="regOpen()">📖 Открыть</button>'
@@ -1645,42 +1772,37 @@ function regSearch(){
   var r=lsGet('crm2_reg',null);
   if(!q){out.innerHTML='';return;}
   if(!r||!r.text){out.innerHTML='<div class="small">Быстрый поиск недоступен: текстовая версия Порядка не загружена (PDF — скан). Откройте PDF и ищите в нём (Ctrl+F).</div>';return;}
-  var paras=r.text.split(/\n+/), hits=[];
-  for(var i=0;i<paras.length&&hits.length<12;i++){if(paras[i].toLowerCase().indexOf(q)>=0)hits.push(i);}
+  var hits=punctHits(r.text,q,12);
   if(!hits.length){out.innerHTML='<div class="small">Ничего не найдено.</div>';return;}
   var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
-  out.innerHTML='<div class="small" style="margin-bottom:4px">Найдено фрагментов: '+hits.length+(hits.length===12?' (показаны первые 12)':'')+'</div>'
-   +hits.map(function(i){
-     var t=esc(paras[i].trim()).replace(rx,'<mark>$1</mark>');
-     return '<div style="font-size:12.5px;border-left:3px solid var(--acc);padding:5px 10px;margin:6px 0;background:#f7f9f8;line-height:1.45">'+t+'</div>'}).join('');
+  window._docHits=hits.map(function(x){return x.copy;});
+  out.innerHTML='<div class="small" style="margin-bottom:4px">Найдено фрагментов: '+hits.length+(hits.length===12?' (показаны первые 12)':'')+' — каждый показан с начала пункта, копируется пункт целиком:</div>'
+   +hits.map(function(x,i){
+     return '<div style="font-size:12.5px;border-left:3px solid var(--acc);padding:5px 10px;margin:6px 0;background:#f7f9f8;line-height:1.45">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
+      +(x.label?'<span style="flex:0 0 auto;background:#dcebe2;color:#2f5d50;border-radius:4px;padding:1px 8px;font-size:11.5px;font-weight:700">'+esc(x.label)+'</span>':'<span></span>')
+      +'<button class="btn sm ghost" style="flex:0 0 auto" onclick="docCopy('+i+')">📋 Копировать пункт</button></div>'
+      +esc(x.vis).replace(rx,'<mark>$1</mark>')+'</div>'}).join('');
 }
-function regBlob(){
-  var r=lsGet('crm2_reg',null); if(!r||!r.data)return null;
-  var b=atob(r.data),u=new Uint8Array(b.length);
-  for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
-  return new Blob([u],{type:'application/pdf'});
-}
-function regOpen(){var bl=regBlob(); if(!bl){alert('Файл Порядка не загружен');return;} window.open(URL.createObjectURL(bl),'_blank');}
-function regDl(){
-  var bl=regBlob(); if(!bl){alert('Файл Порядка не загружен');return;}
-  var r=lsGet('crm2_reg',{});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(bl);
-  a.download=r.name||'poryadok_zakupok.pdf'; a.click();
-}
+function regOpen(){idbGet('reg').then(function(b64){var bl=b64blob(b64); if(!bl){alert('Файл Порядка не загружен. Восстановите бэкап или загрузите PDF.');return;} window.open(URL.createObjectURL(bl),'_blank');});}
+function regDl(){idbGet('reg').then(function(b64){var bl=b64blob(b64); if(!bl){alert('Файл Порядка не загружен');return;} var r=lsGet('crm2_reg',{}); var a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=r.name||'poryadok_zakupok.pdf'; a.click();});}
 function regUpload(inp){
   var f=inp&&inp.files?inp.files[0]:null; if(!f)return;
   var rd=new FileReader();
   rd.onload=function(){
     var b64=String(rd.result).split(',')[1]||'';
     var prev=lsGet('crm2_reg',null);
-    if(lsSet('crm2_reg',{name:f.name,date:today(),data:b64,text:(prev&&prev.name===f.name?prev.text:null)})){
-      logVer('Загружен внутренний Порядок закупок: '+f.name);
-      renderReg();
-      alert('Порядок закупок сохранён в данных и попадёт в резервную копию.');
-    }
+    idbPut('reg',b64).then(function(){
+      if(lsSet('crm2_reg',{name:f.name,date:today(),sz:Math.round(b64.length*3/4/1024),text:(prev&&prev.name===f.name?prev.text:null)})){
+        logVer('Загружен внутренний Порядок закупок: '+f.name);
+        renderReg();
+        alert('Порядок закупок сохранён в данных и попадёт в резервную копию.');
+      }
+    }).catch(function(e){alert('Не удалось сохранить файл: '+(e&&e.message||e));});
   };
   rd.readAsDataURL(f); inp.value='';
 }
+
 /* ====== РЕЕСТР НОРМАТИВНЫХ ДОКУМЕНТОВ ====== */
 var DOC_KINDS=['ПП № 168 (закупки за счёт собств. средств)','ПП № 355 (изменения к № 168)','ПП № 985','Закон № 419-З (госзакупки)','ПП № 837','ПП № 90','ПП № 252','Иной документ'];
 function renderDocs(){
@@ -1689,7 +1811,7 @@ function renderDocs(){
   var h='';
   if(!docs.length)h+='<div class="small">Документы не загружены. Восстановите из бэкапа или загрузите PDF ниже.</div>';
   else h+='<table style="margin-top:6px"><tr><th style="width:36%">Документ</th><th>Тип</th><th>Загружен</th><th>Размер</th><th>Действия</th></tr>'
-   +docs.map(function(d,i){var kb=Math.round((d.data||'').length*3/4/1024);
+   +docs.map(function(d,i){var kb=d.sz||Math.round((d.data||'').length*3/4/1024);
      return '<tr><td><b>'+esc(d.name)+'</b>'+(d.text?' <span title="Доступен поиск по тексту">🔎</span>':'')+'</td><td class="small">'+esc(d.kind||'—')+'</td><td class="small">'+esc(d.date||'')+'</td><td class="small">'+kb+' КБ</td>'
      +'<td style="white-space:nowrap"><button class="btn sm" onclick="docOpen('+i+')" title="Открыть">📖</button> <button class="btn sm ghost" onclick="docDl('+i+')" title="Скачать">💾</button> <button class="del" onclick="docDel('+i+')" title="Удалить">✕</button></td></tr>'}).join('')+'</table>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center">'
@@ -1701,24 +1823,27 @@ function renderDocs(){
    +'<div class="small" style="margin-top:6px">Каждая загрузка новой редакции фиксируется в журнале верификации — после этого сверьте «Справочники порогов» и «Базу знаний» (правило двойной проверки).</div>';
   el.innerHTML=h;
 }
-function docBlob(i){var d=lsGet('crm2_docs',[])[i]; if(!d||!d.data)return null; var b=atob(d.data),u=new Uint8Array(b.length); for(var k=0;k<b.length;k++)u[k]=b.charCodeAt(k); return new Blob([u],{type:'application/pdf'});}
-function docOpen(i){var b=docBlob(i); if(b)window.open(URL.createObjectURL(b),'_blank');}
-function docDl(i){var d=lsGet('crm2_docs',[])[i]; var b=docBlob(i); if(!b)return; var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=(d&&d.name)||'doc.pdf'; a.click();}
-function docDel(i){var docs=lsGet('crm2_docs',[]); var d=docs[i]; if(!d)return; if(!confirm('Удалить документ «'+d.name+'» из данных?'))return; docs.splice(i,1); lsSet('crm2_docs',docs); logVer('Удалён нормативный документ: '+d.name); renderDocs();}
+function docOpen(i){var d=lsGet('crm2_docs',[])[i]; if(!d)return; idbGet(d.id).then(function(b64){var b=b64blob(b64); if(b)window.open(URL.createObjectURL(b),'_blank'); else alert('Файл не найден в хранилище. Восстановите бэкап или загрузите PDF заново.');});}
+function docDl(i){var d=lsGet('crm2_docs',[])[i]; if(!d)return; idbGet(d.id).then(function(b64){var b=b64blob(b64); if(!b){alert('Файл не найден в хранилище.');return;} var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=d.name||'doc.pdf'; a.click();});}
+function docDel(i){var docs=lsGet('crm2_docs',[]); var d=docs[i]; if(!d)return; if(!confirm('Удалить документ «'+d.name+'» из данных?'))return; docs.splice(i,1); lsSet('crm2_docs',docs); if(d.id)idbDel(d.id); logVer('Удалён нормативный документ: '+d.name); renderDocs();}
 function docUpload(inp){
   var files=inp&&inp.files?Array.prototype.slice.call(inp.files):[]; if(!files.length)return;
   var kEl=document.getElementById('docKind'); var kind=kEl?kEl.value:'Иной документ';
   var docs=lsGet('crm2_docs',[]); var done=0;
-  files.forEach(function(f){
+  files.forEach(function(f,fk){
     var rd=new FileReader();
     rd.onload=function(){
-      docs.push({name:f.name,kind:kind,date:today(),data:String(rd.result).split(',')[1]||''});
-      done++;
-      if(done===files.length&&lsSet('crm2_docs',docs)){
-        files.forEach(function(ff){logVer('Загружен НПА: '+ff.name+' ('+kind+') — ТРЕБУЕТСЯ сверка норм');});
-        renderDocs();
-        alert('Загружено документов: '+files.length+'\n\nСверьте нормы: «Справочники порогов» и «База знаний». Разбор изменений («что поменять в системе») делает Kimi — пришлите новый документ в чат.');
-      }
+      var b64=String(rd.result).split(',')[1]||'';
+      var id='doc'+Date.now()+'_'+fk;
+      idbPut(id,b64).then(function(){
+        docs.push({id:id,name:f.name,kind:kind,date:today(),sz:Math.round(b64.length*3/4/1024)});
+        done++;
+        if(done===files.length&&lsSet('crm2_docs',docs)){
+          files.forEach(function(ff){logVer('Загружен НПА: '+ff.name+' ('+kind+') — ТРЕБУЕТСЯ сверка норм');});
+          renderDocs();
+          alert('Загружено документов: '+files.length+'\n\nСверьте нормы: «Справочники порогов» и «База знаний». Разбор изменений («что поменять в системе») делает Kimi — пришлите новый документ в чат.');
+        }
+      }).catch(function(e){done++;alert('Не удалось сохранить файл '+f.name+': '+(e&&e.message||e));});
     };
     rd.readAsDataURL(f);
   });
@@ -1726,6 +1851,51 @@ function docUpload(inp){
 }
 
 /* ====== ПОИСК ПО ТЕКСТАМ НОРМАТИВНЫХ ДОКУМЕНТОВ (групповой, v4.5.3) ====== */
+function punctHits(text,q,limit){
+  var rxNum=/^[\s«"']*(?:пункт\s+|п\.\s*)?(\d{1,3}(?:\.\d+){0,3})[.\)]\s+/;
+  var rxAnchor=/(?:^|[\s«"'])пункт[еау]?\s+(\d{1,3})\s+приложени[ея]\s+(\d{1,2})/i;
+  var rxRef=/(?:^|[\s«"'])пункт[еау]?\s+(\d{1,3})\b/i;
+  var rxApp=/^[\s«"']*приложение\s+(\d{1,2})\b/i;
+  var rxAppCtx=/приложени[еию]\s+(\d{1,2})\b[^\n]{0,40}:\s*$/i;
+  function numOf(t){var m=rxNum.exec(t);if(!m)return null;var n=+m[1].split('.')[0];return(n>=1&&n<=170)?m[1]:null;}
+  var paras=text.split(/\n+/);
+  var rxReset=/^[\s«\"']*(ПОЛОЖЕНИЕ|ГЛАВА\s+\d+)\b/i;
+  var appAt=[],curApp=null;
+  for(var a=0;a<paras.length;a++){
+    if(rxReset.test(paras[a]))curApp=null;
+    else{var am=rxApp.exec(paras[a])||rxAppCtx.exec(paras[a]);if(am)curApp=am[1];}
+    appAt[a]=curApp;
+  }
+  var hits=[];
+  for(var i=0;i<paras.length&&hits.length<limit;i++){
+    if(paras[i].toLowerCase().indexOf(q)<0)continue;
+    var j=i,label=null,app=appAt[i];
+    var own=numOf(paras[i]);
+    if(own!==null)label=own;
+    else{var an=rxAnchor.exec(paras[i])||rxRef.exec(paras[i]);if(an){label=an[1];if(an[2])app=an[2];}}
+    if(label===null){
+      for(var b=i-1;b>=0&&b>=i-60;b--){
+        var l2=numOf(paras[b]);
+        if(l2!==null){j=b;label=l2;break;}
+        var a2=rxAnchor.exec(paras[b])||rxRef.exec(paras[b]);
+        if(a2){j=b;label=a2[1];if(a2[2])app=a2[2];break;}
+      }
+    }
+    if(hits.length&&hits[hits.length-1]._j===j)continue;
+    var end=i+1;
+    for(var f=i+1;f<paras.length&&f<=i+60;f++){if(numOf(paras[f])!==null)break;end=f+1;}
+    var copy=paras.slice(j,end).join('\n').replace(/[ \t]+/g,' ').trim();
+    if(copy.length>2500)copy=copy.slice(0,2500)+'…';
+    var full=paras.slice(j,i+1).join(' ').replace(/\s+/g,' ').trim();
+    var rel=full.toLowerCase().indexOf(q);
+    var vis;
+    if(full.length<=600||rel<480){vis=full.slice(0,600);if(full.length>600)vis+=' …';}
+    else{vis=full.slice(0,160).trim()+' … '+full.slice(Math.max(0,rel-170),rel+250).trim()+' …';}
+    var lab=(label!==null)?('п. '+label+(app?' · прил. '+app:'')):(app?('прил. '+app):null);
+    hits.push({label:lab,vis:vis,copy:copy,_j:j});
+  }
+  return hits;
+}
 function docSources(){
   var srcs=[];
   var r=lsGet('crm2_reg',null);
@@ -1767,14 +1937,10 @@ function docSearch(){
   var groups=[], all=[];
   srcs.forEach(function(s){
     if(window._docSel[s.key]===false)return;
-    var hits=[];
-    var paras=s.text.split(/\n+/);
-    for(var i=0;i<paras.length&&hits.length<10;i++){
-      if(paras[i].toLowerCase().indexOf(q)>=0)hits.push(paras[i].trim());
-    }
+    var hits=punctHits(s.text,q,10);
     if(hits.length){groups.push({src:s,hits:hits});all=all.concat(hits);}
   });
-  window._docHits=all;
+  window._docHits=all.map(function(x){return x.copy;});
   var active=srcs.filter(function(s){return window._docSel[s.key]!==false;});
   var empty=active.filter(function(s){return !groups.some(function(g){return g.src.key===s.key;});});
   var emptyHtml=empty.map(function(s){
@@ -1785,10 +1951,12 @@ function docSearch(){
   out.innerHTML='<div class="small" style="margin-bottom:4px">Найдено фрагментов: <b>'+all.length+'</b> в '+groups.length+' док. из '+active.length+' — текст можно выделять и копировать:</div>'
    +groups.map(function(g){
      return '<div style="margin:12px 0 4px;padding:4px 10px;background:#2f5d50;color:#fff;border-radius:6px;font-size:13px"><b>📄 '+esc(g.src.name)+'</b> <span style="opacity:.85">— совпадений: '+g.hits.length+(g.hits.length===10?' (показаны первые 10)':'')+'</span></div>'
-      +g.hits.map(function(t){var i=gi++;
+      +g.hits.map(function(x){var i=gi++;
        return '<div style="font-size:12.5px;border-left:3px solid var(--acc);padding:5px 10px;margin:6px 0;background:#f7f9f8;line-height:1.45">'
-        +'<div style="display:flex;justify-content:flex-end"><button class="btn sm ghost" style="flex:0 0 auto" onclick="docCopy('+i+')">📋 Копировать</button></div>'
-        +esc(t).replace(rx,'<mark>$1</mark>')+'</div>';}).join('');
+        +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
+        +(x.label?'<span style="flex:0 0 auto;background:#dcebe2;color:#2f5d50;border-radius:4px;padding:1px 8px;font-size:11.5px;font-weight:700">'+esc(x.label)+'</span>':'<span></span>')
+        +'<button class="btn sm ghost" style="flex:0 0 auto" onclick="docCopy('+i+')">📋 Копировать пункт</button></div>'
+        +esc(x.vis).replace(rx,'<mark>$1</mark>')+'</div>';}).join('');
    }).join('')+emptyHtml;
 }
 function docCopy(i){
@@ -1803,7 +1971,7 @@ function backupPart(kind){
   var fname='backup_'+kind+'_'+today()+'.json';
   if(kind==='sup'){d.sup=sup;fname='postavshchiki_'+today()+'.json';}
   else if(kind==='qreport'){d.qreports=lsGet('qreports',{});d.zlog=lsGet('zlog',[]);fname='kvartalny_otchet_'+today()+'.json';}
-  else if(kind==='docs'){d.reg=lsGet('crm2_reg',null);d.docs=lsGet('crm2_docs',[]);fname='normativnye_dokumenty_'+today()+'.json';}
+  else if(kind==='docs'){backupDocsPart();return;}
   else if(kind==='forms'){d.forms=(typeof FORMS!=='undefined'?FORMS:null);fname='formy_dokumentov_'+today()+'.json';}
   download(fname,JSON.stringify(d,null,1),'application/json');
   logVer('Частичная выгрузка: '+kind);
@@ -4455,6 +4623,27 @@ function flFinish(){
 }
 
 /* ================= СТАРТ ================= */
+/* миграция вложений в IndexedDB — освобождает localStorage */
+try{(function(){
+  var rg=lsGet('crm2_reg',null);
+  var p=Promise.resolve();
+  if(rg&&rg.data){var _b=rg.data;
+    p=p.then(function(){return idbPut('reg',_b);}).then(function(){
+      var cur=lsGet('crm2_reg',null);
+      if(cur&&cur.data){cur.sz=cur.sz||Math.round(cur.data.length*3/4/1024);delete cur.data;lsSet('crm2_reg',cur);try{renderReg()}catch(e){}}
+    });
+  }
+  lsGet('crm2_docs',[]).forEach(function(x,k){
+    if(!(x&&x.data))return;
+    var _id=x.id||('doc'+Date.now()+'_'+k), _d=x.data;
+    p=p.then(function(){return idbPut(_id,_d);}).then(function(){
+      var cur=lsGet('crm2_docs',[]);
+      for(var i=0;i<cur.length;i++){if(cur[i].data===_d){cur[i].id=_id;cur[i].sz=cur[i].sz||Math.round(cur[i].data.length*3/4/1024);delete cur[i].data;break;}}
+      lsSet('crm2_docs',cur);try{renderDocs()}catch(e){}
+    });
+  });
+  p.catch(function(e){console.log('idb-migrate',e);});
+})()}catch(e){console.log('idb-migrate',e)}
 try{window.__initSchemeMap()}catch(e){console.log('map-init',e)}
 buildNav();showTab('dash');renderAll();
 try{var _ct=document.getElementById('critTbl');if(_ct&&_ct.rows&&_ct.rows.length>1)buildCalc()}catch(e){console.log('calc init',e)}
