@@ -166,7 +166,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v4.5.2-каркас</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v4.7-каркас</span></h1>
     <div class="sub">Каркас помощника закупок (без данных организации) · CRM: воронка закупок, поставщики, задачи, контакты · реестр 33 + журнал 7.2.1 (81 контрагент, 87 договоров) · контакты 18 компаний по офиц. сайтам · нормы сверены на 08.10.2026: ИПС «Эталон» + pravo.by (ПП № 168 ред. № 355, БВ = 45 руб.)</div>
   </div>
   <div style="display:flex;gap:8px">
@@ -217,8 +217,27 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 </section>
 <!-- ============ ВОРОНКА ============ -->
 <section id="pipe" style="display:none">
-  <div class="note">Перетаскивайте карточки между этапами. Каждый этап — подсказка «что делать». Сделка из журнала 7.2.1 уже в «Завершено». Красный флаг = превышение лимита суммы. Клик по карточке — открыть сделку.</div>
+  <div class="note">Карточки закупок движутся по этапам слева направо: перетащите мышью или откройте карточку и смените этап. Назад двигать можно всегда, даже закрытые — например, когда появился ещё поставщик и карточку надо вернуть на «Поставщики». Каждый переход пишется в историю сделки и таймлайн поставщика. Цвета: <span class="tag g">п. 21</span> <span class="tag b">п. 29</span> <span class="tag y">п. 9 / близко к лимиту</span> <span class="tag r">просрочено или превышение лимита</span>. На этапе «Поставка и закрытие» система напоминает подтвердить получение товара и страну производства. Клик по карточке — просмотр, записи и редактирование: сведения о поставщике сами дублируются в его карточку.</div>
   <div class="pipe" id="pipeCols"></div>
+</section>
+<!-- ============ КОНТРОЛЬ СУММ ============ -->
+<section id="sum" style="display:none">
+  <div class="card">
+    <h2>💰 Учёт и контроль сумм: договоры · организации · пункты</h2>
+    <div class="note">Свод по реестру сделок: сколько и на какие суммы заключено по каждому основанию (пункту), по каждой организации-поставщику и по каждому договору. Лимиты: п. 21 — 4 500 руб. и п. 29 — 45 000 руб. на ОДНУ сделку; п. 9 прил. 4 — 225 000 руб. в ГОД. Сделки сверх лимита подсвечены красным.</div>
+    <div class="fbar">
+      <div><label>Год</label><select id="sumYear" onchange="renderSumCtrl()"></select></div>
+      <div><label>Пункт (основание)</label><select id="sumPoint" onchange="renderSumCtrl()"><option value="">все</option></select></div>
+      <div style="flex:0"><button class="btn ghost" onclick="sumCsv()">⬇ Экспорт CSV</button></div>
+    </div>
+    <div id="sumTotals"></div>
+    <h3>По пунктам (основаниям)</h3>
+    <div id="sumByPoint" style="overflow:auto"></div>
+    <h3>По организациям (поставщикам)</h3>
+    <div id="sumByOrg" style="overflow:auto;max-height:45vh"></div>
+    <h3>По договорам (сделкам)</h3>
+    <div id="sumByDeal" style="overflow:auto;max-height:45vh"></div>
+  </div>
 </section>
 <!-- ============ ПОСТАВЩИКИ ============ -->
 <section id="sup" style="display:none">
@@ -229,6 +248,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
       <div><label>Проверка</label><select id="fVer" onchange="renderSupTable()">
         <option value="">все</option><option value="1">проверено ✔</option><option value="0">требует проверки</option></select></div>
       <div style="flex:0"><button class="btn" onclick="openSup(-1)">+ Добавить</button></div>
+      <div style="flex:0"><label>&nbsp;</label><button class="btn ghost" onclick="supCleanup()" title="Удалить карточки без реквизитов, товаров и сделок (служебные строки Excel)">🧹 Пустые карточки</button></div>
     </div>
     <div class="small" id="supCount"></div>
     <div style="overflow:auto;margin-top:8px"><table id="supTbl"></table></div>
@@ -435,8 +455,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <div class="note">Каждая норма имеет редакцию и дату проверки. Перед публикацией каждой процедуры сверить применённые нормы с Эталоном/pravo.by (правило двойной проверки). Статусы: <span class="tag g">проверено</span> <span class="tag y">сверить по Эталону</span>.</div>
     <div id="kbList"></div>
     <h3>Журнал верификации норм</h3>
-    <div class="small">Фиксируется при каждой сверке (админ-панель → «Отметить сверку»).</div>
-    <div id="verlogList" style="margin-top:8px"></div>
+    <div class="small">Журнал верификации единый и находится в разделе «Система → Данные и бэкап». <a href="#" onclick="go('data');return false"><b>Открыть журнал верификации</b></a>.</div>
   </div>
 </section>
 <!-- ===================== CHECKLISTS ===================== -->
@@ -660,7 +679,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <section id="case" style="display:none">
   <div class="card" id="caseListCard">
     <h2>📁 Дела закупок — «взял дело, там всё есть»</h2>
-    <div class="note">Универсальная форма для любого пункта (п. 21, п. 29, п. 9, п. 2 и др.): участники, суммы, статусы, документы, победитель. Печатная форма — в дело.</div>
+    <div class="note">Универсальная форма для любого пункта (п. 21, п. 29, п. 9, п. 2 и др.): участники, суммы, статусы, документы, победитель. Печатная форма — в дело. <b>Как редактировать карточку дела:</b> нажмите ✎ в строке дела или кликните по предмету — откроется карточка: правьте поля, участников, документы и жмите «💾 Сохранить дело». Из карточки сделки (Реестр сделок) дело создаётся кнопкой «📁 Дело закупки».</div>
     <div class="fbar">
       <div><label>Поиск (предмет, участник, №)</label><input id="cQ" oninput="renderCaseList()" placeholder="например: электроды, Ватра…"></div>
       <div><label>Пункт</label><select id="cF" onchange="renderCaseList()"><option value="">все</option><option>п. 21 прил. 1</option><option>п. 29 прил. 1</option><option>п. 9 прил. 4</option><option>п. 2 прил. 4</option><option>прочее</option></select></div>
@@ -747,13 +766,13 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>Помощник специалиста по закупкам v4.5.2-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
+<footer>Помощник специалиста по закупкам v4.7-каркас · основная лестница: п. 21/29 прил. 1, п. 67 прил. 4, п. 14 прил. 1, конкурентные процедуры · модуль «Полный цикл закупки» · контроль сумм по договорам, организациям и пунктам · нормативная база (08.10.2026, повторная сверка pravo.by 11.10.2026): ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), Закон № 419-З, ПП № 837, № 90, № 252 · БВ = 45 руб. · рекомендательный характер, ответственность за решение — за пользователем</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealView"><div class="box">
   <h2 id="dvTitle">Сделка</h2>
   <div id="dvBody"></div>
-  <div class="btns"><button class="btn" id="dvEdit">✏ Редактировать</button> <button class="btn ghost" onclick="document.getElementById('dealView').classList.remove('open')">Закрыть</button></div>
+  <div class="btns"><button class="btn" id="dvEdit">✏ Редактировать</button> <button class="btn ghost" id="dvCase">📁 Дело закупки</button> <button class="btn ghost" onclick="document.getElementById('dealView').classList.remove('open')">Закрыть</button></div>
 </div></div>
 
 
@@ -786,8 +805,31 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
       <label>Дедлайн (плановая поставка)</label><input type="date" id="dDeadline">
       <label>Инициатор (ФИО по служебке)</label><input id="dFio" placeholder="Иванов И.И.">
       <label>Комментарий</label><textarea id="dNote" rows="3" placeholder="условия, претензии, особенности"></textarea>
+      <label>Ответ поставщика</label><select id="dResp">
+        <option value="">— не фиксировался —</option>
+        <option value="wait">ожидаем ответ / КП запрошено</option>
+        <option value="kp">КП получено</option>
+        <option value="noreal">не можем предложить / нет в наличии</option>
+        <option value="otkaz">отказ / не участвует</option></select>
+      <label>Заказчик (подразделение)</label><input id="dDept" placeholder="Транспортный участок">
+      <label>Возможные поставщики (через запятую)</label><input id="dSupsCand" placeholder="можно заполнить позже — карточку вернуть на этап «Поставщики»">
+      <label>Тип договора</label><select id="dDogType">
+        <option value="">— не определён —</option>
+        <option>разовый договор</option>
+        <option>долгосрочный / рамочный</option>
+        <option>договор с отсрочкой платежа</option></select>
+      <label>Состав закупки</label><select id="dSpec">
+        <option value="">—</option>
+        <option>по спецификации (перечень позиций)</option>
+        <option>комплект</option></select>
+      <label>Страна производства товара</label><input id="dCountry" placeholder="например: Беларусь">
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dGot" style="width:auto"> Товар получен и принят по акту</label>
+      <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dInRep" style="width:auto"> Включить в отчёт ИС «Тендеры»</label>
     </div>
   </div>
+  <h3>Товарные позиции закупки <button type="button" class="btn sm ghost" onclick="dItemAdd()">+ позиция</button></h3>
+  <div class="small" style="margin-bottom:4px">Несколько позиций в одной закупке — у каждой своё количество и цена. Если у позиций указаны количество и цена, сумма сделки посчитается автоматически (поле «Сумма» можно поправить вручную).</div>
+  <div style="overflow:auto"><table id="dItemsTbl"></table></div><div id="dItemsFoot"></div>
   <h3>Документы по сделке (отметьте готовые)</h3>
   <div class="check" id="dDocs"></div>
   <div style="margin-top:14px">
@@ -892,16 +934,38 @@ var SITE_PATCH = {"оаобелкард": {"site": ["belcard-grodno.by"], "email
 
 var BV=45, L21=100*BV, L29=1000*BV, L9Y=5000*BV;
 var LS={sup:'crm2_sup', deals:'crm2_deals', tasks:'crm2_tasks', checks:'crm2_checks', ver:'crm2_ver'};
+/* v4.6: разово убрать из сохранённых данных служебную фразу «Согласно рекомендации помощника» */
+try{(function(){
+  ['srz_flow','srz_flows','srz_flow_hist','crm2_cases','crm2_deals','crm2_sup','zlog'].forEach(function(k){
+    var raw=localStorage.getItem(k);
+    if(!raw||raw.indexOf('рекомендаци')<0)return;
+    var fixed=raw.split('Согласно рекомендации помощника: ').join('Основание: ')
+                 .split('Согласно рекомендациям помощника: ').join('Основание: ')
+                 .split('Согласно рекомендации помощника').join('По обоснованию специалиста')
+                 .split('Согласно рекомендациям помощника').join('По обоснованию специалиста');
+    if(fixed!==raw)localStorage.setItem(k,fixed);
+  });
+})()}catch(e){console.log('clean-assist',e)}
 var STAGES=[
- ['zayavka','Заявка','Получена заявка. Оформите служебку инициатора и определите пункт: п. 21 прил. 1 (≤100 БВ, вне Положения) · п. 29 прил. 1 (для собственного производства, ≤1000 БВ) · п. 9 прил. 4 (100–1000 БВ, один источник)'],
- ['kp','Запрос КП','Запросите КП минимум у 3 поставщиков из CRM (вкладка «Поставщики»). Проверьте контрагентов: ЕГР (egr.gov.by) + реестр недобросовестных МАРТ (icetrade.by)'],
- ['sravn','Сравнение КП','Сравните цены, сроки, условия оплаты. Зафиксируйте сравнительную таблицу — приложение к служебке'],
- ['sogl','Согласование','Служебная записка руководству с обоснованием выбора. У дилера производителя — п. 2 прил. 4 (без лимитов)'],
- ['dogovor','Договор','Договор + спецификация. Контроль лимита суммы. Запись в журнал закупок (колонки A–P)'],
- ['postavka','Поставка','Приёмка: количество/качество по акту. Проблемы — в таймлайн поставщика и претензию'],
- ['oplata','Оплата','Оплата по счёту. Закрывающие документы в дело (хранение 3 года, п. 47 Положения № 168)'],
- ['done','Завершено','Архив. Данные уходят в отчёт ИС «Тендеры» — до 15-го числа после квартала']
+ ['new','Создание закупки','Тема, инициатор, заказчик, возможные поставщики, товарные позиции (хоть 20 штук — добавление и удаление): количество, ориент. стоимость, сроки; состав — «по спецификации» или «комплект»'],
+ ['zayavka','Заявка и служебка','Заявка на закупку + служебная записка инициатора (форма 1) — можно распечатать. Распоряжение о проведении закупки (форма 2)'],
+ ['metod','Способ и обоснование','Рекомендация способа по пункту: п. 21 прил. 1 (≤100 БВ) · п. 29 прил. 1 (≤1000 БВ, для собственного производства) · п. 9 прил. 4 · конкурентная процедура. Отклонение от рекомендации — только с письменным обоснованием и ссылкой на норму'],
+ ['sups','Поставщики','Добавьте поставщиков из базы или создайте новых. Проверка: ЕГР + реестр недобросовестных МАРТ. Можно перейти дальше и вернуть карточку сюда, когда появятся ещё поставщики'],
+ ['kp','Рассылка запроса','Запрос КП минимум 3 поставщикам (форма 5). Фиксируйте дату отправки каждому'],
+ ['sravn','Ожидание и сравнение КП','Отметки по каждому: КП получено / отказ / нет в наличии. Сравнительная таблица цен, сроков, условий оплаты — приложение к служебке'],
+ ['dogovor','Договор и оплата','Договор + спецификация, тип договора (разовый / долгосрочный). Контроль лимита суммы. Оплата по счёту. Запись в журнал закупок'],
+ ['postavka','Поставка и закрытие','Приёмка по акту: количество и качество. ПОДТВЕРДИТЕ получение товара и страну производства — иначе карточка останется с напоминанием. Больше ничего ждать не нужно'],
+ ['done','Завершено','Архив. Данные для отчёта ИС «Тендеры» — до 15-го числа после квартала. Закрытую карточку можно вернуть в работу перетаскиванием']
 ];
+function migrateDealStages(){
+  var map={sogl:'metod',oplata:'dogovor'};
+  var n=0;
+  deals.forEach(function(d){
+    if(map[d.stage]){d.stage=map[d.stage];n++;}
+    if(!STAGES.some(function(s){return s[0]===d.stage}))d.stage='new';
+  });
+  if(n){save();logVer('Воронка обновлена до 9 этапов: со старых этапов («Согласование» → «Способ и обоснование», «Оплата» → «Договор и оплата») перенесено сделок: '+n);}
+}
 var DOCS=['Служебка инициатора','КП ≥ 3 поставщиков','Сравнение КП (таблица)','Протокол / согласование','Договор + спецификация','Счёт','Акт приёмки'];
 var CHECKS=[
  ['Действующее юрлицо, УНП, ОКВЭД','egr.gov.by','скриншот/выписка'],
@@ -969,9 +1033,9 @@ function supLink(s){return '<a href="#" onclick="openSupByName(\''+esc(s.name).r
 
 /* ================= НАВИГАЦИЯ ================= */
 var GROUPS=[
- {id:'zak',name:'ЗАКУПКА ОТ А ДО Я',items:[['dash','Рабочий стол'],['flow','Цикл закупки (главный)'],['wiz','Подбор процедуры'],['pipe','Реестр сделок'],['log','Журнал и отчёты'],['case','Дело закупки']]},
+ {id:'zak',name:'ЗАКУПКА ОТ А ДО Я',items:[['dash','Рабочий стол'],['flow','Цикл закупки (главный)'],['pipe','Реестр сделок'],['sum','Контроль сумм'],['log','Журнал и отчёты'],['case','Дело закупки']]},
  {id:'crm',name:'ПОСТАВЩИКИ',items:[['sup','База поставщиков'],['goods','Товары и цены'],['tasks','Задачи']]},
- {id:'hlp',name:'ИНСТРУМЕНТЫ',items:[['map','Карта решений'],['calc','Оценка КП'],['tz','Конструктор ТЗ'],['cls','Классификатор'],['doc','Комиссия и документы'],['forms','📄 Формы документов']]},
+ {id:'hlp',name:'ИНСТРУМЕНТЫ',items:[['map','Карта решений'],['doc','Комиссия и документы'],['forms','📄 Формы документов']]},
  {id:'norm',name:'НОРМЫ',items:[['kb','База знаний'],['refs','Справочники порогов'],['chk','Чек-лист дела'],['lib','Библиотека ОКРБ']]},
  {id:'sys',name:'СИСТЕМА',items:[['data','Данные и бэкап']]}
 ];
@@ -984,9 +1048,10 @@ function buildSubnav(){
   var g=GROUPS.filter(function(x){return x.id===curGroup})[0];
   document.getElementById('subnav').innerHTML=g.items.map(function(it){return '<button data-t="'+it[0]+'"'+(it[0]===curTab?' class="on"':'')+'>'+it[1]+'</button>'}).join('');
 }
+var ALLTABS=['dash','flow','wiz','pipe','sum','log','case','sup','goods','tasks','map','calc','tz','cls','doc','forms','kb','refs','chk','lib','data'];
 function showTab(t){
   curTab=t;
-  GROUPS.forEach(function(g){g.items.forEach(function(it){var el=document.getElementById(it[0]);if(el)el.style.display=(it[0]===t?'':'none')})});
+  ALLTABS.forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=(id===t?'':'none')});
   buildSubnav();
   if(t==='data'){renderVer();try{renderOrgForm()}catch(e){}}
   if(t==='lib')renderLib();
@@ -997,6 +1062,7 @@ function showTab(t){
   if(t==='case'){try{document.getElementById('caseListCard').style.display='';document.getElementById('caseEditCard').style.display='none';renderCaseList()}catch(e){console.log('case',e)}}
   if(t==='forms'){try{renderFormsCard()}catch(e){console.log('forms',e)}}
   if(t==='goods'){try{renderGoods()}catch(e){console.log('goods',e)}}
+  if(t==='sum'){try{renderSumCtrl()}catch(e){console.log('sum',e)}}
 }
 document.getElementById('nav').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b)return;
@@ -1075,6 +1141,9 @@ function renderDash(){
   deals.filter(function(d){return d.stage!=='done'&&d.deadline&&d.deadline<today()}).forEach(function(d){
     flags.push('<span class="tag y">⏰ просрочен дедлайн: '+esc(d.subj.slice(0,40))+' ('+d.deadline+')</span>');
   });
+  deals.filter(function(d){return (d.stage==='postavka'||d.stage==='done')&&(!d.got||!d.country)}).forEach(function(d){
+    flags.push('<span class="tag y">📦 '+esc(d.subj.slice(0,40))+' — требует подтверждения получения товара и страны производства</span>');
+  });
   if(unv.length)flags.push('<span class="tag y">⚠ '+unv.length+' поставщиков не проверены (ЕГР/МАРТ)</span>');
   document.getElementById('dashAttention').innerHTML=flags.length?flags.join('<br>'):'<div class="small">Всё в порядке ✔</div>';
 }
@@ -1097,37 +1166,159 @@ function renderPipe(){
       +list.map(function(d){
         var s=supByName(d.sup);
         var over=d.deadline&&d.deadline<today()&&d.stage!=='done';
+        var soon=!over&&d.deadline&&d.stage!=='done'&&daysLeft(d.deadline)<=3&&daysLeft(d.deadline)>=0;
+        var needC=(d.stage==='postavka'||d.stage==='done')&&(!d.got||!d.country);
         return '<div class="pcard'+(over?' overdue':'')+'" draggable="true" ondragstart="dragDeal(event,\''+d.id+'\')" onclick="dealView(\''+d.id+'\')">'
           +'<div class="t">'+esc(d.subj)+'</div>'
           +'<div class="s">'+supDot(s)+dispName(supByName(d.sup))+'</div>'
-          +(d.point?'<div class="s"><span class="tag g">'+esc(d.point)+'</span></div>':'')
+          +pointTagHtml(d)
           +'<div class="amt">'+fmt(d.sum)+'</div>'
+          +((d.items&&d.items.length)?'<div class="s">📦 позиций: '+d.items.length+(d.spec?' · '+esc(d.spec):'')+'</div>':(d.spec?'<div class="s">📦 '+esc(d.spec)+'</div>':''))
+          +respTagHtml(d.resp)
           +pointWarnEl(d)
-          +(d.deadline?'<div class="s">⏱ '+d.deadline+(over?' ⚠':'')+'</div>':'')
+          +(d.dogType?'<div class="s">📄 '+esc(d.dogType)+'</div>':'')
+          +(d.deadline?'<div class="s">⏱ '+d.deadline+(over?' <span class="tag r">просрочено</span>':(soon?' <span class="tag y">осталось '+daysLeft(d.deadline)+' дн.</span>':''))+'</div>':'')
+          +(needC?'<div class="s"><span class="tag r">⚠ подтвердите получение товара и страну производства</span></div>':'')
+          +(d.inRep?'<div class="s"><span class="tag b">в отчёт ИС «Тендеры»</span></div>':'')
+          +(d.doneDate?'<div class="s">✔ завершена: '+d.doneDate+'</div>':'')
           +'</div>';
       }).join('')+'</div></div>';
   }).join('');
+}
+function daysLeft(dl){return Math.ceil((new Date(dl+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000)}
+function pointTagHtml(d){
+  if(!d.point)return '';
+  var cls='g',extra='';
+  if(d.point==='п. 29 прил. 1'){cls='b';if(+d.sum>0.8*L29&&+d.sum<=L29)extra=' <span class="tag y">близко к лимиту 45 000</span>';}
+  if(d.point==='п. 21 прил. 1'&&+d.sum>0.8*L21&&+d.sum<=L21)extra=' <span class="tag y">близко к лимиту 4 500</span>';
+  if(d.point==='п. 9 прил. 4')cls='y';
+  return '<div class="s"><span class="tag '+cls+'">'+esc(d.point)+'</span>'+extra+'</div>';
 }
 function dragDeal(ev,id){ev.dataTransfer.setData('text/plain',id)}
 function dropDeal(ev,col){
   ev.preventDefault();col.classList.remove('dragover');
   var id=ev.dataTransfer.getData('text/plain');
   var d=deals.filter(function(x){return x.id===id})[0]; if(!d)return;
-  d.stage=col.dataset.stage; save(); renderPipe(); renderDash();
+  var to=col.dataset.stage;
+  if(d.stage===to){renderPipe();return;}
+  d.stage=to;
+  applyStageEffects(d,to);
+  save(); renderPipe(); renderDash();
   var st=STAGES.filter(function(x){return x[0]===d.stage})[0];
   logVer('Сделка «'+d.subj.slice(0,50)+'» → этап «'+st[1]+'»');
+  toastInfo('Сделка переведена на этап «'+st[1]+'». '+st[2]);
+}
+/* Смена этапа меняет СУТЬ сделки: история переходов, дата завершения, таймлайн поставщика */
+function stageName(k){var s=STAGES.filter(function(x){return x[0]===k})[0];return s?s[1]:k}
+function applyStageEffects(d,to){
+  var from=d.__lastStage||'';
+  d.stageHist=d.stageHist||[];
+  d.stageHist.push({d:today(),to:to});
+  if(d.stageHist.length>30)d.stageHist=d.stageHist.slice(-30);
+  if(to==='done'&&!d.doneDate)d.doneDate=today();
+  if(to!=='done'&&d.doneDate)delete d.doneDate;
+  var s=supByName(d.sup);
+  if(s){s.inter=s.inter||[];s.inter.push({d:today(),type:'заметка',text:'Сделка «'+String(d.subj||'').slice(0,60)+'»: этап → «'+stageName(to)+'»'});}
+}
+function toastInfo(msg){
+  var t=document.getElementById('okToast');
+  if(!t){t=document.createElement('div');t.id='okToast';
+    t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#2e7d32;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;z-index:9999;max-width:92%;box-shadow:0 4px 14px rgba(0,0,0,.3);text-align:center';
+    document.body.appendChild(t);}
+  t.textContent=msg;t.style.display='block';
+  clearTimeout(window.__okToastT);window.__okToastT=setTimeout(function(){t.style.display='none'},6000);
+}
+var RESP_NAMES={wait:'ожидаем ответ / КП запрошено',kp:'КП получено',noreal:'не можем предложить / нет в наличии',otkaz:'отказ / не участвует'};
+function respTagHtml(resp){
+  if(!resp)return '';
+  if(resp==='noreal'||resp==='otkaz')return '<div class="s"><span class="tag r">✖ '+esc(RESP_NAMES[resp])+'</span></div>';
+  if(resp==='kp')return '<div class="s"><span class="tag g">✉ КП получено</span></div>';
+  return '<div class="s"><span class="tag y">⏳ '+esc(RESP_NAMES[resp]||resp)+'</span></div>';
+}
+
+
+/* ================= КОНТРОЛЬ СУММ: договоры · организации · пункты (v4.6) ================= */
+function sumDealYear(d){var dt=d.date||d.doneDate||'';return String(dt||'').slice(0,4)}
+function sumFiltered(){
+  var y=document.getElementById('sumYear').value, fp=document.getElementById('sumPoint').value;
+  return deals.filter(function(d){
+    if(y&&sumDealYear(d)!==y)return false;
+    if(fp&&(d.point||'— не указан —')!==fp)return false;
+    return true;
+  });
+}
+function sumOverLim(d){return (d.point==='п. 29 прил. 1'&&+d.sum>L29)||(d.point==='п. 21 прил. 1'&&+d.sum>L21)}
+function renderSumCtrl(){
+  var ySel=document.getElementById('sumYear');
+  var curY=ySel.value;
+  var years={};deals.forEach(function(d){var yy=sumDealYear(d);if(yy)years[yy]=1});
+  years[String(new Date().getFullYear())]=1;
+  ySel.innerHTML='<option value="">все годы</option>'+Object.keys(years).sort().reverse().map(function(yy){return '<option'+(yy===curY?' selected':'')+'>'+yy+'</option>'}).join('');
+  var pSel=document.getElementById('sumPoint');
+  var curP=pSel.value;
+  var pts={};deals.forEach(function(d){pts[d.point||'— не указан —']=1});
+  pSel.innerHTML='<option value="">все</option>'+Object.keys(pts).sort().map(function(p){return '<option'+(p===curP?' selected':'')+'>'+esc(p)+'</option>'}).join('');
+  var y=ySel.value;
+  var list=sumFiltered();
+  var total=list.reduce(function(a,d){return a+(+d.sum||0)},0);
+  var over=list.filter(sumOverLim);
+  var used9=deals.filter(function(d){return d.point==='п. 9 прил. 4'&&(!y||sumDealYear(d)===y)}).reduce(function(a,d){return a+(+d.sum||0)},0);
+  document.getElementById('sumTotals').innerHTML='<div class="result">Сделок: <b>'+list.length+'</b> · на сумму <b>'+fmt(total)+'</b>'+(y?' за '+y+' год':' за всё время')
+    +(over.length?' · <span class="tag r">⚠ сделок сверх лимита пункта: '+over.length+'</span>':' · лимиты сделок соблюдены ✔')
+    +(used9>L9Y&&y?' · <span class="tag r">⚠ п. 9 прил. 4: годовой лимит превышен ('+fmt(used9)+' / '+fmt(L9Y)+')</span>':'')+'</div>';
+  /* по пунктам */
+  var byP={};list.forEach(function(d){var k=d.point||'— не указан —';var o=byP[k]=byP[k]||{n:0,s:0,mx:0};o.n++;o.s+=(+d.sum||0);o.mx=Math.max(o.mx,+d.sum||0)});
+  var ph='<table><tr><th>Пункт (основание)</th><th>Сделок</th><th>Сумма</th><th>Лимит</th><th>Контроль</th></tr>';
+  Object.keys(byP).sort().forEach(function(k){
+    var o=byP[k],lim='',ctrl='';
+    if(k==='п. 9 прил. 4'){lim=fmt(L9Y)+' в год';ctrl=y?(o.s>L9Y?'<span class="tag r">⚠ превышен на '+fmt(o.s-L9Y)+'</span>':'остаток '+fmt(L9Y-o.s)):'выберите год для контроля годового лимита';}
+    else if(k==='п. 29 прил. 1'){lim=fmt(L29)+' на сделку';ctrl=o.mx>L29?'<span class="tag r">⚠ макс. сделка '+fmt(o.mx)+'</span>':'макс. сделка '+fmt(o.mx)+' ✔';}
+    else if(k==='п. 21 прил. 1'){lim=fmt(L21)+' на сделку';ctrl=o.mx>L21?'<span class="tag r">⚠ макс. сделка '+fmt(o.mx)+'</span>':'макс. сделка '+fmt(o.mx)+' ✔';}
+    else{lim='—';ctrl='без лимита';}
+    ph+='<tr><td><span class="tag g">'+esc(k)+'</span></td><td>'+o.n+'</td><td><b>'+fmt(o.s)+'</b></td><td class="small">'+lim+'</td><td class="small">'+ctrl+'</td></tr>';
+  });
+  document.getElementById('sumByPoint').innerHTML=ph+'</table>';
+  /* по организациям */
+  var byO={};list.forEach(function(d){var k=d.sup||'—';var o=byO[k]=byO[k]||{n:0,s:0};o.n++;o.s+=(+d.sum||0)});
+  var oKeys=Object.keys(byO).sort(function(a,b){return byO[b].s-byO[a].s});
+  var oh='<table><tr><th>Организация (поставщик)</th><th>УНП</th><th>Сделок</th><th>Сумма'+(y?' '+y:'')+'</th><th></th></tr>';
+  oh+=oKeys.map(function(k){
+    var sp=supByName(k);
+    return '<tr><td>'+supDot(sp)+'<a href="#" onclick="openSupByName(\''+esc(k).replace(/'/g,"\\'")+'\');return false">'+esc(k)+'</a></td>'
+    +'<td class="small">'+esc(sp&&sp.unp||'—')+'</td><td>'+byO[k].n+'</td><td><b>'+fmt(byO[k].s)+'</b></td>'
+    +'<td><button class="btn sm ghost" onclick="openSupByName(\''+esc(k).replace(/'/g,"\\'")+'\')">👁</button></td></tr>';
+  }).join('');
+  document.getElementById('sumByOrg').innerHTML=oh+'</table>';
+  /* по договорам */
+  var dh='<table><tr><th>Дата</th><th>Поставщик</th><th>Предмет</th><th>Пункт</th><th>Этап</th><th>Сумма</th></tr>';
+  dh+=list.slice().sort(function(a,b){return (a.date||'')<(b.date||'')?1:-1}).map(function(d){
+    return '<tr'+(sumOverLim(d)?' style="background:#fdecea"':'')+'><td style="white-space:nowrap">'+esc(d.date||'—')+'</td>'
+    +'<td>'+esc(d.sup||'—')+'</td>'
+    +'<td><a href="#" onclick="openDealById(\''+d.id+'\');return false">'+esc(String(d.subj||'').slice(0,70))+'</a>'+(d.items&&d.items.length?' <span class="small">(позиций: '+d.items.length+')</span>':'')+'</td>'
+    +'<td class="small">'+esc(d.point||'—')+'</td><td class="small">'+esc(stageName(d.stage))+'</td>'
+    +'<td><b>'+fmt(d.sum)+'</b>'+(sumOverLim(d)?' <span class="tag r">⚠</span>':'')+'</td></tr>';
+  }).join('');
+  document.getElementById('sumByDeal').innerHTML=dh+'</table>';
+}
+function sumCsv(){
+  var list=sumFiltered();
+  var rows=[['Дата','Поставщик','УНП','Предмет','Позиций','Пункт','Этап','Сумма руб.']];
+  list.forEach(function(d){var sp=supByName(d.sup||'');rows.push([d.date||'',d.sup||'',sp&&sp.unp||'',d.subj||'',(d.items||[]).length,d.point||'',stageName(d.stage),String(+d.sum||0).replace('.',',')])});
+  var csv='﻿'+rows.map(function(r){return r.map(csvCell).join(';')}).join('\r\n');
+  download('kontrol_summ_'+(document.getElementById('sumYear').value||'vse')+'.csv',csv,'text/csv;charset=utf-8');
 }
 
 
 /* ============ ДЕЙСТВИЯ ПО ЭТАПАМ РЕЕСТРА ============ */
 var STAGE_ACTS={
+  new:[['f1','Служебная записка о потребности (форма 1)']],
   zayavka:[['f1','Служебная записка о потребности (форма 1)'],['f2','Распоряжение о проведении закупки (форма 2)']],
+  metod:[['f4','Обоснование закупки из одного источника (форма 4)'],['f3','Решение о закупке без процедур (форма 3)'],['f7','Справка об экономической нецелесообразности (форма 7)']],
+  sups:[['sup','База поставщиков (добавить / создать)'],['chk','Чек-лист проверки']],
   kp:[['f5','Составить запрос о представлении КП (форма 5)'],['f9','Приглашение к участию в процедуре (форма 9)']],
   sravn:[['calc','Оценка и сравнение КП (инструмент)'],['f6','Справка по конъюнктуре рынка (форма 6)'],['f12','Протокол рассмотрения предложений (форма 12)']],
-  sogl:[['f4','Обоснование закупки из одного источника (форма 4)'],['f3','Решение о закупке без процедур (форма 3)'],['f7','Справка об экономической нецелесообразности (форма 7)']],
   dogovor:[['case','Дело закупки (пакет документов)'],['f16','Журнал учёта договоров (форма 16)']],
   postavka:[['f16','Журнал учёта договоров (форма 16)']],
-  oplata:[['f16','Журнал учёта договоров (форма 16)']],
   done:[['f15','Дело закупки: титульный лист и опись (форма 15)'],['f19','Карточка дела закупки (форма 19)']]
 };
 function stageAdd(st){
@@ -1160,9 +1351,11 @@ function closeStage(){var m=document.getElementById('stageModal');if(m)m.classLi
 function goForm(fid){go('forms');var sel=document.getElementById('formSel');if(sel)sel.value=fid;formShow(fid)}
 function dealMoveTo(id,st){
   var d=deals.filter(function(x){return x.id===id})[0]; if(!d)return;
-  d.stage=st; save(); renderPipe(); renderDash(); closeStage();
+  if(d.stage!==st){d.stage=st;applyStageEffects(d,st);}
+  save(); renderPipe(); renderDash(); closeStage();
   var s=STAGES.filter(function(x){return x[0]===st})[0];
   logVer('Сделка «'+d.subj.slice(0,50)+'» → этап «'+s[1]+'»');
+  toastInfo('Сделка переведена на этап «'+s[1]+'». '+s[2]);
 }
 
 /* ================= СДЕЛКИ: МОДАЛКА ================= */
@@ -1179,7 +1372,7 @@ function openDeal(i,presetStage){
     return '<label><input type="checkbox" id="doc'+i+'"> '+dc+'</label>';
   }).join('');
   document.getElementById('dId').value=i;
-  var d=i<0?{subj:'',sup:(sup[0]||{}).name,sum:'',point:'',stage:presetStage||'zayavka',date:today(),deadline:'',fio:'',note:'',docs:{}}:deals.filter(function(x){return x.id===deals[i].id})[0]||deals[i];
+  var d=i<0?{subj:'',sup:(sup[0]||{}).name,sum:'',point:'',stage:presetStage||'new',date:today(),deadline:'',fio:'',note:'',docs:{}}:deals.filter(function(x){return x.id===deals[i].id})[0]||deals[i];
   document.getElementById('dmNote').style.display=i<0?'':'none';
   if(i<0){document.getElementById('dmTitle').textContent='Новая сделка (вне цикла)';}
   else{
@@ -1188,6 +1381,16 @@ function openDeal(i,presetStage){
   }
   dSubj.value=d.subj||''; dSup.value=d.sup||''; dSum.value=d.sum||''; dPoint.value=d.point||'';
   dStage.value=d.stage||'zayavka'; dDate.value=d.date||today(); dDeadline.value=d.deadline||''; dFio.value=d.fio||''; dNote.value=d.note||'';
+  document.getElementById('dResp').value=d.resp||'';
+  document.getElementById('dDept').value=d.dept||'';
+  document.getElementById('dSupsCand').value=d.supsCand||'';
+  document.getElementById('dDogType').value=d.dogType||'';
+  document.getElementById('dSpec').value=d.spec||'';
+  document.getElementById('dCountry').value=d.country||'';
+  document.getElementById('dGot').checked=!!d.got;
+  document.getElementById('dInRep').checked=!!d.inRep;
+  window.__dItems=(d.items||[]).map(function(x){return {n:x.n||'',q:x.q||'',u:x.u||'шт.',p:x.p||''}});
+  dItemsRender();
   DOCS.forEach(function(dc,k){document.getElementById('doc'+k).checked=!!(d.docs&&d.docs[dc])});
   document.getElementById('dDelBtn').style.display=i<0?'none':'';
   pointWarn();
@@ -1206,15 +1409,44 @@ function dealView(id){
    +'<tr><td><b>Этап</b></td><td>'+esc(st)+'</td></tr>'
    +'<tr><td><b>Дата</b></td><td>'+esc(d.date||'—')+(d.deadline?' · срок: '+esc(d.deadline):'')+'</td></tr>'
    +'<tr><td><b>Ответственный</b></td><td>'+esc(d.fio||'—')+'</td></tr>'
+   +(d.dept?'<tr><td><b>Заказчик</b></td><td>'+esc(d.dept)+'</td></tr>':'')
+   +(d.dogType?'<tr><td><b>Тип договора</b></td><td>'+esc(d.dogType)+'</td></tr>':'')
+   +(d.spec?'<tr><td><b>Состав</b></td><td>'+esc(d.spec)+'</td></tr>':'')
+   +(d.supsCand?'<tr><td><b>Возможные поставщики</b></td><td class="small">'+esc(d.supsCand)+'</td></tr>':'')
+   +'<tr><td><b>Получение</b></td><td>'+(d.got?'✔ товар получен и принят по акту':'<span class="tag y">требует подтверждения получения</span>')+(d.country?' · страна производства: <b>'+esc(d.country)+'</b>':' · <span class="tag y">укажите страну производства</span>')+'</td></tr>'
+   +'<tr><td><b>Отчёт ИС «Тендеры»</b></td><td>'+(d.inRep?'✔ включить в отчёт':'—')+'</td></tr>'
    +(d.note?'<tr><td><b>Примечание</b></td><td class="small">'+esc(d.note)+'</td></tr>':'')
+   +(d.resp?'<tr><td><b>Ответ поставщика</b></td><td>'+respTagHtml(d.resp)+'</td></tr>':'')
    +'</table>'
+   +'<h3 style="margin-top:10px">Записи по сделке</h3><div id="dvHist">'+dealHistHtml(d)+'</div>'
+   +'<div style="display:flex;gap:6px;margin-top:6px"><input id="dvNote" placeholder="добавить запись: по поставщику, договору, оплате, поставке — распределится автоматически" style="flex:1"><button class="btn sm" onclick="dealQuickNote(\''+d.id+'\')">＋</button></div>'
+   +'<div style="margin-top:6px"><button class="btn sm ghost" onclick="openSupByName(\''+esc(d.sup||'').replace(/'/g,"\\'")+'\')">👁 Карточка поставщика (просмотр и редактирование)</button></div>'
+   +((d.items&&d.items.length)?'<h3 style="margin-top:10px">Товарные позиции ('+d.items.length+')</h3><table><tr><th>№</th><th>Наименование</th><th>Кол-во</th><th>Ед.</th><th>Цена</th><th>Сумма</th></tr>'
+     +d.items.map(function(x,xi){var sm=(+x.q||0)*(+x.p||0);return '<tr><td>'+(xi+1)+'</td><td>'+esc(x.n)+'</td><td>'+esc(x.q)+'</td><td>'+esc(x.u)+'</td><td>'+(x.p?fmt(x.p):'—')+'</td><td>'+(sm?fmt(sm):'—')+'</td></tr>'}).join('')+'</table>':'')
    +(cyc?'<div class="note" style="margin-top:8px">Сделка создана циклом закупки. Документы — во вкладке «Дела закупок», запись — в Журнале.</div>':'');
   document.getElementById('dvTitle').textContent='Сделка: '+String(d.subj||'').slice(0,60);
   document.getElementById('dvBody').innerHTML=h;
   document.getElementById('dvEdit').onclick=function(){document.getElementById('dealView').classList.remove('open');openDealById(id);};
+  document.getElementById('dvCase').onclick=function(){document.getElementById('dealView').classList.remove('open');openDealById(id);setTimeout(function(){try{caseFromDeal()}catch(e){console.log(e)}},60);};
   document.getElementById('dealView').classList.add('open');
 }
 function openDealById(id){var i=deals.findIndex(function(x){return x.id===id});if(i>=0)openDeal(i)}
+function dealHistHtml(d){
+  var h=d.hist||[];
+  if(!h.length)return '<div class="small">Записей пока нет. Добавьте — запись о поставщике, договоре, оплате или поставке продублируется в карточку поставщика автоматически.</div>';
+  return h.slice(0,20).map(function(x){return '<div class="flnote"><b>'+esc(x.d)+'</b> '+esc(x.t)+(x.toSup?' <span class="small">· → продублировано в карточку поставщика</span>':'')+'</div>'}).join('');
+}
+function dealQuickNote(id){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;
+  var el=document.getElementById('dvNote');var tx=(el.value||'').trim();if(!tx)return;
+  d.hist=d.hist||[];
+  var toSup=/поставщик|договор|оплат|счет|счёт|претенз|отгруз|поставк|\bкп\b/i.test(tx);
+  d.hist.unshift({d:today(),t:tx,toSup:toSup});
+  if(toSup&&d.sup){var s=supByName(d.sup);if(s){s.inter=s.inter||[];s.inter.push({d:today(),type:'заметка',text:'Сделка «'+String(d.subj||'').slice(0,50)+'»: '+tx});}}
+  save();el.value='';
+  document.getElementById('dvHist').innerHTML=dealHistHtml(d);
+  logVer('Запись по сделке «'+String(d.subj||'').slice(0,40)+'»'+(toSup?' (+ таймлайн поставщика)':''));
+}
 function pointWarn(){
   var v=+dSum.value||0, p=dPoint.value, w='';
   if(p==='п. 29 прил. 1'&&v>L29)w='⚠ Сумма превышает 1000 БВ (45 000 руб.) — закупка по п. 29 невозможна, меняйте пункт/разбивайте (по согласованию с юристом)!';
@@ -1226,11 +1458,49 @@ function saveDeal(){
   if(!dSubj.value.trim()){alert('Укажите предмет закупки');return}
   var i=document.getElementById('dId').value;
   var docs={};DOCS.forEach(function(dc,k){if(document.getElementById('doc'+k).checked)docs[dc]=1});
-  var obj={sup:dSup.value,subj:dSubj.value.trim(),sum:+dSum.value||0,point:dPoint.value,stage:dStage.value,date:dDate.value,deadline:dDeadline.value,fio:dFio.value.trim(),note:dNote.value.trim(),docs:docs};
-  if(i==='-1'||i<0){obj.id=uid('d');deals.unshift(obj);logVer('Создана сделка: '+obj.subj.slice(0,60)+' ('+fmt(obj.sum)+')');}
-  else{var d=deals[i];var oldStage=d.stage;Object.assign(d,obj);if(oldStage!==d.stage)logVer('Сделка «'+d.subj.slice(0,50)+'» → '+STAGES.filter(function(x){return x[0]===d.stage})[0][1]);}
+  var items=(window.__dItems||[]).filter(function(x){return (x.n||'').trim()});
+  var obj={sup:dSup.value,subj:dSubj.value.trim(),sum:+dSum.value||0,point:dPoint.value,stage:dStage.value,date:dDate.value,deadline:dDeadline.value,fio:dFio.value.trim(),note:dNote.value.trim(),resp:document.getElementById('dResp').value,items:items,docs:docs,
+    dept:document.getElementById('dDept').value.trim(),supsCand:document.getElementById('dSupsCand').value.trim(),dogType:document.getElementById('dDogType').value,spec:document.getElementById('dSpec').value,country:document.getElementById('dCountry').value.trim(),got:document.getElementById('dGot').checked,inRep:document.getElementById('dInRep').checked};
+  if(obj.got&&obj.sup){var _s=supByName(obj.sup);var _d0=(i==='-1'||i<0)?null:deals[i];if(_s&&(!_d0||!_d0.got)){_s.inter=_s.inter||[];_s.inter.push({d:today(),type:'заметка',text:'Товар по сделке «'+obj.subj.slice(0,50)+'» получен и принят по акту'+(obj.country?' ('+obj.country+')':'')});}}
+  if(i==='-1'||i<0){obj.id=uid('d');deals.unshift(obj);applyStageEffects(obj,obj.stage);logVer('Создана сделка: '+obj.subj.slice(0,60)+' ('+fmt(obj.sum)+')');}
+  else{var d=deals[i];var oldStage=d.stage;Object.assign(d,obj);if(oldStage!==d.stage){applyStageEffects(d,d.stage);logVer('Сделка «'+d.subj.slice(0,50)+'» → '+STAGES.filter(function(x){return x[0]===d.stage})[0][1]);}}
   save();closeModal('dealModal');renderPipe();renderDash();
 }
+/* ====== Товарные позиции сделки (несколько товаров, своё количество) ====== */
+function dItemsSum(){return (window.__dItems||[]).reduce(function(a,x){return a+((+x.q||0)*(+x.p||0))},0)}
+function dItemsRender(){
+  var A=window.__dItems||[];
+  var h='<tr><th style="width:34px">№</th><th>Наименование</th><th style="width:90px">Кол-во</th><th style="width:70px">Ед.</th><th style="width:110px">Цена, руб.</th><th style="width:110px">Сумма</th><th style="width:30px"></th></tr>';
+  if(!A.length)h+='<tr><td colspan="7" class="small">Позиций нет — добавьте кнопкой «+ позиция», если в закупке несколько товаров.</td></tr>';
+  h+=A.map(function(x,i){
+    var sm=(+x.q||0)*(+x.p||0);
+    return '<tr><td>'+(i+1)+'</td>'
+    +'<td><input list="dGoodsList" value="'+esc(x.n)+'" oninput="dItemCh('+i+',\'n\',this.value)"></td>'
+    +'<td><input type="number" step="any" min="0" value="'+esc(x.q)+'" oninput="dItemCh('+i+',\'q\',this.value)"></td>'
+    +'<td><input value="'+esc(x.u)+'" oninput="dItemCh('+i+',\'u\',this.value)"></td>'
+    +'<td><input type="number" step="0.01" min="0" value="'+esc(x.p)+'" oninput="dItemCh('+i+',\'p\',this.value)"></td>'
+    +'<td class="small" style="padding-top:10px" id="dSm'+i+'">'+(sm?fmt(sm):'—')+'</td>'
+    +'<td><button class="del" onclick="dItemDel('+i+')">✕</button></td></tr>';
+  }).join('');
+  document.getElementById('dItemsTbl').innerHTML=h;
+  var f=document.getElementById('dItemsFoot');if(f)f.innerHTML=dItemsFoot();
+  var ts=dItemsSum();
+  if(ts>0){document.getElementById('dSum').value=ts.toFixed(2);pointWarn();}
+}
+function dItemsFoot(){
+  var ts=dItemsSum();
+  return ts>0?'<div style="text-align:right;margin-top:4px"><b>Итого по позициям: '+fmt(ts)+'</b></div>':'';
+}
+function dItemCh(i,k,v){
+  window.__dItems[i][k]=v;
+  var x=window.__dItems[i],sm=(+x.q||0)*(+x.p||0);
+  var c=document.getElementById('dSm'+i);if(c)c.textContent=sm?fmt(sm):'—';
+  var f=document.getElementById('dItemsFoot');if(f)f.innerHTML=dItemsFoot();
+  var ts=dItemsSum();
+  if(ts>0){document.getElementById('dSum').value=ts.toFixed(2);pointWarn();}
+}
+function dItemAdd(){window.__dItems.push({n:'',q:'',u:'шт.',p:''});dItemsRender();}
+function dItemDel(i){window.__dItems.splice(i,1);dItemsRender();var ts=dItemsSum();if(ts>0){document.getElementById('dSum').value=ts.toFixed(2);pointWarn();}}
 function delDeal(){
   var i=+document.getElementById('dId').value;if(i<0)return;
   if(!confirm('Удалить сделку «'+deals[i].subj+'» ПОЛНОСТЬЮ из реестра?\n\nЕсли нужно просто убрать её из колонки «Сравнение КП» — нажмите «Отмена» и перетащите карточку в другую колонку (или смените стадию в карточке).'))return;
@@ -1240,8 +1510,49 @@ function delDeal(){
 /* ================= ПОСТАВЩИКИ: ТАБЛИЦА ================= */
 /* ====== ТОВАРЫ И ЦЕНЫ (история закупок из Excel) ====== */
 function goodsSave(){lsSet('crm2_goods',goods);}
-function gIdx(){if(!window._gIdx){window._gIdx={};goods.forEach(function(g){var k=normKey(g.s);(window._gIdx[k]=window._gIdx[k]||[]).push(g);});}return window._gIdx;}
+function supCoreKey(s){return normKey(s).replace(/^(оао|ооо|зао|оа|рупп|руп|гп|чтуп|чуп|туп|одо|куп|уп|ип|сп|пт)/,'');}
+/* Сопоставление «товар -> карточка поставщика»: точное совпадение, затем по ядру названия
+   (без орг. формы: «ГОМЕЛЬ ОАО ГОМСЕЛЬМАШ» -> карточка «ОАО ГОМСЕЛЬМАШ» и т.п.),
+   если карточки нет — создаём её автоматически, чтобы поставщик открывался и видел свои товары. */
+function goodsSupMap(){
+  if(window._gSupMap)return window._gSupMap;
+  var map={},nkCache={},coreCache={};
+  sup.forEach(function(s){nkCache[normKey(s.name)]=s.name;});
+  sup.forEach(function(s){var c=supCoreKey(s.name);if(c.length>=6&&!coreCache[c])coreCache[c]=s.name;});
+  var names=[...new Set(goods.map(function(g){return g.s||''}))];
+  var created=0;
+  names.forEach(function(nm){
+    var k=normKey(nm);if(!k)return;
+    if(nkCache[k]){map[k]=nkCache[k];return;}
+    var c=supCoreKey(nm);
+    if(c.length>=6&&coreCache[c]){map[k]=coreCache[c];return;}
+    var card={name:String(nm).trim(),group:'',status:'поставщик',email:[],phone:[],site:[],contact:'',unp:'',addr:'',check:'карточка создана автоматически из истории товаров '+today()+' — дополните реквизиты',verified:false,persons:[],inter:[]};
+    sup.push(card);nkCache[k]=card.name;if(c.length>=6&&!coreCache[c])coreCache[c]=card.name;
+    map[k]=card.name;created++;
+  });
+  if(created){save();logVer('Созданы карточки поставщиков из истории товаров: '+created+' шт. (были в Excel без карточки) — дополните реквизиты');}
+  window._gSupMap=map;
+  return map;
+}
+function gIdx(){if(!window._gIdx){window._gIdx={};var m=goodsSupMap();goods.forEach(function(g){var k=normKey(m[normKey(g.s)]||g.s);(window._gIdx[k]=window._gIdx[k]||[]).push(g);});}return window._gIdx;}
 function supGoods(nm){return gIdx()[normKey(nm||'')]||[];}
+function supCleanup(){
+  goodsSupMap();
+  var junk=sup.filter(function(s){
+    if(s.group||s.unp||s.contact)return false;
+    if((s.phone||[]).length||(s.email||[]).length||(s.site||[]).length)return false;
+    if(supGoods(s.name).length)return false;
+    if(deals.some(function(d){return d.sup===s.name}))return false;
+    return true;
+  });
+  if(!junk.length){alert('Пустых карточек без реквизитов, товаров и сделок не найдено.');return;}
+  if(!confirm('Найдено пустых карточек: '+junk.length+' — без реквизитов, товаров и сделок (обычно это служебные строки выгрузки Excel).\n\nУдалить их? Вернуть можно только восстановлением из резервной копии.'))return;
+  var names={};junk.forEach(function(s){names[s.name]=1});
+  sup=sup.filter(function(s){return !names[s.name]});
+  window._gIdx=null;window._gSupMap=null;
+  save();logVer('Очищена база поставщиков: удалено пустых карточек '+junk.length);renderSupTable();renderDash();
+  alert('Удалено пустых карточек: '+junk.length+'. Осталось поставщиков в базе: '+sup.length);
+}
 function supInReport(nm){return supGoods(nm).some(function(g){return g.r;});}
 function goodsNames(){return [...new Set(goods.map(function(g){return g.n}))].sort();}
 function supGoodsMatched(nm,q){
@@ -1290,7 +1601,7 @@ function renderGoods(){
   if(!full)el.innerHTML+='<tr><td colspan="7" class="small">Ничего не найдено</td></tr>';
 }
 function gTglRep(i){goods[i].r=goods[i].r?0:1;goodsSave();renderGoods();}
-function openSupByName2(n){var i=sup.findIndex(function(s){return normKey(s.name)===normKey(n)});if(i>=0)openSup(i);else alert('В базе поставщиков нет: '+n+'\n\nДобавьте через «+ Поставщик» — история товаров подтянется по названию автоматически.');}
+function openSupByName2(n){var m=goodsSupMap();var nm=m[normKey(n)]||n;var i=sup.findIndex(function(s){return normKey(s.name)===normKey(nm)});if(i>=0)openSup(i);else alert('В базе поставщиков нет: '+n);}
 function dFillPrice(){
   var v=(document.getElementById('dSubj').value||'').trim();
   var hint=document.getElementById('dPriceHint');if(!hint)return;
@@ -1378,6 +1689,7 @@ function supEditSave(){
   document.getElementById('smName').textContent=sp.name+((sp.site&&sp.site.length)?' · '+sp.site[0]:'');
   smCur.tab='prof';smTab('prof');
   try{renderSupTable()}catch(e){}
+  try{if(curTab==='flow')renderFlow()}catch(e){}
   logVer((_wasNew?'Добавлен':'Обновлён')+' поставщик: '+nm);
 }
 function supEditCancel(){
@@ -1552,9 +1864,17 @@ function saveEdit(){
   var obj={name:eName.value.trim(),group:eGroup.value.trim()||'Прочее',status:eStatus.value,
     site:splitCsv(eSite.value),email:splitCsv(eEmail.value),phone:splitCsv(ePhone.value),
     contact:eContact.value.trim(),check:eCheck.value.trim(),verified:eVerified.checked,unp:eUnp.value.trim(),addr:eAddr.value.trim()};
-  if(i<0){obj.n=Math.max(0,...sup.map(s=>s.n||0))+1;obj.persons=[];obj.inter=[];sup.push(obj);logVer('Добавлен поставщик: '+obj.name);}
+  var isNew=(i<0);
+  if(isNew){obj.n=Math.max(0,...sup.map(s=>s.n||0))+1;obj.persons=[];obj.inter=[];sup.push(obj);logVer('Добавлен поставщик: '+obj.name);}
   else{obj.n=sup[i].n;obj.persons=sup[i].persons||[];obj.inter=sup[i].inter||[];sup[i]=Object.assign({},sup[i],obj);logVer('Изменены реквизиты: '+obj.name);}
   save();closeModal('editModal');renderSupTable();renderDash();
+  /* v4.6: если поставщик добавлен из шага 4 цикла — сразу отмечаем его для запроса КП и обновляем список */
+  try{
+    if(typeof CYC!=='undefined'&&CYC&&(curTab==='flow')){
+      if(isNew&&(CYC.step===4||!CYC.step)){CYC.sups=CYC.sups||[];if(CYC.sups.indexOf(obj.name)<0)CYC.sups.push(obj.name);cycSave();toastInfo('Поставщик «'+obj.name+'» добавлен и отмечен для запроса КП.');}
+      renderFlow();
+    }
+  }catch(e){console.log('flow-refresh',e)}
 }
 function delSupplier(){
   var i=+eId.value;if(i<0)return;
@@ -1693,8 +2013,10 @@ function restoreAll(inp){
       var _jobs=[];
       if(d.reg){var _rg=Object.assign({},d.reg); if(_rg.data){_jobs.push(idbPut('reg',_rg.data)); _rg.sz=Math.round(_rg.data.length*3/4/1024); delete _rg.data;} lsSet('crm2_reg',_rg);}
       if(d.docs){var _ds=d.docs.map(function(x,k){var y=Object.assign({},x); y.id=y.id||('doc'+Date.now()+'_'+k); if(y.data){_jobs.push(idbPut(y.id,y.data)); y.sz=Math.round(y.data.length*3/4/1024); delete y.data;} return y;}); lsSet('crm2_docs',_ds);}
-      if(d.goods){goods=d.goods;lsSet('crm2_goods',goods);window._gIdx=null;}
+      if(d.goods){goods=d.goods;lsSet('crm2_goods',goods);window._gIdx=null;window._gSupMap=null;}
       save();
+      try{migrateDealStages()}catch(e){console.log('stages-migrate',e)}
+      try{window._gIdx=null;window._gSupMap=null;goodsSupMap()}catch(e){console.log('sup-reconcile',e)}
       logVer('Данные восстановлены из резервной копии');
       try{renderLog()}catch(e){}
       try{renderCaseList()}catch(e){}
@@ -1706,8 +2028,9 @@ function restoreAll(inp){
   inp.value='';
 }
 function renderVer(){
-  document.getElementById('verLog').innerHTML='<table><tr><th>Дата</th><th>Кто</th><th>Что сверено / сделано</th></tr>'
-   +verlog.map(function(v){return '<tr><td style="white-space:nowrap">'+esc(v.d)+'</td><td>'+esc(v.who)+'</td><td>'+esc(v.what)+'</td></tr>'}).join('')+'</table>';
+  var V=getVerlog();
+  document.getElementById('verLog').innerHTML='<div style="margin-bottom:8px"><button class="btn ghost sm" onclick="addVerlog()">+ Отметить сверку по Эталону</button> <span class="small">Журнал единый: сюда пишутся все сверки норм, загрузки документов и действия системы.</span></div><table><tr><th>Дата</th><th>Кто</th><th>Что сверено / сделано</th></tr>'
+   +V.map(function(v){return '<tr><td style="white-space:nowrap">'+esc(v.d)+'</td><td>'+esc(v.who||v.s||'')+'</td><td>'+esc(v.what||v.n||'')+'</td></tr>'}).join('')+'</table>';
 }
 
 /* ================= СЕРВИСНЫЕ ================= */
@@ -1776,13 +2099,15 @@ function regSearch(){
   if(!hits.length){out.innerHTML='<div class="small">Ничего не найдено.</div>';return;}
   var rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
   window._docHits=hits.map(function(x){return x.copy;});
-  out.innerHTML='<div class="small" style="margin-bottom:4px">Найдено фрагментов: '+hits.length+(hits.length===12?' (показаны первые 12)':'')+' — каждый показан с начала пункта, копируется пункт целиком:</div>'
+  window._docHitsVis=hits.map(function(x){return x.vis;});
+  window._docLastQ=q;
+  out.innerHTML='<div class="small" style="margin-bottom:4px">Найдено фрагментов: '+hits.length+(hits.length===12?' (показаны первые 12)':'')+' — фрагмент можно развернуть до полного пункта, копируется пункт целиком:</div>'
    +hits.map(function(x,i){
      return '<div style="font-size:12.5px;border-left:3px solid var(--acc);padding:5px 10px;margin:6px 0;background:#f7f9f8;line-height:1.45">'
       +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
       +(x.label?'<span style="flex:0 0 auto;background:#dcebe2;color:#2f5d50;border-radius:4px;padding:1px 8px;font-size:11.5px;font-weight:700">'+esc(x.label)+'</span>':'<span></span>')
-      +'<button class="btn sm ghost" style="flex:0 0 auto" onclick="docCopy('+i+')">📋 Копировать пункт</button></div>'
-      +esc(x.vis).replace(rx,'<mark>$1</mark>')+'</div>'}).join('');
+      +'<span style="flex:0 0 auto;white-space:nowrap"><button class="btn sm ghost" onclick="docExpand('+i+',this)">▾ Пункт целиком</button> <button class="btn sm ghost" onclick="docCopy('+i+')">📋 Копировать пункт</button></span></div>'
+      +'<div id="docHit'+i+'">'+esc(x.vis).replace(rx,'<mark>$1</mark>')+'</div></div>'}).join('');
 }
 function regOpen(){idbGet('reg').then(function(b64){var bl=b64blob(b64); if(!bl){alert('Файл Порядка не загружен. Восстановите бэкап или загрузите PDF.');return;} window.open(URL.createObjectURL(bl),'_blank');});}
 function regDl(){idbGet('reg').then(function(b64){var bl=b64blob(b64); if(!bl){alert('Файл Порядка не загружен');return;} var r=lsGet('crm2_reg',{}); var a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=r.name||'poryadok_zakupok.pdf'; a.click();});}
@@ -1885,7 +2210,7 @@ function punctHits(text,q,limit){
     var end=i+1;
     for(var f=i+1;f<paras.length&&f<=i+60;f++){if(numOf(paras[f])!==null)break;end=f+1;}
     var copy=paras.slice(j,end).join('\n').replace(/[ \t]+/g,' ').trim();
-    if(copy.length>2500)copy=copy.slice(0,2500)+'…';
+    if(copy.length>12000)copy=copy.slice(0,12000)+'…';
     var full=paras.slice(j,i+1).join(' ').replace(/\s+/g,' ').trim();
     var rel=full.toLowerCase().indexOf(q);
     var vis;
@@ -1941,6 +2266,8 @@ function docSearch(){
     if(hits.length){groups.push({src:s,hits:hits});all=all.concat(hits);}
   });
   window._docHits=all.map(function(x){return x.copy;});
+  window._docHitsVis=all.map(function(x){return x.vis;});
+  window._docLastQ=q;
   var active=srcs.filter(function(s){return window._docSel[s.key]!==false;});
   var empty=active.filter(function(s){return !groups.some(function(g){return g.src.key===s.key;});});
   var emptyHtml=empty.map(function(s){
@@ -1955,9 +2282,23 @@ function docSearch(){
        return '<div style="font-size:12.5px;border-left:3px solid var(--acc);padding:5px 10px;margin:6px 0;background:#f7f9f8;line-height:1.45">'
         +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
         +(x.label?'<span style="flex:0 0 auto;background:#dcebe2;color:#2f5d50;border-radius:4px;padding:1px 8px;font-size:11.5px;font-weight:700">'+esc(x.label)+'</span>':'<span></span>')
-        +'<button class="btn sm ghost" style="flex:0 0 auto" onclick="docCopy('+i+')">📋 Копировать пункт</button></div>'
-        +esc(x.vis).replace(rx,'<mark>$1</mark>')+'</div>';}).join('');
+        +'<span style="flex:0 0 auto;white-space:nowrap"><button class="btn sm ghost" onclick="docExpand('+i+',this)">▾ Пункт целиком</button> <button class="btn sm ghost" onclick="docCopy('+i+')">📋 Копировать пункт</button></span></div>'
+        +'<div id="docHit'+i+'">'+esc(x.vis).replace(rx,'<mark>$1</mark>')+'</div></div>';}).join('');
    }).join('')+emptyHtml;
+}
+function docExpand(i,btn){
+  var box=document.getElementById('docHit'+i);if(!box)return;
+  var full=(window._docHits||[])[i]||'';
+  var vis=(window._docHitsVis||[])[i]||'';
+  var q=window._docLastQ||'';
+  var rx=q?new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'):null;
+  if(btn.dataset.open==='1'){
+    box.innerHTML=rx?esc(vis).replace(rx,'<mark>$1</mark>'):esc(vis);
+    btn.dataset.open='';btn.textContent='▾ Пункт целиком';
+  }else{
+    box.innerHTML=(rx?esc(full).replace(rx,'<mark>$1</mark>'):esc(full)).replace(/\n/g,'<br>');
+    btn.dataset.open='1';btn.textContent='▴ Свернуть';
+  }
 }
 function docCopy(i){
   var t=(window._docHits||[])[i]; if(!t)return;
@@ -2623,12 +2964,7 @@ function getVerlog(){ var _v=lsGet(LS.ver,null); if(_v&&_v.length) return _v; re
   { d: '17.09.2026', n: 'ПП № 355 от 10.07.2026 внесено в базу', s: 'jurist.by, ilex.by (до сверки по Эталону)' },
   { d: '17.09.2026', n: 'Сроки ст. 23 419-З (ЗЦП 5 раб. дней, аукцион/конкурс — календ.)', s: 'ilex.by, jurk.by' }
 ]); }
-function renderVerlog(){
-  var V=getVerlog(), h='<table><tr><th>Дата</th><th>Что сверено</th><th>Кто / источник</th></tr>';
-  for (var i=0;i<V.length;i++) h+='<tr><td>'+esc(V[i].d)+'</td><td>'+esc(V[i].what||V[i].n||'')+'</td><td class="small">'+esc(V[i].who||V[i].s||'')+'</td></tr>';
-  h+='</table><button class="btn ghost sm" onclick="addVerlog()">+ Отметить сверку по Эталону</button>';
-  $('verlogList').innerHTML=h;
-}
+function renderVerlog(){try{renderVer()}catch(e){}}
 function addVerlog(){
   var n = prompt('Какую норму/документ сверили с Эталоном?');
   if (!n) return;
@@ -3446,7 +3782,7 @@ function renderCaseList(){
      +'<td>'+(win?'<span class="tag g">★ '+esc(win.sup)+'</span><div class="small">'+fmt(win.sum)+'</div>':'<span class="tag y">не выбран</span>')+'</td>'
      +'<td>'+(win?fmt(win.sum):'—')+(over?' <span class="tag r">⚠ лимит</span>':'')+'</td>'
      +'<td>'+docsOk+' / '+CASE_DOCS.length+'</td>'
-     +'<td><button class="del" onclick="delCaseAt('+x.i+')">✕</button></td></tr>';
+     +'<td style="white-space:nowrap"><button class="btn sm ghost" title="Открыть карточку дела для редактирования" onclick="openCase('+x.i+')">✎</button> <button class="del" title="Удалить дело" onclick="delCaseAt('+x.i+')">✕</button></td></tr>';
   }).join('')+'</table>';
   document.getElementById('caseTbl').innerHTML=html;
 }
@@ -3806,6 +4142,10 @@ function flNav(prev){
   var st=CYC.step||1;
   if(st>1&&prev)return CYC.step=st-1,cycSave(),renderFlow();
   if(st===1){
+    var _its=(CYC.items||[]).filter(function(x){return (x.n||'').trim()});
+    CYC.items=_its;
+    var _itsSum=_its.reduce(function(a,x){return a+((+x.q||0)*(+x.p||0))},0);
+    if(_itsSum>0){var _ae=document.getElementById('flAmount');if(_ae)_ae.value=_itsSum.toFixed(2);}
     if(!flV('flSubj').trim()||!flN('flAmount')){flAlert('Укажите предмет закупки и ориентировочную сумму');return;}
     CYC.subj=flV('flSubj').trim();CYC.qty=flV('flQty');CYC.unit=flV('flUnit');CYC.amount=flN('flAmount');
     CYC.fio=flV('flFio').trim();CYC.dept=flV('flDept').trim();CYC.goal=flV('flGoal');CYC.urg=flV('flUrg');
@@ -3827,8 +4167,12 @@ function flNav(prev){
   }
   if(st===3){}
   if(st===4){
+    /* v4.6: выбор НЕ затирается скрытыми поиском строками — сливаем галочки с сохранённым списком */
+    var all=document.querySelectorAll('.flSup'),vis={};
+    for(var v=0;v<all.length;v++)vis[all[v].value]=1;
     var sb=document.querySelectorAll('.flSup:checked'),names=[];
     for(var i=0;i<sb.length;i++)names.push(sb[i].value);
+    (CYC.sups||[]).forEach(function(n){if(names.indexOf(n)<0&&!vis[n])names.push(n)});
     CYC.sups=names;
     if((CYC.mKey==='p9'||CYC.mKey==='eproc')&&names.length<3)
       flAlert('Внимание: выбрано менее 3 поставщиков. Для п. 9 нужна конъюнктура (≥ 5 запросов), для конкурентной процедуры — не менее 2 предложений.');
@@ -3844,6 +4188,45 @@ function flNav(prev){
   CYC.step=Math.min(8,st+1);cycSave();renderFlow();
   window.scrollTo(0,0);
 }
+
+/* ====== Товарные позиции закупки в цикле (v4.6) ====== */
+function flItemsSum(){return (CYC.items||[]).reduce(function(a,x){return a+((+x.q||0)*(+x.p||0))},0)}
+function flItemsText(){
+  var A=(CYC.items||[]).filter(function(x){return (x.n||'').trim()});
+  if(!A.length)return '';
+  return A.map(function(x,i){return (i+1)+') '+x.n+(x.q?' — '+x.q+' '+(x.u||'шт.'):'')}).join('; ');
+}
+function flItemsRows(){
+  var A=CYC.items||[];
+  var h='<tr><th style="width:34px">№</th><th>Наименование позиции</th><th style="width:90px">Кол-во</th><th style="width:70px">Ед.</th><th style="width:120px">Цена ориент., руб.</th><th style="width:110px">Сумма</th><th style="width:30px"></th></tr>';
+  if(!A.length)h+='<tr><td colspan="7" class="small">Позиций нет. Если товар один — можно не заполнять, достаточно полей выше.</td></tr>';
+  h+=A.map(function(x,i){
+    var sm=(+x.q||0)*(+x.p||0);
+    return '<tr><td>'+(i+1)+'</td>'
+    +'<td><input value="'+esc(x.n||'')+'" placeholder="например: редуктор ходовой КЗК-12-0102020" oninput="flItemCh('+i+',\'n\',this.value)"></td>'
+    +'<td><input type="number" step="any" min="0" value="'+esc(x.q||'')+'" oninput="flItemCh('+i+',\'q\',this.value)"></td>'
+    +'<td><input value="'+esc(x.u||'шт.')+'" oninput="flItemCh('+i+',\'u\',this.value)"></td>'
+    +'<td><input type="number" step="0.01" min="0" value="'+esc(x.p||'')+'" oninput="flItemCh('+i+',\'p\',this.value)"></td>'
+    +'<td class="small" style="padding-top:10px" id="flSm'+i+'">'+(sm?fmtH(sm):'—')+'</td>'
+    +'<td><button class="del" onclick="flItemDel('+i+')">✕</button></td></tr>';
+  }).join('');
+  return h;
+}
+function flItemsFoot(){
+  var ts=flItemsSum();
+  return ts>0?'<div style="text-align:right;margin-top:4px"><b>Итого по позициям: '+fmtH(ts)+'</b></div>':'';
+}
+function flItemCh(i,k,v){
+  CYC.items=CYC.items||[];
+  CYC.items[i][k]=v;cycSave();
+  var x=CYC.items[i],sm=(+x.q||0)*(+x.p||0);
+  var c=document.getElementById('flSm'+i);if(c)c.textContent=sm?fmtH(sm):'—';
+  var f=document.getElementById('flItemsFoot');if(f)f.innerHTML=flItemsFoot();
+  var ts=flItemsSum();
+  if(ts>0){var ae=document.getElementById('flAmount');if(ae)ae.value=ts.toFixed(2);}
+}
+function flItemAdd(){CYC.items=CYC.items||[];CYC.items.push({n:'',q:'',u:'шт.',p:''});cycSave();var t=document.getElementById('flItemsTbl');if(t)t.innerHTML=flItemsRows();var f=document.getElementById('flItemsFoot');if(f)f.innerHTML=flItemsFoot();}
+function flItemDel(i){CYC.items.splice(i,1);cycSave();var t=document.getElementById('flItemsTbl');if(t)t.innerHTML=flItemsRows();var f=document.getElementById('flItemsFoot');if(f)f.innerHTML=flItemsFoot();var ts=flItemsSum();var ae=document.getElementById('flAmount');if(ae&&ts>0)ae.value=ts.toFixed(2);}
 
 function flStep1(){
   var keys=Object.keys(OKRB_LIB).slice(0,400);
@@ -3864,6 +4247,9 @@ function flStep1(){
   +'<option value="plan"'+(CYC.urg==='plan'?' selected':'')+'>плановая</option></select></div>'
   +'<div><label>Требуемый срок поставки</label><input id="flNeedDate" type="date" value="'+esc(CYC.needDate||'')+'"></div></div>'
   +'<label>Примечание (технические требования, аналоги)</label><textarea id="flNote" rows="2" placeholder="например: допускается аналог; нужен паспорт качества">'+esc(CYC.note||'')+'</textarea>'
+  +'<h3 style="margin-top:14px">Товарные позиции закупки <button type="button" class="btn sm ghost" onclick="flItemAdd()">+ позиция</button></h3>'
+  +'<div class="small" style="margin-bottom:4px">Если в закупке несколько товаров — добавьте каждую позицию со своим количеством. При заполненных количестве и цене сумма закупки посчитается автоматически (при нажатии «Далее»).</div>'
+  +'<div style="overflow:auto"><table id="flItemsTbl">'+flItemsRows()+'</table></div><div id="flItemsFoot">'+flItemsFoot()+'</div>'
   +flHistBlock()
   +'<div style="margin-top:12px"><button class="btn" onclick="flNav()">Далее →</button>'
   +(CYC.subj?'<button class="btn ghost" style="margin-left:8px" onclick="if(confirm(\'Очистить все данные цикла?\')){CYC={step:1};cycSave();renderFlow()}">Очистить</button>':'')+'</div>';
@@ -4004,8 +4390,8 @@ function flMemoHtml(){
   +'<p style="text-align:center">от '+u(CYC.fio||'____________')+(CYC.dept?', '+esc(CYC.dept):'')+'</p>'
   +'<p style="text-align:center;font-size:10pt">(должность, структурное подразделение, Ф.И.О.)</p>'
   +'<p>Прошу рассмотреть вопрос о проведении закупки за счет собственных средств Организации:</p>'
-  +'<p>1. Предмет закупки (наименование товара (работы, услуги), характеристики): '+u(CYC.subj||'')+'</p>'
-  +'<p>2. Количество (объем): '+u((CYC.qty||'')+(CYC.unit?' '+CYC.unit:''))+'</p>'
+  +'<p>1. Предмет закупки (наименование товара (работы, услуги), характеристики): '+u(CYC.subj||'')+(flItemsText()?': '+esc(flItemsText()):'')+'</p>'
+  +'<p>2. Количество (объем): '+u(flItemsText()?flItemsText():((CYC.qty||'')+(CYC.unit?' '+CYC.unit:'')))+'</p>'
   +'<p>3. Ориентировочная стоимость, руб.: '+u(fmtH(a)+' ('+bv.toFixed(1)+' б.в., БВ = 45 руб.)')+'</p>'
   +'<p>4. Источник финансирования: собственные средства Организации.</p>'
   +'<p>5. Обоснование потребности (для чего приобретается, в т.ч. срочность, наличие замены): '+u(obos)+'</p>'
@@ -4037,27 +4423,51 @@ function flStep4(){
     if(q&&normKey(s.name+' '+s.group+' '+(s.contact||'')+' '+(s.site||[]).join(' ')).indexOf(q)<0)return false;
     return true;
   });
-  var total=list.length; var capped4=(total>200&&!CYC.supAll); if(capped4)list=list.slice(0,200);
-  var selN=(CYC.sups||[]).length;
+  var sel=CYC.sups||[];
+  var total=list.length; var capped4=(total>200&&!CYC.supAll);
+  if(capped4){
+    list=list.slice(0,200);
+    /* выбранные никогда не прячем за ограничение 200 */
+    sel.forEach(function(n){
+      if(list.some(function(x){return x.name===n}))return;
+      var s2=supByName(n);
+      if(s2&&(!g||s2.group===g)&&(!q||normKey(s2.name+' '+s2.group+' '+(s2.contact||'')+' '+(s2.site||[]).join(' ')).indexOf(q)>=0))list.unshift(s2);
+    });
+  }
+  var selN=sel.length;
   var h='<h3>Шаг 4. Поставщики для запроса КП</h3>'
-  +'<div class="note" style="border-color:#2e7d32;background:#e8f5e9">Выбрано поставщиков: <b id="flSupCnt">'+selN+'</b>. Галочки сохраняются сразу — можно искать и фильтровать, выбор не слетит. Всего в базе: <b>'+sup.length+'</b>.'+(capped4?' Показаны первые 200 из <b>'+total+'</b> по фильтру — уточните поиск или <a href=&quot;#&quot; onclick=&quot;CYC.supAll=1;cycSave();renderFlow();return false&quot;><b>ПОКАЗАТЬ ВСЕ</b></a>.':'')+(CYC.supAll&&total>200?' <a href=&quot;#&quot; onclick=&quot;CYC.supAll=0;cycSave();renderFlow();return false&quot;>свернуть до 200</a>':'')+'</div>'
-  +'<div class="note">Подсветка: <span class="tag g">✉ e-mail</span> — можно отправить запрос прямо из системы; <span class="tag b">☎ телефон</span> — звонок. Для конъюнктуры по п. 9 — не менее 5 запросов (≥ 3 отечественным производителям), для конкурентной процедуры желательно ≥ 3.</div>'
+  +'<div class="note" style="border-color:#2e7d32;background:#e8f5e9">Выбрано поставщиков: <b id="flSupCnt">'+selN+'</b>. Галочки сохраняются сразу — можно искать и фильтровать, выбор не слетит и не потеряется при переходе «Далее». Всего в базе: <b>'+sup.length+'</b>.'+(capped4?' Показаны первые 200 из <b>'+total+'</b> по фильтру (выбранные показаны всегда) — уточните поиск или <a href=&quot;#&quot; onclick=&quot;CYC.supAll=1;cycSave();renderFlow();return false&quot;><b>ПОКАЗАТЬ ВСЕ</b></a>.':'')+(CYC.supAll&&total>200?' <a href=&quot;#&quot; onclick=&quot;CYC.supAll=0;cycSave();renderFlow();return false&quot;>свернуть до 200</a>':'')+'</div>'
+  +(selN?'<div style="border:1px solid var(--acc);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:#f4faf6"><b>Ваш выбор ('+selN+'):</b> '+sel.map(function(n){return '<span class="tag g" style="margin:2px;display:inline-flex;gap:6px;align-items:center">'+esc(n)+' <a href="#" onclick="flSupTgl(\''+esc(n).replace(/'/g,"\\'")+'\',false);renderFlow();return false" title="убрать из выбора" style="color:#a52a2a;text-decoration:none">✕</a></span>'}).join(' ')+'</div>':'')
+  +'<div class="note">Подсветка: <span class="tag g">✉ e-mail</span> — можно отправить запрос прямо из системы; <span class="tag b">☎ телефон</span> — звонок. Кнопка <b>👁</b> — карточка поставщика: просмотр и редактирование данных прямо отсюда. Для конъюнктуры по п. 9 — не менее 5 запросов (≥ 3 отечественным производителям), для конкурентной процедуры желательно ≥ 3.</div>'
   +'<div class="fbar"><div><label>Поиск</label><input id="flSupQ" value="'+esc(CYC.supQ||'')+'" oninput="CYC.supQ=this.value;cycSave();keepFocus(renderFlow)" placeholder="название, товар, сайт… — фокус не слетит"></div>'
-  +'<div><label>Группа</label><select onchange="CYC.supG=this.value;cycSave();renderFlow()"><option value="">все</option>'+groups().map(function(x){return '<option'+(g===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'
-  +'<div style="flex:0"><button class="btn" onclick="openEdit(-1)">+ Новый поставщик</button></div></div>'
-  +'<div style="max-height:52vh;overflow:auto"><table><tr><th></th><th>Поставщик</th><th>Контакты для запроса</th><th>Проверка</th></tr>'
+  +'<div><label>Группа'+(g?' <span class="tag y">вкл: '+esc(g)+'</span>':'')+'</label><select onchange="CYC.supG=this.value;cycSave();renderFlow()"><option value="">все</option>'+groups().map(function(x){return '<option'+(g===x?' selected':'')+'>'+esc(x)+'</option>'}).join('')+'</select></div>'
+  +'<div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="openEdit(-1)">+ Новый поставщик</button></div>'
+  +((g||q)?'<div style="flex:0"><label>&nbsp;</label><button class="btn ghost" onclick="CYC.supQ=\'\';CYC.supG=\'\';cycSave();renderFlow()">✕ Сбросить поиск и группу</button></div>':'')+'</div>'
+  +'<div style="max-height:52vh;overflow:auto"><table><tr><th></th><th>Поставщик</th><th>Контакты для запроса</th><th>Проверка</th><th></th></tr>'
   +list.map(function(s){
-    var checked=(CYC.sups||[]).indexOf(s.name)>=0;
+    var checked=sel.indexOf(s.name)>=0;
     return '<tr><td><input type="checkbox" class="flSup" value="'+esc(s.name)+'"'+(checked?' checked':'')+' onchange="flSupTgl(this.value,this.checked)"></td>'
     +'<td><b>'+dispName(s)+'</b><div class="small">'+esc(s.group)+' · '+esc(s.status)+'</div></td>'
     +'<td class="small">'+((s.email&&s.email.length)?'<span class="tag g">✉ '+esc(s.email[0])+'</span> ':'<span class="tag r">нет e-mail — звонить/писать с сайта</span> ')
     +((s.phone&&s.phone.length)?'<span class="tag b">☎ '+esc(s.phone[0])+'</span>':'')+'</td>'
-    +'<td>'+supDot(s)+'</td></tr>';
+    +'<td>'+supDot(s)+'</td>'
+    +'<td><button class="btn sm ghost" title="Открыть карточку поставщика (просмотр/редактирование)" onclick="openSupByName(\''+esc(s.name).replace(/'/g,"\\'")+'\')">👁</button></td></tr>';
   }).join('')+'</table></div>'
+  +flChkHtml(FL_CHK_SUP,'chkSup','Чек-лист проверки поставщиков (ЕГР / МАРТ / производитель)')
   +'<div style="margin-top:12px"><button class="btn" onclick="flNav()">Далее →</button> <button class="btn ghost" onclick="CYC.step=3;cycSave();renderFlow()">← Назад</button></div>';
   return h;
 }
 
+var FL_CHK_SUP=['Действующее юрлицо, УНП проверен по ЕГР (egr.gov.by)','Не в реестре недобросовестных поставщиков МАРТ (icetrade.by)','Не в ликвидации / банкротстве','Статус производителя / регистр производителей (преференция 15 %)','Контакты подтверждены с официального сайта'];
+var FL_CHK_DOCS=['Заявление на участие по форме документации','Ценовое предложение подписано уполномоченным лицом','Выписка из ЕГР (резиденты) / торговый реестр (нерезиденты)','Бухгалтерский баланс и отчёт о прибылях и убытках (или книга учёта при УСН)','Документы на товар: сертификаты, описание характеристик','Подтверждение статуса производителя / сбытовой организации (если заявлено)','Срок действия предложения соответствует документации','Участник не в реестре недобросовестных поставщиков (скриншот с датой)'];
+function flChkHtml(arr,store,title){
+  var cur=CYC[store]||[];
+  var done=arr.filter(function(t,i){return cur[i]}).length;
+  return '<div style="margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fbfcfc"><b>✅ '+title+'</b> <span class="small">(выполнено '+done+' из '+arr.length+', отметки сохраняются в цикле)</span><div class="check" style="margin-top:6px">'
+   +arr.map(function(t2,i){return '<label><input type="checkbox" '+(cur[i]?'checked':'')+' onchange="flChkTgl(\''+store+'\','+i+',this.checked)">'+esc(t2)+'</label>'}).join('')
+   +'</div></div>';
+}
+function flChkTgl(store,i,on){var cur=CYC[store]||[];cur[i]=on?1:0;CYC[store]=cur;cycSave();}
 function flSupTgl(name,on){
   CYC.sups=CYC.sups||[];
   var i=CYC.sups.indexOf(name);
@@ -4068,7 +4478,7 @@ function flSupTgl(name,on){
 }
 function flLetterDefault(){
   return 'Уважаемые коллеги!\n\n'+((typeof HCONFIG!=='undefined'&&HCONFIG.ORG)||'')+' ('+((typeof HCONFIG!=='undefined'&&HCONFIG.ORG_ADDR)||'')+', УНП '+(typeof HCONFIG!=='undefined'&&HCONFIG.ORG_UNP?HCONFIG.ORG_UNP:'')+') просит направить коммерческое предложение на поставку:\n\n'
-  +'Предмет: '+(CYC.subj||'')+(CYC.qty?'\nКоличество: '+CYC.qty+' '+(CYC.unit||''):'')+'\nОриентировочная стоимость: '+fmtH(+CYC.amount||0)
+  +'Предмет: '+(CYC.subj||'')+(CYC.qty?'\nКоличество: '+CYC.qty+' '+(CYC.unit||''):'')+(flItemsText()?'\nПозиции: '+flItemsText():'')+'\nОриентировочная стоимость: '+fmtH(+CYC.amount||0)
   +(CYC.note?'\nТребования: '+CYC.note:'')+(CYC.needDate?'\nТребуемый срок поставки: до '+CYC.needDate:'')
   +'\n\nПросим указать: цену с НДС, срок поставки, условия оплаты, наличие на складе, страну происхождения товара.\n\n'+signText();
 }
@@ -4083,6 +4493,7 @@ function flStep5(){
     var s=supByName(n)||{name:n};
     var mail=(s.email&&s.email.length)?s.email[0]:'';
     h+='<div style="border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:8px"><b>'+dispName(s)+'</b> '
+    +'<button class="btn sm ghost" title="Карточка поставщика (просмотр/редактирование)" onclick="openSupByName(\''+esc(n).replace(/'/g,"\\'")+'\')">👁 карточка</button> '
     +(mail?'<span class="tag g">✉ '+esc(mail)+'</span>':'<span class="tag r">нет e-mail в CRM</span>')+' '
     +((s.phone&&s.phone.length)?'<span class="tag b">☎ '+esc(s.phone[0])+'</span>':'')
     +'<div style="margin-top:6px">'
@@ -4264,14 +4675,22 @@ function flMarkSent(name){
 function flSaveKps(){
   CYC.kps=CYC.kps||{};
   (CYC.sups||[]).forEach(function(n){
-    var p={sum:flN('kpSum_'+md5(n)),term:flV('kpTerm_'+md5(n)),pay:flV('kpPay_'+md5(n)),note:flV('kpNote_'+md5(n))};
-    if(p.sum>0&&(!CYC.kps[n]||CYC.kps[n].sum!==p.sum)){
+    var p={sum:flN('kpSum_'+md5(n)),term:flV('kpTerm_'+md5(n)),pay:flV('kpPay_'+md5(n)),note:flV('kpNote_'+md5(n)),resp:flV('kpResp_'+md5(n))};
+    var prev=CYC.kps[n]||{};
+    if(p.sum>0&&(!prev.sum||prev.sum!==p.sum)){
       var s=supByName(n);
       if(s){s.inter=s.inter||[];s.inter.push({d:today(),type:'письмо',text:'Получено КП: '+CYC.subj+' — '+fmtH(p.sum)+(p.term?', срок '+p.term:'')});save();}
+    }
+    if(p.resp&&p.resp!==prev.resp){
+      var s2=supByName(n),rTxt={noreal:'не можем предложить / нет в наличии',otkaz:'отказ / не участвует',molch:'нет ответа'}[p.resp];
+      if(s2&&rTxt){s2.inter=s2.inter||[];s2.inter.push({d:today(),type:'заметка',text:'Ответ по «'+CYC.subj+'»: '+rTxt});save();}
     }
     CYC.kps[n]=p;
   });
 }
+/* КП участвует в сравнении: есть сумма и нет отказа/«нет в наличии»/молчания */
+function flKpOk(n){var k=(CYC.kps||{})[n];return !!(k&&k.sum>0&&(!k.resp||k.resp==='kp'));}
+function flKpRefused(n){var k=(CYC.kps||{})[n];return !!(k&&(k.resp==='noreal'||k.resp==='otkaz'||k.resp==='molch'));}
 function md5(s){var h=0;for(var i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0}return h.toString(36)}
 function flHistBlock(){
   var H=lsGet('srz_flow_hist',[]);
@@ -4301,11 +4720,17 @@ function flStep6(){
   var names=(CYC.sups||[]).filter(function(n){return !CYC.kps||!CYC.kps[n]||!CYC.kps[n].sum});
   if(!(CYC.sups||[]).length)return '<h3>Шаг 6. Ввод полученных КП</h3><div class="note warn">Поставщики не выбраны.</div><button class="btn ghost" onclick="CYC.step=4;cycSave();renderFlow()">← Назад</button>';
   var h='<h3>Шаг 6. Ввод полученных КП в базу</h3>'
-  +'<div class="note">Распечатанные КП — в дело. Здесь фиксируются сумма, сроки и условия — данные попадут в CRM-профиль поставщика (таймлайн), в таблицу конкурентов и в документ сравнения.</div>'
-  +'<table><tr><th>Поставщик</th><th>Контакты из CRM</th><th>Сумма КП, руб. *</th><th>Срок поставки</th><th>Условия оплаты</th><th>Примечание</th></tr>';
+  +'<div class="note">Распечатанные КП — в дело. Здесь фиксируются сумма, сроки и условия — данные попадут в CRM-профиль поставщика (таймлайн), в таблицу конкурентов и в документ сравнения. Если поставщик <b>не может предложить / нет в наличии</b>, отказался или молчит — выберите это в колонке «Ответ»: такое КП не попадёт в сравнение, а ответ сохранится в таймлайне поставщика.</div>'
+  +'<table><tr><th>Поставщик</th><th>Контакты из CRM</th><th>Ответ</th><th>Сумма КП, руб. *</th><th>Срок поставки</th><th>Условия оплаты</th><th>Примечание</th></tr>';
   (CYC.sups||[]).forEach(function(n){
     var s=supByName(n)||{},k=(CYC.kps&&CYC.kps[n])||{};
-    h+='<tr><td><b>'+esc(n)+'</b></td><td class="small">'+((s.email||[]).join(', ')||'—')+'<br>'+((s.phone||[]).join(', ')||'')+'</td>'
+    h+='<tr><td><b>'+esc(n)+'</b> <button class="btn sm ghost" title="Карточка поставщика (просмотр/редактирование)" onclick="openSupByName(\''+esc(n).replace(/'/g,"\\'")+'\')">👁</button></td><td class="small">'+((s.email||[]).join(', ')||'—')+'<br>'+((s.phone||[]).join(', ')||'')+'</td>'
+    +'<td><select id="kpResp_'+md5(n)+'" style="min-width:150px">'
+    +'<option value=""'+(!k.resp?' selected':'')+'>КП / ожидается</option>'
+    +'<option value="noreal"'+(k.resp==='noreal'?' selected':'')+'>не можем предложить / нет в наличии</option>'
+    +'<option value="otkaz"'+(k.resp==='otkaz'?' selected':'')+'>отказ / не участвует</option>'
+    +'<option value="molch"'+(k.resp==='molch'?' selected':'')+'>нет ответа</option>'
+    +'</select></td>'
     +'<td><input type="number" id="kpSum_'+md5(n)+'" value="'+(k.sum||'')+'" placeholder="0.00"></td>'
     +'<td><input id="kpTerm_'+md5(n)+'" value="'+esc(k.term||'')+'" placeholder="15 раб. дней" style="width:130px"></td>'
     +'<td><input id="kpPay_'+md5(n)+'" value="'+esc(k.pay||'')+'" placeholder="30 банк. дней" style="width:130px"></td>'
@@ -4325,8 +4750,9 @@ function flAddExtra(){
 }
 
 function flCmpHtml(){
-  var kps=CYC.kps||{},names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
-  if(!names.length)return '<div class="note warn">Нет введённых КП с суммами. Вернитесь на шаг 6.</div>';
+  var kps=CYC.kps||{},names=Object.keys(kps).filter(flKpOk);
+  var refused=Object.keys(kps).filter(flKpRefused);
+  if(!names.length)return '<div class="note warn">Нет введённых КП с суммами. Вернитесь на шаг 6.</div>'+(refused.length?'<div class="note">Не участвуют в сравнении (ответ поставщика): '+refused.map(function(n){return esc(n)+' — '+esc({noreal:'не можем предложить / нет в наличии',otkaz:'отказ / не участвует',molch:'нет ответа'}[kps[n].resp]||kps[n].resp)}).join('; ')+'</div>':'');
   var min=Math.min.apply(null,names.map(function(n){return kps[n].sum}));
   var h='<h3 style="text-align:center">Сравнительная таблица коммерческих предложений</h3>'
   +'<p style="text-align:center;font-size:12px">'+esc(HCONFIG.ORG||'')+' · предмет: '+esc(CYC.subj||'')+(CYC.qty?' · '+esc(CYC.qty)+' '+esc(CYC.unit||''):'')+' · '+esc(CYC.reqDate||today())+'</p>'
@@ -4334,16 +4760,19 @@ function flCmpHtml(){
   names.forEach(function(n,i){
     h+='<tr'+(kps[n].sum===min?' style="background:#e3efe9;font-weight:bold"':'')+'><td>'+(i+1)+'</td><td>'+esc(n)+'</td><td>'+fmtH(kps[n].sum)+(kps[n].sum===min?' ★ лучшая цена':'')+'</td><td>'+esc(kps[n].term||'—')+'</td><td>'+esc(kps[n].pay||'—')+'</td><td>'+esc(kps[n].note||'—')+'</td></tr>';
   });
-  h+='</table><p style="font-size:12px;color:#666">Нормативная база: ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), локальный Порядок закупок организации. Сверено по pravo.by 11.10.2026.</p>';
+  h+='</table>'
+  +(refused.length?'<p style="font-size:12px;color:#666">Запросы направлялись также: '+refused.map(function(n){return esc(n)+' ('+esc({noreal:'не можем предложить / нет в наличии',otkaz:'отказ / не участвует',molch:'ответ не получен'}[kps[n].resp]||kps[n].resp)+')'}).join('; ')+'.</p>':'')
+  +'<p style="font-size:12px;color:#666">Нормативная база: ПП № 168 от 07.04.2026 (ред. № 355 от 10.07.2026), локальный Порядок закупок организации. Сверено по pravo.by 11.10.2026.</p>';
   return h;
 }
 function flStep7(){
   var html=flCmpHtml();
-  var kps=CYC.kps||{},names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
+  var kps=CYC.kps||{},names=Object.keys(kps).filter(flKpOk);
   var min=names.length?Math.min.apply(null,names.map(function(n){return kps[n].sum})):0;
   return '<h3>Шаг 7. Сравнение конкурентов</h3>'
   +'<div class="note">Таблица сформирована автоматически из введённых КП. Лучшая цена подсвечена. При необходимости многофакторной оценки (цена 70% / сроки 15% / оплата 15%) — передайте данные в калькулятор.</div>'
   +'<div style="border:1px solid var(--line);border-radius:8px;padding:14px;background:#fff">'+html+'</div>'
+  +flChkHtml(FL_CHK_DOCS,'chkDocs','Чек-лист заявок участников (комплектность и соответствие)')
   +'<div style="margin-top:12px">'
   +'<button class="btn" onclick="flPrint(\'Сравнение КП\',flCmpHtml())">🖨 Распечатать сравнение</button> '
   +'<button class="btn ghost" onclick="flDoc(\'sravnenie_kp_'+today()+'.doc\',\'Сравнение КП\',flCmpHtml())">Скачать .doc</button> '
@@ -4355,7 +4784,7 @@ function flPriorChange(){
   var p=flV('flPrior');
   var w=document.querySelector('input[name="flWin"]:checked');
   var win=w?w.value:'';
-  var kps=CYC.kps||{},names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
+  var kps=CYC.kps||{},names=Object.keys(kps).filter(flKpOk);
   var min=names.length?Math.min.apply(null,names.map(function(n){return kps[n].sum})):0;
   var ks=win?kps[win]:{};
   var t=document.getElementById('flWinJustif');if(!t)return;
@@ -4365,7 +4794,7 @@ function flPriorChange(){
   else if(p==='pay'){t.value='Выбран «'+win+'» — наиболее выгодные условия оплаты ('+(ks.pay||'—')+'), цена '+fmtH(ks.sum||0)+'. Рекомендован к заключению договора.';}
 }
 function flStep8(){
-  var kps=CYC.kps||{},names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
+  var kps=CYC.kps||{},names=Object.keys(kps).filter(flKpOk);
   if(!names.length)return '<h3>Шаг 8. Выбор победителя</h3><div class="note warn">Нет КП с суммами.</div><button class="btn ghost" onclick="CYC.step=6;cycSave();renderFlow()">← К вводу КП</button>';
   var min=Math.min.apply(null,names.map(function(n){return kps[n].sum}));
   var defW=names.filter(function(n){return kps[n].sum===min})[0];
@@ -4445,7 +4874,7 @@ function flCardFillHtml(d){
   var cb=function(c){return c?'<b>☑</b>':'☐'};
   var is21=/21/.test(d.point),is29=/29/.test(d.point),is28=/28/.test(d.point),is9=/п\.\s*9\b|прил\.\s*4/.test(d.point);
   var inoe=(!is21&&!is29&&!is28&&!is9);
-  var kps=d.kps||{},names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
+  var kps=d.kps||{},names=Object.keys(kps).filter(flKpOk);
   if(!names.length&&d.winner)names=[d.winner];
   var rows='';
   names.slice(0,3).forEach(function(n,i){
@@ -4573,13 +5002,14 @@ function flFinish(){
   var w=document.querySelector('input[name=flWin]:checked');
   if(!w){flAlert('Выберите победителя');return;}
   var win=w.value,kps=CYC.kps||{},ks=kps[win]||{};
-  var _names=Object.keys(kps).filter(function(n){return kps[n]&&kps[n].sum>0});
+  var _names=Object.keys(kps).filter(flKpOk);
   var _min=_names.length?Math.min.apply(null,_names.map(function(n){return kps[n].sum})):0;
   if(ks.sum>_min&&!flV('flWinJustif').trim()){flAlert('Победитель дороже минимального КП на '+fmtH(ks.sum-_min)+' — укажите обоснование (оригинал, качество, сроки). Это обязательно для защиты решения.');return;}
   var stageMap={p21:'dogovor',p29:'dogovor',p67:'dogovor',p67b:'dogovor',p14:'dogovor',p9:'sravn',eproc:'kp'};
   deals.unshift({id:uid('d'),sup:win,subj:(CYC.subj||'')+(CYC.qty?' — '+CYC.qty+' '+(CYC.unit||''):''),sum:+ks.sum||0,
     point:CYC.point||'',stage:stageMap[CYC.mKey]||'zayavka',date:today(),deadline:CYC.needDate||'',fio:CYC.fio||'',
-    note:'цикл v3.0 · '+CYC.mName+' · КП от '+((CYC.sups||[]).length)+' поставщиков · '+flUrgName(CYC.urg),docs:{}});
+    resp:'kp',items:(CYC.items||[]).filter(function(x){return (x.n||'').trim()}).map(function(x){return {n:x.n,q:x.q,u:x.u,p:x.p}}),
+    note:'цикл v4.6 · '+CYC.mName+' · КП от '+((CYC.sups||[]).length)+' поставщиков · '+flUrgName(CYC.urg),docs:{}});
   var L=getLog();
   L.unshift({id:nextId(L),subject:(CYC.subj||'')+(CYC.qty?' — '+CYC.qty+' '+(CYC.unit||''):''),amount:+ks.sum||(+CYC.amount||0),
     bv:((+ks.sum||(+CYC.amount||0))/BV),proc:(CYC.mName||'')+' (цикл)',procKey:CYC.mKey||'prod',contour:'own',fio:CYC.fio||'',
@@ -4645,6 +5075,8 @@ try{(function(){
   p.catch(function(e){console.log('idb-migrate',e);});
 })()}catch(e){console.log('idb-migrate',e)}
 try{window.__initSchemeMap()}catch(e){console.log('map-init',e)}
+try{migrateDealStages()}catch(e){console.log('stages-migrate',e)}
+try{goodsSupMap()}catch(e){console.log('sup-reconcile',e)}
 buildNav();showTab('dash');renderAll();
 try{var _ct=document.getElementById('critTbl');if(_ct&&_ct.rows&&_ct.rows.length>1)buildCalc()}catch(e){console.log('calc init',e)}
 try{renderKB()}catch(e){console.log('kb init',e)}
