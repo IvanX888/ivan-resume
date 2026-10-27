@@ -214,6 +214,9 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 .dv-add-sup input{margin:0}
 .dv-add-sup .small{grid-column:1/-1}
 .dv-table-wrap{overflow:auto;border:1px solid #dfe7e2;border-radius:8px}
+.pipe,.dv-table-wrap{cursor:grab}
+.pipe:has(.pcard:hover),.dv-table-wrap:has(input:hover,select:hover,textarea:hover,button:hover,a:hover,summary:hover){cursor:default}
+.v5-dragging{cursor:grabbing!important;scroll-behavior:auto!important}
 .crm-sup-table{width:100%;min-width:1120px;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .crm-sup-table th{position:sticky;top:0;z-index:1;background:#eaf1ed;color:#29473b;padding:6px;font-size:11px;text-align:left}
 .crm-sup-table td{padding:6px;vertical-align:top;border-bottom:1px solid #e3e9e5}
@@ -6134,6 +6137,34 @@ function toastInfo(msg){
   clearTimeout(window.__okToastT);window.__okToastT=setTimeout(function(){t.style.display='none'},750);
 }
 
+/* Печать и Word: скачивание является обычной ссылкой, а не скриптом в новом окне. */
+flPrint=function(title,bodyHtml,opts){
+  opts=opts||{};
+  var land=!!opts.landscape||/size\s*:\s*A4\s+landscape/i.test(bodyHtml||'');
+  var pg=land?'@page{size:A4 landscape;margin:1.2cm}':'@page{size:A4;margin:2cm 1.5cm 2cm 3cm}';
+  var css=pg+'body{font-family:"Times New Roman",serif;font-size:14pt;max-width:'+(land?'1160px':'800px')+';margin:24px auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px 6px}thead{display:table-header-group}tr,td,th{page-break-inside:avoid;break-inside:avoid}p{orphans:3;widows:3}h1,h2,h3{page-break-after:avoid}.formWord{font-family:"Times New Roman",serif;font-size:12pt;line-height:1.4}.formWord p{margin:6px 0}.formWord table{border-collapse:collapse;width:100%;margin:8px 0}.formWord td,.formWord th{border:1px solid #000;padding:4px 6px;font-size:11pt;vertical-align:top}#np{margin-bottom:14px;padding:8px;background:#f0f0f0;border-radius:6px}#np button,#np a{display:inline-block;padding:6px 14px;margin-right:8px;cursor:pointer;border:1px solid #aaa;background:#fff;color:#111;text-decoration:none;font:inherit;font-size:13px}@media print{body{max-width:none;margin:0}#np{display:none}'+(opts.fit?'#db{zoom:'+opts.fit+'}':'')+'}';
+  var docCss=pg+'body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4}table{border-collapse:collapse;width:100%}td,th{vertical-align:top;padding:4px;border:1px solid #000}tr{page-break-inside:avoid}';
+  var wordHtml='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+docCss+'</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+bodyHtml+'</body></html>';
+  var wordUrl=URL.createObjectURL(new Blob(['\ufeff'+wordHtml],{type:'application/msword'}));
+  var fileName=String(title||'document').replace(/[\/:*?"<>|«»]/g,'_')+'.doc';
+  var w=window.open('','_blank');if(!w){URL.revokeObjectURL(wordUrl);alert('Разрешите всплывающие окна для печати документа.');return;}
+  w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body><div id="np"><button onclick="window.print()">🖨 Печать</button><a href="'+wordUrl+'" download="'+esc(fileName)+'">💾 Скачать в Word (.doc)</a><span style="font-size:12px;color:#555">Файл открывается и редактируется в Microsoft Word / LibreOffice</span></div><div id="db">'+bodyHtml+'</div></body></html>');
+  w.document.close();setTimeout(function(){URL.revokeObjectURL(wordUrl)},60000);
+}
+
+/* Горизонтальное перемещение воронки и широких таблиц мышью за свободное место. */
+document.addEventListener('mousedown',function(e){
+  if(e.button!==0||!e.target||!e.target.closest)return;
+  var area=e.target.closest('.pipe,.dv-table-wrap');if(!area)return;
+  if(e.target.closest('.pcard,button,input,select,textarea,a,label,summary'))return;
+  window._v5Drag={el:area,x:e.clientX,y:e.clientY,left:area.scrollLeft,top:area.scrollTop};
+  area.classList.add('v5-dragging');document.body.style.userSelect='none';e.preventDefault();
+});
+document.addEventListener('mousemove',function(e){
+  var s=window._v5Drag;if(!s)return;s.el.scrollLeft=s.left-(e.clientX-s.x);s.el.scrollTop=s.top-(e.clientY-s.y);e.preventDefault();
+});
+document.addEventListener('mouseup',function(){var s=window._v5Drag;if(!s)return;s.el.classList.remove('v5-dragging');document.body.style.userSelect='';window._v5Drag=null;});
+
 /* ---------- Единая таблица поставщиков: добавление, запрос, ответ и цены ---------- */
 function dealSupsBlock(d){
   if(d.sup){d.sups=d.sups||[];if(d.sups.indexOf(d.sup)<0)d.sups.unshift(d.sup);}
@@ -6426,11 +6457,12 @@ function dealQuickMove(id,st){
 function dealIsOneSource(d){return /прил\.?\s*4/i.test(d.point||'')||d.method==='one'||d.mKey==='one'}
 function dealIsNoProcedure(d){return /прил\.?\s*1/i.test(d.point||'')&&!/конкурс|аукцион|запрос ценовых/i.test(d.method||'')}
 function dealProtocolForm(d){return dealIsOneSource(d)?'f13':(dealIsNoProcedure(d)?'f3':'f12')}
+function dealOrderForm(d){return dealIsNoProcedure(d)?'f3':'f2'}
 function dealRecommendedDocs(d){
   var st=d.stage,pf=dealProtocolForm(d),a=[];
   function form(fid,title){if(FORMS[fid])a.push({kind:'form',key:fid,title:title||('Форма '+fid.slice(1)+'. '+FORMS[fid].title),sub:'Утверждённая форма — заполняется данными закупки'});}
   function doc(key,title,sub){a.push({kind:'doc',key:key,title:title||dealDocTitle(key),sub:sub||'Заполняется данными закупки'});}
-  if(st==='zayavka'){form('f1');form('f2');}
+  if(st==='zayavka'){form('f1');form(dealOrderForm(d));}
   if(st==='sups'){form('f5');if(!dealIsNoProcedure(d)&&!dealIsOneSource(d))form('f9');doc('check','Чек-лист проверки поставщиков');}
   if(st==='otvety'){doc('kpreg','Реестр ответов и КП');form('f5');}
   if(st==='sravn'){doc('cmp');form('f6');if(dealIsOneSource(d))form('f4');form(pf);}
@@ -6510,6 +6542,10 @@ formFillDeal=function(fid,d){
   var itemsTxt=(d.items||[]).map(function(x,i){return (i+1)+') '+x.n+(x.q?' — '+x.q+' '+(x.u||'шт.'):'')}).join('; ');
   var subj=(d.subj||'')+(itemsTxt?': '+itemsTxt:''),wi=dealWinInfo(d),pn=((d.point||'').match(/\d+/)||[''])[0];
   var contractSum=d.contractSum||d.sum||0,resp=d.respFio||d.fio||'',primaryContract=v5PrimaryContract(d);
+  if(fid==='f1'){
+    var initiator=((d.fio||'')+(d.dept?', '+d.dept:''));
+    if(initiator)h=h.replace(/<p>_{3,}[^<]*\/[^<]*<\/p>/,'<p><u>&nbsp;'+esc(initiator)+'&nbsp;</u> _________________ /____________________/</p>');
+  }
   if(fid==='f5'){
     var sg=signGet(),contact=[resp||sg.fio,d.tel||sg.tel].filter(Boolean).join(', ');
     var replyAddr=d.replyAddr||[HCONFIG.ORG_ADDR,d.email||HCONFIG.ORG_EMAIL].filter(Boolean).join('; ');
