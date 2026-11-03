@@ -112,7 +112,9 @@ nav.scrolled{background:rgba(242,239,235,.85);backdrop-filter:blur(16px);border-
 .svc:hover .go{color:var(--acc)}
 /* карусель */
 .car-wrap{position:relative}
-.car{display:flex;gap:1.5rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.5rem .2rem 1.5rem;scrollbar-width:none}
+.car{display:flex;gap:1.5rem;overflow-x:auto;scroll-snap-type:x proximity;padding:.5rem .2rem 1.5rem;scrollbar-width:none;cursor:grab;touch-action:pan-x pan-y;user-select:none}
+.car.grabbing{cursor:grabbing;scroll-snap-type:none}
+.pf-img img,.pf-body{-webkit-user-drag:none;user-select:none}
 .car::-webkit-scrollbar{display:none}
 .pf{flex:0 0 min(500px,84vw);scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;transition:all .35s;box-shadow:0 2px 10px rgba(43,38,34,.04)}
 .pf:hover{transform:translateY(-6px);box-shadow:0 24px 50px rgba(43,38,34,.12)}
@@ -343,15 +345,32 @@ else ci+=del?-1:1;
 setTimeout(tick,s)}
 document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',function(e){var el=document.querySelector(this.getAttribute('href'));if(el){e.preventDefault();el.scrollIntoView({behavior:'smooth',block:'start'})}})});
 tick();
-/* колесо над каруселью: листает слайды до края, затем прокручивает страницу */
+/* карусель: колесо ВСЕГДА прокручивает страницу; карточки листаются стрелками, перетаскиванием или горизонтальной прокруткой */
 const car=document.getElementById('car');
 car.addEventListener('wheel',function(e){
-  if(Math.abs(e.deltaY)<=Math.abs(e.deltaX))return;
-  const max=car.scrollWidth-car.clientWidth;
-  const atStart=car.scrollLeft<=0&&e.deltaY<0;
-  const atEnd=car.scrollLeft>=max-1&&e.deltaY>0;
-  if(!atStart&&!atEnd){e.preventDefault();car.scrollLeft+=e.deltaY}
+  if(Math.abs(e.deltaX)>Math.abs(e.deltaY)){e.preventDefault();car.scrollLeft+=e.deltaX}
 },{passive:false});
+/* перетаскивание карточек мышкой */
+let dragOn=false,dragMoved=false,dragX=0,dragL=0;
+car.addEventListener('pointerdown',function(e){
+  dragOn=true;dragMoved=false;dragX=e.clientX;dragL=car.scrollLeft;
+  car.setPointerCapture(e.pointerId);car.classList.add('grabbing');
+});
+car.addEventListener('pointermove',function(e){
+  if(!dragOn)return;
+  const dx=e.clientX-dragX;
+  if(Math.abs(dx)>6)dragMoved=true;
+  car.scrollLeft=dragL-dx;
+});
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+  car.addEventListener(ev,function(){dragOn=false;car.classList.remove('grabbing')});
+});
+/* не даём клику по ссылке сработать после перетаскивания */
+car.addEventListener('click',function(e){
+  if(dragMoved){e.preventDefault();e.stopPropagation()}
+},true);
+/* запрещаем нативный drag картинок */
+car.addEventListener('dragstart',function(e){e.preventDefault()});
 /* баннер cookies: запоминаем согласие, показываем один раз */
 function ckOK(){try{localStorage.setItem('ckok','1')}catch(e){}document.getElementById('ckb').style.display='none'}
 (function(){var c=null;try{c=localStorage.getItem('ckok')}catch(e){}
