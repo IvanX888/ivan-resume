@@ -172,6 +172,13 @@ footer a{color:#B8B0A6}
 /* reveal */
 .rv{opacity:0;transform:translateY(34px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1);transition-delay:var(--d,0s)}
 .rv.in{opacity:1;transform:translateY(0)}
+/* баннер cookies */
+.ckb{position:fixed;left:50%;transform:translateX(-50%);bottom:1rem;z-index:300;max-width:680px;width:calc(100% - 2rem);background:var(--dark);color:#F2EFEB;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:1rem 1.2rem;display:flex;gap:1rem;align-items:center;box-shadow:0 12px 40px rgba(0,0,0,.3);font-size:.85rem}
+.ckb p{flex:1;margin:0;color:#B8B0A6;line-height:1.5}
+.ckb a{color:var(--acc);font-weight:600}
+.ckb button{background:var(--acc);color:#fff;border:none;border-radius:999px;padding:.6rem 1.4rem;font-weight:600;font-size:.9rem;cursor:pointer;white-space:nowrap;font-family:inherit}
+.ckb button:hover{background:var(--acc2)}
+@media(max-width:640px){.ckb{flex-direction:column;text-align:center;gap:.7rem}}
 @media(max-width:820px){
 .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg);flex-direction:column;padding:1.2rem 1.5rem;gap:1.1rem;border-bottom:1px solid var(--line)}
 .burger{display:block}
@@ -184,6 +191,11 @@ section{padding:4rem 0}
 <base target="_blank">
 </head>
 <body>
+
+<div id="ckb" class="ckb" role="dialog" aria-label="Уведомление о cookies">
+<p>Мы используем cookies и Яндекс.Метрику для анализа посещаемости. Продолжая пользоваться сайтом, вы соглашаетесь с <a href="/privacy.html" target="_self">политикой конфиденциальности</a>.</p>
+<button type="button" onclick="ckOK()">Понятно</button>
+</div>
 
 <nav id="nav"><div class="wrap nav-in">
 <a class="brand" href="#top">СЕРКО<b>.</b></a>
@@ -314,7 +326,7 @@ section{padding:4rem 0}
 </div>
 </section>
 
-<footer><div class="wrap">© 2026 СЕРКО · <a href="https://max.ru/u/f9LHodD0cOKLQaqrbDh7KzCMyA51SDd-Ot0J6I2Q-i4Cy4nlitDD6GeCYL0">MAX</a> · сайты, боты, приложения</div></footer>
+<footer><div class="wrap">© 2026 СЕРКО · <a href="/privacy.html" target="_self">Конфиденциальность</a> · <a href="https://max.ru/u/f9LHodD0cOKLQaqrbDh7KzCMyA51SDd-Ot0J6I2Q-i4Cy4nlitDD6GeCYL0">MAX</a> · сайты, боты, приложения</div></footer>
 
 <script>
 const nav=document.getElementById('nav');
@@ -338,6 +350,10 @@ car.addEventListener('wheel',function(e){
   const atEnd=car.scrollLeft>=max-1&&e.deltaY>0;
   if(!atStart&&!atEnd){e.preventDefault();car.scrollLeft+=e.deltaY}
 },{passive:false});
+/* баннер cookies: запоминаем согласие, показываем один раз */
+function ckOK(){try{localStorage.setItem('ckok','1')}catch(e){}document.getElementById('ckb').style.display='none'}
+(function(){var c=null;try{c=localStorage.getItem('ckok')}catch(e){}
+if(c)document.getElementById('ckb').style.display='none'})();
 </script>
 </body>
 </html>
