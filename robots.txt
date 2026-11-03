@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://иван.серко.рф/sitemap.xml
