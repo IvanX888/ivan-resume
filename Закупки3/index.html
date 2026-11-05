@@ -344,14 +344,92 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 }
 @media(max-width:620px){.v53-response-controls,.v53-fin-add{grid-template-columns:1fr}.v53-response-head{flex-direction:column}}
 
+
+/* ================= v5.4: универсальные заметки и быстрые сведения ================= */
+.v54-quickbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.v54-quickbar .btn.sm{padding:6px 10px}
+.v54-note-tools{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.v54-note-tools2{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.v54-note{display:flex;gap:8px;align-items:flex-start;padding:9px 11px;border-radius:10px;border:1px solid var(--line);border-left-width:6px;background:#fff;margin-bottom:7px}
+.v54-note.done{opacity:.55}
+.v54-note.done .v54-note-text{text-decoration:line-through}
+.v54-note.pinned{box-shadow:0 0 0 1px var(--acc) inset}
+.v54-note-text{font-weight:600;word-break:break-word}
+.v54-note-meta{font-size:12px;color:var(--muted);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.v54-note-body{flex:1;min-width:0}
+.v54-note .del{margin-left:auto}
+.v54-color-gray{border-left-color:#8a9a95}
+.v54-color-blue{border-left-color:#2b6cb0;background:#f3f8fd}
+.v54-color-green{border-left-color:#2e7d32;background:#f2f9f2}
+.v54-color-yellow{border-left-color:#e0a800;background:#fffae8}
+.v54-color-orange{border-left-color:#c05621;background:#fdf3ec}
+.v54-color-red{border-left-color:#c62828;background:#fdeeee}
+.v54-color-violet{border-left-color:#6b46c1;background:#f6f2fd}
+.v54-badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:var(--chip);color:var(--acc2)}
+.v54-badge.prio-high{background:#fdeeee;color:#a52a2a;font-weight:700}
+.v54-badge.prio-mid{background:#fff3cd;color:#8a6d1d;font-weight:700}
+.v54-badge.overdue{background:#c62828;color:#fff}
+.v54-pin{border:0;background:none;cursor:pointer;font-size:15px;color:#b6c4c0;padding:0 2px}
+.v54-pin.on{color:var(--gold)}
+.v54-open-deal{font-size:12px;color:var(--blue);cursor:pointer;text-decoration:underline}
+.v54-note-actions{display:flex;gap:4px;align-items:center}
+.v54-note-actions button{white-space:nowrap}
+#v54QuickModal .box{max-width:780px}
+.v54-qmodes{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+.v54-qmodes button{border:1px solid var(--line);background:#f5f8f7;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13.5px}
+.v54-qmodes button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.v54-qgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.v54-qgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.v54-qhint{font-size:12.5px;color:var(--muted);background:#f2f7f5;border-radius:8px;padding:7px 10px;margin:8px 0}
+.v54-colors-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.v54-color-pick{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.v54-color-pick.on{border-color:var(--ink)}
+
+
+/* ================= v5.7: НДС, заметки-детали, окна поверх, скорость ================= */
+.v55-dash-scroll{max-height:320px;overflow:auto;padding-right:4px}
+.v55-vat-row{margin:8px 0;padding:7px 10px;background:#fffae8;border:1px solid #f0e0a8;border-radius:8px;font-size:13px}
+.v55-vat-row label{display:flex;gap:7px;align-items:center;cursor:pointer}
+.v55-sup-notes{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
+.v55-sup-notes h4{margin:0 0 5px;font-size:13px;color:var(--acc2)}
+.v55-sup-note-add{display:flex;gap:6px;margin-bottom:6px}
+.v55-sup-note-add input{flex:1}
+#v55NoteModal .box{max-width:640px}
+.v55-compose-hint{margin:6px 0;padding:8px 10px;border-radius:8px;background:#f2f7f5;color:var(--muted);font-size:13px}
+
+
+/* v5.7 */
+.v56-alt-row td{background:#f6f3ff;border-top:1px dashed #b9aee8;padding:4px 8px;white-space:nowrap}
+.v56-alt-lbl{color:#5b4a9e;font-weight:600}
+.v56-alt-name{width:240px}
+.v56-alt-q{width:64px}
+.v56-alt-p{width:96px}
+.v56-legacy-analog{margin-top:6px;padding:4px 8px;background:#fff8e1;border-radius:6px;display:inline-block}
+.v56-store-banner{position:fixed;top:0;left:0;right:0;background:#b42318;color:#fff;padding:8px 14px;z-index:99999;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.v56-store-banner button{margin-left:10px;padding:2px 10px;border:1px solid #fff;background:transparent;color:#fff;border-radius:4px;cursor:pointer}
+#v56StoreCard{border-left:4px solid #2f5d50}
+
+
+/* v5.7 */
+.v57-doc-bar{display:flex;gap:10px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.v57-doc-bar input[type="text"],.v57-doc-bar input:not([type]){flex:1;min-width:280px}
+.v57-doc-row{border:1px solid #dfe6e3;border-radius:8px;margin-bottom:6px;background:#fff}
+.v57-doc-main{padding:7px 10px;cursor:pointer}
+.v57-doc-main:hover{background:#f4f8f6}
+.v57-doc-toggle{color:#2f5d50;display:inline-block;width:14px}
+.v57-doc-row .v57-doc-details{border-top:1px dashed #cfd8d4;padding:8px 12px;background:#fafcfb}
+.v57-doc-sub{margin-top:2px;color:#5b6b64;font-size:12px}
+.v57-sup-hl{background:#fff3bf;font-weight:700;padding:0 4px;border-radius:4px;text-decoration:none;color:#5b4a00}
+.v57-sup-hl:hover{background:#ffe08a}
+
 </style>
 <base target="_blank">
 </head>
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v5.3</span></h1>
-    <div class="sub">CRM закупок · единый реестр, поставщики, КП, документы, фактические поставки и отчёты · данные загружаются отдельным бэкапом</div>
+    <h1>Помощник специалиста по закупкам <span class="badge">v5.7</span></h1>
+    <div class="sub">CRM закупок · единый реестр, поставщики, КП, документы, заметки, фактические поставки и отчёты · данные загружаются отдельным бэкапом</div>
   </div>
   <div id="gsWrap"><input id="gsQ" autocomplete="off" placeholder="🔍 Поиск везде: сделка, поставщик, товар, форма, пункт Порядка… (Ctrl+K)"><div id="gsDrop" style="display:none"></div></div>
   <div style="display:flex;gap:8px">
@@ -437,6 +515,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
       <div><label>Проверка</label><select id="fVer" onchange="renderSupTable()">
         <option value="">все</option><option value="1">проверено ✔</option><option value="0">требует проверки</option></select></div>
       <div style="flex:0"><button class="btn" onclick="openSup(-1)">+ Добавить</button></div>
+      <div style="flex:0"><label>&nbsp;</label><button class="btn ghost" onclick="v57DocModalOpen()" title="Поиск по договорам, счетам и другим документам всех поставщиков">🔎 Документы</button></div>
       <div style="flex:0"><label>&nbsp;</label><button class="btn ghost" onclick="supCleanup()" title="Удалить карточки без реквизитов, товаров и сделок (служебные строки Excel)">🧹 Пустые карточки</button></div>
     </div>
     <div class="small" id="supCount"></div>
@@ -961,7 +1040,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>CRM закупок v5.3 · пустой каркас · данные организации только в отдельном локальном бэкапе</footer>
+<footer>CRM закупок v5.7 · пустой каркас · данные организации только в отдельном локальном бэкапе</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealView"><div class="box">
@@ -1030,9 +1109,12 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
       <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="dInRep" style="width:auto"> Включить в отчёт ИС «Тендеры»</label>
     </div>
   </div>
+  <div id="dComposeHint"></div>
+  <div id="dItemsWrap">
   <h3>Лоты и товарные позиции закупки <button type="button" class="btn sm ghost" onclick="dItemAdd()">+ позиция</button></h3>
   <div class="small" style="margin-bottom:4px">Несколько позиций в одной закупке — у каждой своё количество и цена. Укажите лот — и можно распределить позиции между несколькими победителями (у каждой позиции свой «Победитель» и цена). Если у позиций указаны количество и цена, сумма сделки посчитается автоматически (поле «Сумма» можно поправить вручную).</div>
   <div style="overflow:auto"><table id="dItemsTbl"></table></div><div id="dItemsFoot"></div>
+  </div>
   <h3>Документы по сделке (отметьте готовые)</h3>
   <div class="check" id="dDocs"></div>
   <div style="margin-top:14px">
@@ -1052,6 +1134,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
     <button data-tab="contacts" onclick="smTab('contacts')">Контактные лица</button>
     <button data-tab="timeline" onclick="smTab('timeline')">Таймлайн взаимодействий</button>
     <button data-tab="deals" onclick="smTab('deals')">Сделки</button>
+    <button data-tab="docs" onclick="smTab('docs')">Документы</button>
     <button data-tab="check" onclick="smTab('check')">Чек-лист проверки</button>
   </div>
   <div id="smBody"></div>
@@ -2731,7 +2814,7 @@ function backupAll(){
     if(reg&&regB)reg=Object.assign({},reg,{data:regB});
     var docsOut=docs.map(function(x,k){var y=Object.assign({},x);if(blobs[k])y.data=blobs[k];return y;});
     var data={
-      app:'Pomoshchnik zakupok CRM', ver:'5.3', date:new Date().toISOString(),
+      app:'Pomoshchnik zakupok CRM', ver:'5.7', date:new Date().toISOString(),
       reg:reg, docs:docsOut, goods:goods,
       sup:sup, deals:deals, tasks:tasks, checks:checks, verlog:verlog,
            org:JSON.parse(localStorage.getItem('crm2_org')||'null'), sign:JSON.parse(localStorage.getItem('crm2_sign')||'null'),
@@ -7481,6 +7564,961 @@ dealContractHtml=function(d){
   h+='</div>';
   var base=_v53ContractForDelivery(d),marker='<div class="dv-panel" style="margin-top:8px"><h3>Страна и отчётность</h3>',at=base.indexOf(marker);if(at>=0)h+=base.slice(at);return h;
 };
+
+
+/* ================= v5.4: универсальные заметки и быстрые сведения ================= */
+
+/* Раздел «Задачи» становится полноценными заметками и напоминаниями. */
+GROUPS=GROUPS.map(function(g){return {id:g.id,name:g.name,items:g.items.map(function(it){return it[0]==='tasks'?['tasks','Заметки и напоминания']:it})}});
+
+var V54_NOTE_TYPES=[['note','📝 Заметка'],['remind','⏰ Напоминание'],['call','📞 Звонок'],['doc','📄 Документ'],['control','✔ Контроль'],['task','Задача']];
+var V54_NOTE_COLORS=[['gray','Серый'],['blue','Синий'],['green','Зелёный'],['yellow','Жёлтый'],['orange','Оранжевый'],['red','Красный'],['violet','Фиолетовый']];
+var V54_NOTE_PRIO=[['normal','Обычный'],['high','Важный'],['urgent','Срочный']];
+var V54_NOTE_REPEAT=[['','не повторять'],['daily','ежедневно'],['weekly','еженедельно'],['monthly','ежемесячно']];
+function v54TypeLabel(k){var x=V54_NOTE_TYPES.filter(function(t){return t[0]===k})[0];return x?x[1]:'Задача'}
+function v54ColorOptions(k){return V54_NOTE_COLORS.map(function(c){return '<option value="'+c[0]+'"'+(k===c[0]?' selected':'')+'>'+c[1]+'</option>'}).join('')}
+function v54TypeOptions(k){return V54_NOTE_TYPES.filter(function(t){return t[0]!=='task'}).map(function(c){return '<option value="'+c[0]+'"'+(k===c[0]?' selected':'')+'>'+c[1]+'</option>'}).join('')}
+function v54PrioOptions(k){return V54_NOTE_PRIO.map(function(c){return '<option value="'+c[0]+'"'+(k===c[0]?' selected':'')+'>'+c[1]+'</option>'}).join('')}
+function v54RepeatOptions(k){return V54_NOTE_REPEAT.map(function(c){return '<option value="'+c[0]+'"'+(k===c[0]?' selected':'')+'>'+c[1]+'</option>'}).join('')}
+
+/* Старые задачи дополняются новыми полями без потери данных. */
+function v54NormalizeTasks(){
+  var changed=false;
+  tasks=(tasks||[]).map(function(t){
+    if(!t||typeof t!=='object'){changed=true;return null}
+    if(t._v54)return t;
+    changed=true;
+    var o={};for(var k in t)o[k]=t[k];
+    o._v54=1;o.type=o.type||'task';o.color=o.color||'gray';o.prio=o.prio||'normal';o.repeat=o.repeat||'';o.pinned=!!o.pinned;o.dealId=o.dealId||'';o.docKind=o.docKind||'';o.created=o.created||today();
+    return o;
+  }).filter(Boolean);
+  if(changed)save();
+}
+
+function v54DealLabel(d){
+  var base=(d.date||'без даты')+' · '+String(d.subj||'без предмета').slice(0,60)+(d.sup?' · '+String(d.sup).slice(0,40):'');
+  return base;
+}
+function v54DealLabelMap(){
+  var map={};
+  deals.forEach(function(d){
+    var l=v54DealLabel(d);
+    if(map[l])l=l+' · №'+d.id;
+    map[l]=d.id;
+  });
+  return map;
+}
+function v54DealDatalist(id){
+  var sorted=deals.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1});
+  return '<datalist id="'+id+'">'+sorted.map(function(d){var l=v54DealLabel(d);return '<option value="'+v5escAttr(l)+'"></option>'}).join('')+'</datalist>';
+}
+function v54DealIdByLabel(label){
+  if(!label)return '';
+  var map=v54DealLabelMap();
+  if(map[label])return map[label];
+  var q=normKey(label),found='';
+  deals.forEach(function(d){if(!found&&normKey(v54DealLabel(d))===q)found=d.id});
+  return found;
+}
+
+/* Новая страница раздела: единый поиск, цвет, тип, приоритет, срок, повтор, привязки. */
+function v54EnsureTasksUI(){
+  var sec=document.getElementById('tasks');if(!sec)return;
+  sec.innerHTML='<div class="card"><h2>Новая заметка / напоминание</h2>'
+   +'<div class="v54-note-tools" style="grid-template-columns:2fr 1fr 1fr 1fr">'
+   +'<div><label>Текст</label><input id="v54nTitle" placeholder="например: позвонить поставщику и попросить ответить на заявку"></div>'
+   +'<div><label>Тип</label><select id="v54nType">'+v54TypeOptions('note')+'</select></div>'
+   +'<div><label>Цвет</label><select id="v54nColor">'+v54ColorOptions('gray')+'</select></div>'
+   +'<div><label>Приоритет</label><select id="v54nPrio">'+v54PrioOptions('normal')+'</select></div></div>'
+   +'<div class="v54-note-tools" style="grid-template-columns:1fr 1fr 2fr 1fr">'
+   +'<div><label>Срок</label><input type="date" id="v54nDue"></div>'
+   +'<div><label>Повтор</label><select id="v54nRepeat">'+v54RepeatOptions('')+'</select></div>'
+   +'<div><label>Привязка к закупке (необязательно)</label><input id="v54nDeal" list="v54nDealList" placeholder="начните вводить предмет или поставщика…">'+v54DealDatalist('v54nDealList')+'</div>'
+   +'<div><label>Документ (необязательно)</label><select id="v54nDocKind"><option value="">—</option>'+v5DocTypeOptions('')+'</select></div></div>'
+   +'<div class="v54-note-tools2" style="grid-template-columns:2fr 1fr 1fr">'
+   +'<div><label>Поставщик (необязательно)</label><input id="tSup" list="tSupList" placeholder="начните вводить для поиска…"><datalist id="tSupList"></datalist></div>'
+   +'<div style="display:flex;align-items:end"><label class="inline-check"><input type="checkbox" id="v54nPin"> 📌 Закрепить сверху</label></div>'
+   +'<div style="display:flex;align-items:end"><button class="btn" onclick="v54AddNote()">＋ Добавить</button></div></div>'
+   +'<div class="v54-qhint">Выполненное повторяющееся напоминание само переносится на следующий срок. Заметку можно привязать к закупке — она появится и на рабочем столе, и откроет закупку в один клик.</div></div>'
+   +'<div class="card"><h2>Заметки и напоминания</h2>'
+   +'<div class="fbar" style="grid-template-columns:2fr 1fr 1fr 1fr;display:grid">'
+   +'<div><label>Поиск</label><input id="tQ" oninput="renderTasks()" placeholder="текст, поставщик, закупка, документ…"></div>'
+   +'<div><label>Показать</label><select id="tF" onchange="renderTasks()"><option value="">все</option><option value="act">активные</option><option value="today">на сегодня</option><option value="overdue">просроченные</option><option value="pinned">закреплённые</option><option value="done">выполненные</option></select></div>'
+   +'<div><label>Тип</label><select id="v54fType" onchange="renderTasks()"><option value="">все типы</option>'+v54TypeOptions('')+'<option value="task">Задача (старые)</option></select></div>'
+   +'<div><label>Цвет</label><select id="v54fColor" onchange="renderTasks()"><option value="">все цвета</option>'+v54ColorOptions('')+'</select></div></div>'
+   +'<div id="taskList"></div></div>';
+}
+
+function v54NoteHtml(t){
+  var over=!t.done&&t.due&&t.due<today();
+  var color=V54_NOTE_COLORS.some(function(c){return c[0]===t.color})?t.color:'gray';
+  var meta=[];
+  meta.push('<span class="v54-badge">'+esc(v54TypeLabel(t.type||'task'))+'</span>');
+  if(t.prio==='high')meta.push('<span class="v54-badge prio-mid">Важный</span>');
+  if(t.prio==='urgent')meta.push('<span class="v54-badge prio-high">СРОЧНЫЙ</span>');
+  if(t.due)meta.push('<span class="v54-badge'+(over?' overdue':'')+'">срок: '+esc(t.due)+(over?' — ПРОСРОЧЕНО':'')+'</span>');
+  if(t.repeat)meta.push('<span class="v54-badge">🔁 '+esc((V54_NOTE_REPEAT.filter(function(r){return r[0]===t.repeat})[0]||[])[1]||t.repeat)+'</span>');
+  if(t.docKind)meta.push('<span class="v54-badge">📄 '+esc(v5DocLabel(t.docKind))+'</span>');
+  if(t.sup)meta.push('<a href="#" onclick="openSupByName(\''+v5escAttr(t.sup)+'\');return false">'+esc(dispName(supByName(t.sup)))+'</a>');
+  var deal=t.dealId?deals.filter(function(d){return d.id===t.dealId})[0]:null;
+  if(deal)meta.push('<span class="v54-open-deal" onclick="dealView(\''+deal.id+'\')">📂 '+esc(String(deal.subj||'закупка').slice(0,45))+'</span>');
+  return '<div class="task v54-note v54-color-'+color+(t.done?' done':'')+(t.pinned?' pinned':'')+'">'
+   +'<input type="checkbox" style="width:auto;margin-top:4px" '+(t.done?'checked':'')+' onchange="toggleTask(\''+t.id+'\')" title="Выполнить">'
+   +'<div class="v54-note-body"><div class="v54-note-text">'+esc(t.t)+'</div><div class="v54-note-meta">'+meta.join(' ')+'</div></div>'
+   +'<div class="v54-note-actions"><button class="v54-pin'+(t.pinned?' on':'')+'" title="'+(t.pinned?'Открепить':'Закрепить сверху')+'" onclick="v54TogglePin(\''+t.id+'\')">📌</button>'
+   +'<button class="del" title="Изменить текст" onclick="v54EditNote(\''+t.id+'\')">✎</button>'
+   +'<button class="del" title="Удалить" onclick="delTask(\''+t.id+'\')">✕</button></div></div>';
+}
+
+renderTasks=function(){
+  try{v51TaskSearchRender()}catch(e){}
+  var q=normKey(document.getElementById('tQ').value),f=document.getElementById('tF').value;
+  var fType=(document.getElementById('v54fType')||{}).value||'',fColor=(document.getElementById('v54fColor')||{}).value||'';
+  var list=tasks.filter(function(t){
+    if(f==='act'&&t.done)return false;
+    if(f==='done'&&!t.done)return false;
+    if(f==='overdue'&&(t.done||!t.due||t.due>=today()))return false;
+    if(f==='today'&&(t.done||t.due!==today()))return false;
+    if(f==='pinned'&&!t.pinned)return false;
+    if(fType&&(t.type||'task')!==fType)return false;
+    if(fColor&&(t.color||'gray')!==fColor)return false;
+    if(q){
+      var deal=t.dealId?deals.filter(function(d){return d.id===t.dealId})[0]:null;
+      var hay=normKey(t.t+' '+(t.sup||'')+' '+(deal?(deal.subj+' '+(deal.sup||'')):'')+' '+v5DocLabel(t.docKind||''));
+      if(hay.indexOf(q)<0)return false;
+    }
+    return true;
+  }).sort(function(a,b){
+    return ((b.pinned?1:0)-(a.pinned?1:0))||((a.done?1:0)-(b.done?1:0))||((a.due||'9999')<(b.due||'9999')?-1:1);
+  });
+  document.getElementById('taskList').innerHTML=list.length?list.map(v54NoteHtml).join(''):'<div class="small">Ничего не найдено. Добавьте первую заметку выше.</div>';
+};
+
+function v54AddNote(){
+  var title=(document.getElementById('v54nTitle').value||'').trim();
+  if(!title){toastInfo('Введите текст заметки');return}
+  var dealLabel=(document.getElementById('v54nDeal').value||'').trim();
+  var dealId=v54DealIdByLabel(dealLabel);
+  var t={id:uid('t'),t:title,due:document.getElementById('v54nDue').value||'',sup:(document.getElementById('tSup').value||'').trim(),done:false,
+    type:document.getElementById('v54nType').value||'note',color:document.getElementById('v54nColor').value||'gray',prio:document.getElementById('v54nPrio').value||'normal',
+    repeat:document.getElementById('v54nRepeat').value||'',pinned:document.getElementById('v54nPin').checked,dealId:dealId,docKind:document.getElementById('v54nDocKind').value||'',created:today(),_v54:1};
+  tasks.unshift(t);
+  if(dealId){var d=deals.filter(function(x){return x.id===dealId})[0];if(d){d.hist=d.hist||[];d.hist.unshift({d:today(),t:'Заметка: '+title+(t.due?' (срок '+t.due+')':''),toSup:false});}}
+  document.getElementById('v54nTitle').value='';document.getElementById('v54nDeal').value='';document.getElementById('v54nDue').value='';document.getElementById('v54nPin').checked=false;
+  save();renderTasks();renderDash();toastInfo('Добавлено');
+}
+addTask=v54AddNote;
+
+function v54NextDue(due,repeat){
+  var base=due&&due>today()?due:today();
+  var dt=new Date(base+'T00:00:00Z');
+  if(repeat==='daily')dt.setUTCDate(dt.getUTCDate()+1);
+  else if(repeat==='weekly')dt.setUTCDate(dt.getUTCDate()+7);
+  else if(repeat==='monthly')dt.setUTCMonth(dt.getUTCMonth()+1);
+  else return due;
+  return dt.toISOString().slice(0,10);
+}
+toggleTask=function(id){
+  var t=tasks.filter(function(x){return x.id===id})[0];if(!t)return;
+  if(!t.done&&t.repeat&&t.due){
+    t.due=v54NextDue(t.due,t.repeat);t.done=false;
+    save();renderTasks();renderDash();toastInfo('Выполнено. Следующий срок: '+t.due);return;
+  }
+  t.done=!t.done;if(t.done)t.doneAt=today();else delete t.doneAt;
+  save();renderTasks();renderDash();
+};
+function v54TogglePin(id){var t=tasks.filter(function(x){return x.id===id})[0];if(!t)return;t.pinned=!t.pinned;save();renderTasks();renderDash()}
+function v54EditNote(id){
+  var t=tasks.filter(function(x){return x.id===id})[0];if(!t)return;
+  var nt=prompt('Текст заметки:',t.t);if(nt===null)return;
+  nt=nt.trim();if(!nt)return;
+  t.t=nt;save();renderTasks();renderDash();toastInfo('Заметка обновлена');
+}
+
+/* Рабочий стол: быстрые кнопки и цветной список ближайших дел. */
+var _v54BaseRenderDash=renderDash;
+renderDash=function(){
+  _v54BaseRenderDash();
+  var el=document.getElementById('dashTasks');if(!el)return;
+  var list=tasks.filter(function(t){return !t.done}).sort(function(a,b){
+    return ((b.pinned?1:0)-(a.pinned?1:0))||((a.due||'9999')<(b.due||'9999')?-1:1);
+  }).slice(0,7);
+  el.innerHTML='<div class="v54-quickbar">'
+   +'<button class="btn sm" onclick="go(\'tasks\')">＋ Заметка</button>'
+   +'<button class="btn sm ghost" onclick="go(\'tasks\')">⏰ Напоминание</button>'
+   +'<button class="btn sm ghost" style="border-color:var(--gold);color:var(--gold)" onclick="v54QuickOpen()">⚡ Поздние сведения (договор / счёт / ТТН)</button></div>'
+   +(list.length?list.map(v54NoteHtml).join(''):'<div class="small">Активных заметок и напоминаний нет.</div>');
+};
+
+/* Кнопки быстрых действий прямо в карточке закупки. */
+var _v54BaseDealView=dealView;
+dealView=function(id){
+  _v54BaseDealView(id);
+  var body=document.getElementById('dvBody');if(!body||!body.innerHTML)return;
+  var h=body.innerHTML,m='<div class="dv-footer">';
+  if(h.indexOf('v54QuickOpen')>=0)return;
+  var at=h.indexOf(m);if(at<0)return;
+  body.innerHTML=h.replace(m,m+'<button class="btn ghost sm" onclick="v54QuickOpen(\''+id+'\',\'note\')">📝 Заметка</button><button class="btn ghost sm" onclick="v54QuickOpen(\''+id+'\',\'doc\')">⚡ Добавить сведения</button>');
+};
+
+/* ================= Быстрое меню «Поздние сведения» ================= */
+var _v54q={dealId:'',mode:'doc',docSup:''};
+var _v54qModalReady=false;
+function v54QuickEnsure(){
+  if(_v54qModalReady)return;
+  if(!document.body||typeof document.body.insertAdjacentHTML!=='function')return;
+  document.body.insertAdjacentHTML('beforeend','<div class="modal" id="v54QuickModal"><div class="box" style="max-width:780px">'
+   +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">⚡ Быстрые сведения по закупке</h2><button class="del" onclick="closeModal(\'v54QuickModal\')">✕</button></div>'
+   +'<div class="v54-qhint">Договор, счёт, ТТН или заметку можно добавить в любую закупку — даже завершённую месяц назад. Этап закупки не меняется. Квартальный отчёт обновляется по фактической дате поставки.</div>'
+   +'<div class="v54-qgrid"><div><label>Поиск закупки</label><input id="v54qSearch" oninput="v54QuickFilter()" placeholder="предмет, поставщик, договор, счёт, ТТН…"></div>'
+   +'<div><label>Закупка</label><select id="v54qDeal" onchange="v54QuickPickDeal()"></select></div></div>'
+   +'<div class="v54-qmodes"><button id="v54qModeDoc" onclick="v54QuickSetMode(\'doc\')">📄 Документ (договор / счёт)</button><button id="v54qModeDelivery" onclick="v54QuickSetMode(\'delivery\')">📦 Получение и ТТН</button><button id="v54qModeNote" onclick="v54QuickSetMode(\'note\')">📝 Заметка / напоминание</button></div>'
+   +'<div id="v54qBody"></div></div></div>');
+  _v54qModalReady=true;
+}
+function v54QuickDealMatches(d,q){
+  if(!q)return true;
+  var docs=v5DealDocs(d).map(function(x){return v5DocLabel(x.kind)+' '+(x.no||'')+' '+(x.date||'')}).join(' ');
+  var hay=normKey((d.subj||'')+' '+(d.sup||'')+' '+(d.sups||[]).join(' ')+' '+docs+' '+(d.ttnNo||''));
+  return hay.indexOf(q)>=0;
+}
+function v54QuickOptions(){
+  var q=normKey((document.getElementById('v54qSearch')||{}).value||'');
+  var sorted=deals.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1}).filter(function(d){return v54QuickDealMatches(d,q)});
+  if(!sorted.length)return '<option value="">— ничего не найдено —</option>';
+  return sorted.map(function(d){return '<option value="'+d.id+'"'+(d.id===_v54q.dealId?' selected':'')+'>'+esc(v54DealLabel(d))+'</option>'}).join('');
+}
+function v54QuickFilter(){var sel=document.getElementById('v54qDeal');sel.innerHTML=v54QuickOptions();if(_v54q.dealId&&sel.innerHTML.indexOf('value="'+_v54q.dealId+'"')<0){_v54q.dealId='';}v54QuickRender()}
+function v54QuickPickDeal(){_v54q.dealId=document.getElementById('v54qDeal').value;_v54q.docSup='';v54QuickRender()}
+function v54QuickSetMode(m){_v54q.mode=m;v54QuickRender()}
+function v54QuickOpen(dealId,mode){
+  v54QuickEnsure();
+  if(dealId)_v54q.dealId=dealId;
+  if(mode)_v54q.mode=mode;
+  _v54q.docSup='';
+  var sel=document.getElementById('v54qDeal');sel.innerHTML=v54QuickOptions();
+  if(!_v54q.dealId&&sel.options&&sel.options.length)_v54q.dealId=sel.options[0].value||'';
+  if(!_v54q.dealId){var first=deals.slice().sort(function(a,b){return (b.date||'')<(a.date||'')?-1:1})[0];if(first)_v54q.dealId=first.id;}
+  v54QuickRender();
+  document.getElementById('v54QuickModal').classList.add('open');
+}
+function v54QuickDocSup(v){_v54q.docSup=v;v54QuickRender()}
+function v54QuickRender(){
+  ['Doc','Delivery','Note'].forEach(function(m){
+    var b=document.getElementById('v54qMode'+m);if(!b)return;
+    b.className=((_v54q.mode===m.toLowerCase())?'on':'');
+  });
+  document.getElementById('v54qBody').innerHTML=v54QuickBody();
+}
+function v54QuickBody(){
+  var d=deals.filter(function(x){return x.id===_v54q.dealId})[0];
+  if(!d)return '<div class="v54-qhint">Выберите закупку из списка выше — поиск ищет по предмету, поставщику, номеру договора, счёта и ТТН.</div>';
+  var head='<div class="v54-qhint">Закупка: <b>'+esc(String(d.subj||'без предмета').slice(0,80))+'</b> · этап: '+esc(stageName(d.stage))+' · сумма: <b>'+fmt(d.sum)+'</b></div>';
+  if(_v54q.mode==='delivery'){
+    return head+'<div class="v54-qgrid3">'
+     +'<div><label>Дата фактической поставки</label><input type="date" id="v54qDelDate" value="'+esc(d.deliveryDate||today())+'"></div>'
+     +'<div><label>Номер ТТН / накладной</label><input id="v54qTtnNo" value="'+esc(d.ttnNo||'')+'" placeholder="можно без номера"></div>'
+     +'<div><label>Дата ТТН</label><input type="date" id="v54qTtnDate" value="'+esc(d.ttnDate||'')+'"></div></div>'
+     +'<div class="v54-qgrid" style="margin-top:8px"><div><label>Страна происхождения</label><input id="v54qCountry" value="'+esc(d.country||'')+'" placeholder="Беларусь, Россия, Китай…"></div>'
+     +'<div style="display:flex;flex-direction:column;gap:6px;justify-content:end"><label class="inline-check"><input type="checkbox" id="v54qGot" '+(d.got?'checked':'')+'> Товар получен полностью</label>'
+     +'<label class="inline-check"><input type="checkbox" id="v54qApplyItems" checked> Проставить дату и страну позициям, где они ещё не указаны</label></div></div>'
+     +'<div class="v54-qhint">Отчёт пополнится позициями с этой датой поставки. Уже поданный отчёт III квартала 2026 зафиксирован и не изменится.</div>'
+     +'<div style="margin-top:8px"><button class="btn" onclick="v54QuickSave()">💾 Сохранить получение</button></div>';
+  }
+  if(_v54q.mode==='note'){
+    return head+'<div><label>Текст заметки / напоминания</label><input id="v54qNoteText" placeholder="например: запросить ТТН повторно"></div>'
+     +'<div class="v54-note-tools" style="margin-top:8px"><div><label>Цвет</label><select id="v54qNoteColor">'+v54ColorOptions('yellow')+'</select></div>'
+     +'<div><label>Приоритет</label><select id="v54qNotePrio">'+v54PrioOptions('normal')+'</select></div>'
+     +'<div><label>Срок</label><input type="date" id="v54qNoteDue"></div>'
+     +'<div><label>Повтор</label><select id="v54qNoteRepeat">'+v54RepeatOptions('')+'</select></div></div>'
+     +'<div style="margin-top:8px"><button class="btn" onclick="v54QuickSave()">💾 Сохранить заметку</button></div>';
+  }
+  /* документ */
+  var names=(typeof v53DocSuppliers==='function')?v53DocSuppliers(d):(d.sup?[d.sup]:[]);
+  if(!_v54q.docSup&&names.length)_v54q.docSup=names[0];
+  var docs=v5DealDocs(d);
+  var contracts=docs.filter(function(x){return (x.kind==='contract'||x.kind==='contract_invoice')&&(x.sup||'')===_v54q.docSup});
+  var defSum=_v54q.docSum!==undefined?_v54q.docSum:(typeof v53SupplierTotal==='function'?v53SupplierTotal(d,_v54q.docSup):(+d.sum||0));
+  return head+'<div class="v54-qgrid">'
+   +'<div><label>Поставщик документа</label><select id="v54qDocSup" onchange="v54QuickDocSup(this.value)">'+v53SupplierOptions(d,_v54q.docSup)+'</select></div>'
+   +'<div><label>Тип документа</label><select id="v54qDocKind">'+v5DocTypeOptions('invoice')+'</select></div></div>'
+   +'<div class="v54-qgrid3" style="margin-top:8px"><div><label>Номер</label><input id="v54qDocNo" placeholder="можно без номера"><label class="inline-check"><input type="checkbox" id="v54qDocNoNum"> без номера</label></div>'
+   +'<div><label>Дата документа</label><input type="date" id="v54qDocDate" value="'+today()+'"></div>'
+   +'<div><label>Сумма, руб.</label><input type="number" step="0.01" min="0" id="v54qDocSum" value="'+(+defSum||'')+'"></div></div>'
+   +'<div class="v54-qgrid" style="margin-top:8px"><div><label>Связь с договором этого же поставщика</label><select id="v54qDocParent"><option value="">без договора</option>'+contracts.map(function(c){return '<option value="'+c.id+'">'+esc(v5DocLabel(c.kind)+' '+v5DocNo(c)+(c.date?' от '+c.date:''))+'</option>'}).join('')+'</select></div>'
+   +'<div style="display:flex;align-items:end;gap:12px"><label class="inline-check"><input type="checkbox" id="v54qDocPaid"> оплачен</label><div><label>Дата оплаты</label><input type="date" id="v54qDocPayDate"></div></div></div>'
+   +'<div class="v54-qhint">Победителей несколько — добавьте каждому свой счёт/договор: окно останется открытым для следующего документа. Счёт без договора и документ без номера допускаются.</div>'
+   +'<div style="margin-top:8px"><button class="btn" onclick="v54QuickSave()">💾 Добавить документ</button></div>';
+}
+function v54QuickSave(){
+  var d=deals.filter(function(x){return x.id===_v54q.dealId})[0];
+  if(!d){toastInfo('Сначала выберите закупку');return}
+  var g=function(id){return document.getElementById(id)};
+  if(_v54q.mode==='doc'){
+    var supplier=g('v54qDocSup').value,kind=g('v54qDocKind').value||'invoice';
+    var names=(typeof v53DocSuppliers==='function')?v53DocSuppliers(d):(d.sup?[d.sup]:[]);
+    if(names.length&&!supplier){toastInfo('Выберите поставщика документа');return}
+    var noNumber=g('v54qDocNoNum').checked,no=noNumber?'':(g('v54qDocNo').value||'').trim();
+    var parentId=g('v54qDocParent')?g('v54qDocParent').value:'';
+    var docs=v5DealDocs(d);
+    if(parentId){
+      var parent=docs.filter(function(r){return r.id===parentId})[0];
+      if(!parent||parent.sup!==supplier||['contract','contract_invoice'].indexOf(parent.kind)<0){toastInfo('Счёт можно связать только с договором того же поставщика');return}
+    }
+    var paid=g('v54qDocPaid').checked;
+    var nd={id:uid('fd'),kind:kind,sup:supplier,no:no,noNumber:noNumber,date:g('v54qDocDate').value||'',sum:+g('v54qDocSum').value||0,paid:paid,payDate:paid?(g('v54qDocPayDate').value||''):'',parentId:parentId};
+    docs.push(nd);
+    v5SyncLegacyDocs(d);d.hist=d.hist||[];
+    d.hist.unshift({d:today(),t:'Добавлен документ: '+v5DocLabel(kind)+' '+v5DocNo(nd)+(nd.date?' от '+nd.date:'')+' на '+fmt(nd.sum)+(supplier?' ('+supplier+')':''),toSup:true});
+    save();renderPipe();renderDash();v54QuickRender();
+    toastInfo('Документ добавлен'+(names.length>1?' — можно добавить следующему поставщику':''));
+    return;
+  }
+  if(_v54q.mode==='delivery'){
+    var dt=g('v54qDelDate').value||today();
+    d.deliveryDate=dt;
+    d.ttnNo=(g('v54qTtnNo').value||'').trim();d.ttnDate=g('v54qTtnDate').value||'';
+    var c=(g('v54qCountry').value||'').trim();if(c)d.country=c;
+    d.got=g('v54qGot').checked;
+    if(g('v54qApplyItems').checked){(d.items||[]).forEach(function(x){if(!x.deliveryDate)x.deliveryDate=dt;if(c&&!x.country)x.country=c;});}
+    d.hist=d.hist||[];
+    d.hist.unshift({d:today(),t:'Поздние сведения: поставка '+dt+(d.ttnNo?', ТТН '+d.ttnNo:'')+(d.ttnDate?' от '+d.ttnDate:'')+(c?', страна: '+c:''),toSup:true});
+    save();renderPipe();renderDash();closeModal('v54QuickModal');
+    toastInfo('Поставка сохранена — отчёт обновится по дате '+dt);
+    return;
+  }
+  /* заметка */
+  var text=(g('v54qNoteText').value||'').trim();
+  if(!text){toastInfo('Введите текст заметки');return}
+  tasks.unshift({id:uid('t'),t:text,due:g('v54qNoteDue').value||'',sup:d.sup||'',done:false,type:'note',color:g('v54qNoteColor').value||'yellow',prio:g('v54qNotePrio').value||'normal',repeat:g('v54qNoteRepeat').value||'',pinned:false,dealId:d.id,docKind:'',created:today(),_v54:1});
+  d.hist=d.hist||[];d.hist.unshift({d:today(),t:'Заметка: '+text,toSup:false});
+  save();renderTasks();renderDash();closeModal('v54QuickModal');toastInfo('Заметка добавлена и привязана к закупке');
+}
+
+v54NormalizeTasks();
+v54EnsureTasksUI();
+
+
+/* ================= v5.7: НДС, заметки-детали, окна поверх, скорость, форма 19 ================= */
+var V55_VAT=1.2;
+
+/* ---------- Модальные окна: последнее открытое всегда сверху ---------- */
+var _v55Z=100;
+if(typeof MutationObserver!=='undefined'&&document.body){
+  try{
+    new MutationObserver(function(muts){
+      muts.forEach(function(m){var el=m.target;if(el&&el.classList&&el.classList.contains('open'))el.style.zIndex=++_v55Z;});
+    }).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+  }catch(e){try{console.log('v55-modal-z',e)}catch(_){}}
+}
+
+/* ---------- НДС 20 %: цены вводятся без НДС, итог по галочке с НДС ---------- */
+function v55VatMul(k){return (k&&k.vat)?V55_VAT:1}
+function v55GrossPrice(k,p){return v5round((+p||0)*v55VatMul(k))}
+
+/* Цена победителя: в карточке хранится цена с НДС, нетто — отдельно для отчёта. */
+v5RefreshAwardPrices=function(d){
+  var hadAward=false;(d.items||[]).forEach(function(x,i){
+    if(!x.win)return;hadAward=true;var k=(d.kps||{})[x.win],ki=k&&k.items&&k.items[i];
+    if(v53Offered(ki)){
+      x.p=v55GrossPrice(k,ki.p);x.wp=v5round((+x.q||0)*x.p);
+      if(k.vat)x.sumWithoutVat=v5round((+x.q||0)*(+ki.p||0));else delete x.sumWithoutVat;
+    }else{delete x.win;delete x.p;delete x.wp;delete x.sumWithoutVat}
+  });if(hadAward)v5SyncAward(d);
+};
+dealKpWinItem=function(id,i,n){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d||!d.items||!d.items[i])return;
+  var x=d.items[i];
+  if(n){
+    var k=(d.kps||{})[n],ki=k&&k.items&&k.items[i];
+    if(!v53Offered(ki))return toastInfo('Эта позиция не включена в счёт поставщика или в ней нет цены');
+    x.win=n;x.p=v55GrossPrice(k,ki.p);x.wp=v5round((+x.q||0)*x.p);
+    if(k.vat)x.sumWithoutVat=v5round((+x.q||0)*(+ki.p||0));else delete x.sumWithoutVat;
+  }else{delete x.win;delete x.wp;delete x.sumWithoutVat}
+  v5SyncAward(d);d.hist=d.hist||[];
+  d.hist.unshift({d:today(),t:'Позиция «'+String(x.n||'')+'»: '+(n||'выбор поставщика снят'),toSup:true});
+  save();renderPipe();renderDash();dealView(id);toastInfo('Выбор по позиции сохранён');
+};
+dealKpWin=function(id,n){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;
+  var k=(d.kps||{})[n];if(!k)return;
+  var items=d.items||[],assigned=0;
+  if(items.length){
+    items.forEach(function(x,i){var ki=k.items&&k.items[i];if(v53Offered(ki)){x.p=v55GrossPrice(k,ki.p);x.win=n;x.wp=v5round((+x.q||0)*x.p);if(k.vat)x.sumWithoutVat=v5round((+x.q||0)*(+ki.p||0));else delete x.sumWithoutVat;assigned++}});
+    if(!assigned)return toastInfo('У поставщика нет отмеченных позиций с ценой');
+    v5SyncAward(d);
+  }else{if(!(+k.sum>0))return toastInfo('Сначала укажите общую сумму КП');d.sup=n;d.sum=v5round((+k.sum)*v55VatMul(k));d.multiWin=undefined}
+  d.hist=d.hist||[];
+  d.hist.unshift({d:today(),t:'Выбраны цены поставщика '+n+(items.length?' по '+assigned+' позициям':' — '+fmt(d.sum))+(k.vat?' (с НДС 20 %)':''),toSup:true});
+  save();renderPipe();renderDash();dealView(id);
+  toastInfo(items.length?'Выбраны отмеченные позиции поставщика'+(k.vat?' — итог с НДС':''):'Победитель: '+n);
+};
+
+/* Итог КП показывает сумму с НДС, когда включён флаг. */
+var _v55KpRecalc=v53KpRecalc;
+v53KpRecalc=function(d,n){
+  var s=_v55KpRecalc(d,n),k=(d.kps||{})[n];
+  if(k&&k.vat&&s)s=v5round(s*V55_VAT);
+  return s;
+};
+function v55KpVat(id,n,checked){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;
+  var k=dealEnsureKp(d,n);k.vat=!!checked;
+  v5RefreshAwardPrices(d);
+  save();renderPipe();renderDash();dealView(id);
+  toastInfo(checked?'Итог этого поставщика считается с НДС 20 %':'Итог без добавления НДС');
+}
+
+/* Галочка НДС и заметки поставщика — в панель ответа. */
+var _v55KpBlock=dealKpBlock;
+dealKpBlock=function(d){
+  var h=_v55KpBlock(d),n=v53KpSelected(d),k=(d.kps||{})[n]||{};
+  var vatBox='<div class="v55-vat-row"><label><input type="checkbox" '+(k.vat?'checked':'')+' onchange="v55KpVat(\''+d.id+'\',\''+v5escAttr(n)+'\',this.checked)"><span>Цены этого поставщика введены <b>без НДС</b> — считать итог и победные цены <b>с НДС 20 %</b></span></label></div>';
+  if(h.indexOf('<div class="v53-response-controls v53-response-bottom">')>=0)h=h.replace('<div class="v53-response-controls v53-response-bottom">',vatBox+'<div class="v53-response-controls v53-response-bottom">');
+  if(k.vat)h=h.split('Итого по отмеченным позициям:').join('Итого по отмеченным позициям (с НДС 20 %):');
+  var notes=v55DealSupNotes(d,n);
+  if(h.indexOf('<div class="dv-note-compact">Один поставщик открыт за раз')>=0)h=h.replace('<div class="dv-note-compact">Один поставщик открыт за раз',notes+'<div class="dv-note-compact">Один поставщик открыт за раз');
+  return h;
+};
+
+/* ---------- Заметки: исправление кода, даты, редактор, привязка к поставщику в закупке ---------- */
+v54NoteHtml=function(t){
+  var over=!t.done&&t.due&&t.due<today();
+  var color=V54_NOTE_COLORS.some(function(c){return c[0]===t.color})?t.color:'gray';
+  var meta=[];
+  meta.push('<span class="v54-badge">'+esc(v54TypeLabel(t.type||'task'))+'</span>');
+  if(t.prio==='high')meta.push('<span class="v54-badge prio-mid">Важный</span>');
+  if(t.prio==='urgent')meta.push('<span class="v54-badge prio-high">СРОЧНЫЙ</span>');
+  if(t.due)meta.push('<span class="v54-badge'+(over?' overdue':'')+'">срок: '+esc(t.due)+(over?' — ПРОСРОЧЕНО':'')+'</span>');
+  if(t.repeat)meta.push('<span class="v54-badge">🔁 '+esc((V54_NOTE_REPEAT.filter(function(r){return r[0]===t.repeat})[0]||[])[1]||t.repeat)+'</span>');
+  if(t.docKind)meta.push('<span class="v54-badge">📄 '+esc(v5DocLabel(t.docKind))+'</span>');
+  if(t.created)meta.push('<span class="v54-badge">создана '+esc(t.created)+'</span>');
+  if(t.updated&&t.updated!==t.created)meta.push('<span class="v54-badge">изменена '+esc(t.updated)+'</span>');
+  if(t.sup){var so=supByName(t.sup);meta.push(so?'<a href="#" onclick="openSupByName(\''+v5escAttr(t.sup)+'\');return false">'+dispName(so)+'</a>':'<span class="v54-badge">'+esc(t.sup)+'</span>');}
+  var deal=t.dealId?deals.filter(function(d){return d.id===t.dealId})[0]:null;
+  if(deal)meta.push('<span class="v54-open-deal" onclick="dealView(\''+deal.id+'\')">📂 '+esc(String(deal.subj||'закупка').slice(0,45))+'</span>');
+  return '<div class="task v54-note v54-color-'+color+(t.done?' done':'')+(t.pinned?' pinned':'')+'">'
+   +'<input type="checkbox" style="width:auto;margin-top:4px" '+(t.done?'checked':'')+' onchange="toggleTask(\''+t.id+'\')" title="Выполнить">'
+   +'<div class="v54-note-body"><div class="v54-note-text">'+esc(t.t)+'</div><div class="v54-note-meta">'+meta.join(' ')+'</div></div>'
+   +'<div class="v54-note-actions"><button class="v54-pin'+(t.pinned?' on':'')+'" title="'+(t.pinned?'Открепить':'Закрепить сверху')+'" onclick="v54TogglePin(\''+t.id+'\')">📌</button>'
+   +'<button class="del" title="Изменить заметку" onclick="v54EditNote(\''+t.id+'\')">✎</button>'
+   +'<button class="del" title="Удалить" onclick="delTask(\''+t.id+'\')">✕</button></div></div>';
+};
+
+/* Рабочий стол: прокручиваемый список дел. */
+var _v55BaseRenderDash=renderDash;
+renderDash=function(){
+  _v55BaseRenderDash();
+  var el=document.getElementById('dashTasks');if(!el||!el.innerHTML)return;
+  var h=el.innerHTML,mark='</div>'; /* quickbar end */
+  if(h.indexOf('v55-dash-scroll')>=0)return;
+  var qb='<div class="v54-quickbar">';
+  var at=h.indexOf(qb);if(at<0)return;
+  var end=h.indexOf('</div>',at)+mark.length;
+  el.innerHTML=h.slice(0,end)+'<div class="v55-dash-scroll">'+h.slice(end)+'</div>';
+};
+
+/* Полный редактор заметки вместо prompt. */
+var _v55NoteModalReady=false;
+function v55NoteEnsure(){
+  if(_v55NoteModalReady)return;
+  _v55NoteModalReady=true;
+  if(!document.body||typeof document.body.insertAdjacentHTML!=='function')return;
+  document.body.insertAdjacentHTML('beforeend','<div class="modal" id="v55NoteModal"><div class="box">'
+   +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">✎ Редактировать заметку</h2><button class="del" onclick="closeModal(\'v55NoteModal\')">✕</button></div>'
+   +'<input type="hidden" id="v55eId">'
+   +'<div><label>Текст</label><textarea id="v55eTitle" rows="2"></textarea></div>'
+   +'<div class="v54-note-tools" style="margin-top:8px"><div><label>Тип</label><select id="v55eType">'+v54TypeOptions('note')+'</select></div>'
+   +'<div><label>Цвет</label><select id="v55eColor">'+v54ColorOptions('gray')+'</select></div>'
+   +'<div><label>Приоритет</label><select id="v55ePrio">'+v54PrioOptions('normal')+'</select></div>'
+   +'<div><label>Срок</label><input type="date" id="v55eDue"></div></div>'
+   +'<div class="v54-note-tools" style="margin-top:8px"><div><label>Повтор</label><select id="v55eRepeat">'+v54RepeatOptions('')+'</select></div>'
+   +'<div><label>Поставщик</label><input id="v55eSup" list="tSupList"></div>'
+   +'<div><label>Закупка</label><input id="v55eDeal" list="v54nDealList"></div>'
+   +'<div style="display:flex;align-items:end"><label class="inline-check"><input type="checkbox" id="v55ePin"> 📌 закрепить</label></div></div>'
+   +'<div style="margin-top:10px"><button class="btn" onclick="v55NoteSave()">💾 Сохранить</button></div></div></div>');
+}
+v54EditNote=function(id){
+  var t=tasks.filter(function(x){return x.id===id})[0];if(!t)return;
+  v55NoteEnsure();
+  var g=function(x){return document.getElementById(x)};
+  g('v55eId').value=id;g('v55eTitle').value=t.t||'';g('v55eType').value=(t.type&&t.type!=='task')?t.type:'note';
+  g('v55eColor').value=t.color||'gray';g('v55ePrio').value=t.prio||'normal';g('v55eDue').value=t.due||'';
+  g('v55eRepeat').value=t.repeat||'';g('v55eSup').value=t.sup||'';
+  var deal=t.dealId?deals.filter(function(d){return d.id===t.dealId})[0]:null;
+  g('v55eDeal').value=deal?v54DealLabel(deal):'';g('v55ePin').checked=!!t.pinned;
+  document.getElementById('v55NoteModal').classList.add('open');
+};
+function v55NoteSave(){
+  var g=function(x){return document.getElementById(x)};
+  var t=tasks.filter(function(x){return x.id===g('v55eId').value})[0];if(!t)return;
+  var txt=(g('v55eTitle').value||'').trim();if(!txt){toastInfo('Введите текст заметки');return}
+  t.t=txt;t.type=g('v55eType').value;t.color=g('v55eColor').value;t.prio=g('v55ePrio').value;
+  t.due=g('v55eDue').value||'';t.repeat=g('v55eRepeat').value;t.sup=(g('v55eSup').value||'').trim();
+  t.dealId=v54DealIdByLabel((g('v55eDeal').value||'').trim());t.pinned=g('v55ePin').checked;
+  t.updated=today();
+  save();closeModal('v55NoteModal');renderTasks();renderDash();toastInfo('Заметка обновлена');
+}
+
+/* Заметка поставщика внутри закупки: хранится в общем списке, видна у своего поставщика. */
+function v55DealSupNotes(d,n){
+  var list=tasks.filter(function(t){return t.dealId===d.id&&t.sup===n&&!t.done});
+  var hd=md5(n);
+  return '<div class="v55-sup-notes"><h4>📝 Заметки по этому поставщику в этой закупке ('+list.length+')</h4>'
+   +'<div class="v55-sup-note-add"><input id="v55sn_'+hd+'" placeholder="например: попросил выслать сертификат до пятницы" onkeydown="if(event.key===\'Enter\'){event.preventDefault();v55SupNoteAdd(\''+d.id+'\',\''+v5escAttr(n)+'\')}"><button class="btn sm" onclick="v55SupNoteAdd(\''+d.id+'\',\''+v5escAttr(n)+'\')">＋</button></div>'
+   +(list.length?list.map(v54NoteHtml).join(''):'<div class="mini">Заметок нет. Они привязаны к поставщику «'+esc(n)+'» и не пропадут при переключении на другого.</div>')
+   +'</div>';
+}
+function v55SupNoteAdd(dealId,n){
+  var d=deals.filter(function(x){return x.id===dealId})[0];if(!d)return;
+  var el=document.getElementById('v55sn_'+md5(n)),txt=(el&&el.value||'').trim();
+  if(!txt){toastInfo('Введите текст заметки');return}
+  tasks.unshift({id:uid('t'),t:txt,due:'',sup:n,done:false,type:'note',color:'blue',prio:'normal',repeat:'',pinned:false,dealId:d.id,docKind:'',created:today(),_v54:1});
+  d.hist=d.hist||[];d.hist.unshift({d:today(),t:'Заметка по поставщику '+n+': '+txt,toSup:true});
+  save();renderTasks();renderDash();dealView(d.id);toastInfo('Заметка сохранена у поставщика');
+}
+
+/* ---------- Форма 19: подписи, опись документов, реквизиты договора ---------- */
+function v55RowFill(h,label,val){
+  if(val===''||val==null)return h;
+  var re=new RegExp('(<td style="[^"]*background:#dcebe2[^"]*"><strong>'+label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'<\\/strong><\\/td><td style="[^"]*">)[\\s\\S]*?(<\\/td>)');
+  return h.replace(re,'$1'+esc(String(val))+'$2');
+}
+function v55F19Extras(h,d){
+  var sign=lsGet('crm2_sign',{})||{},comm=lsGet('comm',{})||{};
+  var resp=(d.respFio||sign.fio||'').trim(),fio=(d.fio||'').trim(),dir=(comm.cDir||'').trim();
+  if(resp)h=h.replace('Ответственный за закупки: _________________ /____________/','Ответственный за закупки: _________________ /'+esc(resp)+'/');
+  if(fio)h=h.replace('Заказчик (ФИО): _________________ /____________/','Заказчик (ФИО): _________________ /'+esc(fio)+'/');
+  if(dir)h=h.replace('УТВЕРЖДАЮ: Директор _________________ /____________/','УТВЕРЖДАЮ: Директор _________________ /'+esc(dir)+'/');
+  /* реквизиты договора и счетов уже заполняются v5.0/v5.2 через v5DocsText */
+  var docs=v5DealDocs(d),contracts=docs.filter(function(x){return x.kind==='contract'||x.kind==='contract_invoice'});
+  var invoices=docs.filter(function(x){return x.kind==='invoice'});
+  /* опись приложенных документов отмечается по данным закупки */
+  function tick(mark,cond){if(cond)h=h.split('☐ '+mark).join('☑ '+mark);}
+  var stIdx=STAGES.findIndex(function(x){return x[0]===d.stage});if(stIdx<0)stIdx=0;
+  var supReq=d.supReq||{},kps=d.kps||{};
+  tick('служебная записка',true);
+  tick('распоряжение',stIdx>=1||(d.prints&&(d.prints['form:f2']||d.prints['form:f3'])));
+  tick('решение/обоснование (формы 3, 4)',stIdx>=3);
+  tick('запросы КП',Object.keys(supReq).some(function(n){return supReq[n].requestDoc||supReq[n].sent}));
+  tick('КП участников (3 шт.)',Object.keys(kps).some(function(n){return kps[n]&&kps[n].resp==='kp'}));
+  tick('договор',contracts.length>0);
+  tick('счета',invoices.length>0);
+  tick('накладные/акты',!!(d.ttnNo||d.got));
+  return h;
+}
+var _v55FormFillDeal=formFillDeal;
+formFillDeal=function(fid,d){
+  var h=_v55FormFillDeal(fid,d);
+  if(fid==='f19'&&h)h=v55F19Extras(h,d);
+  return h;
+};
+
+/* ---------- Печать: Word-файл создаётся в окне печати, сетевая ошибка устранена ---------- */
+flPrint=function(title,bodyHtml,opts){
+  opts=opts||{};var land=!!opts.landscape||/size\s*:\s*A4\s+landscape/i.test(bodyHtml||'');
+  var pg=land?'@page{size:A4 landscape;margin:1.2cm}':'@page{size:A4;margin:2cm 1.5cm 2cm 3cm}';
+  var base='font-family:"Times New Roman",serif;font-size:12pt;line-height:1.4';
+  var css=pg+'body{'+base+';max-width:'+(land?'1160px':'800px')+';margin:24px auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px 6px}thead{display:table-header-group}tr,td,th{page-break-inside:avoid;break-inside:avoid}p{orphans:3;widows:3}h1,h2,h3{page-break-after:avoid}.formWord{'+base+'}.formWord p{margin:6px 0}.formWord table{border-collapse:collapse;width:100%;margin:8px 0}.formWord td,.formWord th{border:1px solid #000;padding:4px 6px;font-size:11pt;vertical-align:top}#np{margin-bottom:14px;padding:8px;background:#f0f0f0;border-radius:6px}#np button,#np a{display:inline-block;padding:6px 14px;margin-right:8px;cursor:pointer;border:1px solid #aaa;background:#fff;color:#111;text-decoration:none;font:inherit;font-size:13px}@media print{body{max-width:none;margin:0}#np{display:none}'+(opts.fit?'#db{zoom:'+opts.fit+'}':'')+'}';
+  var docCss=pg+'body{'+base+'}.formWord{'+base+'}table{border-collapse:collapse;width:100%}td,th{border:1px solid #000;padding:4px;border:1px solid #000}tr{page-break-inside:avoid}';
+  var wordHtml='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+docCss+'</style></head><body><table style="width:100%"><tr><td style="font-size:1pt;line-height:1pt;padding:0;border:none">&nbsp;</td></tr></table>'+bodyHtml+'</body></html>';
+  var fileName=String(title||'document').replace(/[\/:*?"<>|«»]/g,'_')+'.doc';
+  var w=window.open('','_blank');if(!w){alert('Разрешите всплывающие окна для печати документа.');return;}
+  /* Blob создаётся внутри окна печати: ссылка на blob из другого окна в оболочке давала «сетевую ошибку». */
+  w.document.write('<html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+css+'</style></head><body><div id="np"><button onclick="window.print()">🖨 Печать</button><a id="v55wdl" href="#" download="'+esc(fileName)+'">💾 Скачать в Word (.doc)</a><span style="font-size:12px;color:#555">Файл открывается и редактируется в Microsoft Word / LibreOffice</span></div><div id="db">'+bodyHtml+'</div></body>'
+   +'<scr'+'ipt>document.getElementById("v55wdl").href=URL.createObjectURL(new Blob(["\\ufeff"+decodeURIComponent("'+encodeURIComponent(wordHtml)+'")],{type:"application/msword"}));</scr'+'ipt></html>');
+  w.document.close();
+};
+
+/* ---------- Редактор позиций: один общий список победителей вместо 6000 строк в каждой строке ---------- */
+dItemsRender=function(){
+  var A=window.__dItems||[];
+  var h='<datalist id="dWinList">'+sup.map(function(s){return '<option value="'+v5escAttr(s.name)+'"></option>'}).join('')+'</datalist>'
+   +'<tr><th style="width:34px">№</th><th style="width:60px">Лот</th><th>Наименование</th><th style="width:90px">Кол-во</th><th style="width:70px">Ед.</th><th style="width:110px">Цена, руб.</th><th style="width:110px">Сумма</th><th style="min-width:180px">Победитель по позиции</th><th style="width:110px">Цена победителя</th><th style="width:30px"></th></tr>';
+  if(!A.length)h+='<tr><td colspan="10" class="small">Позиций нет — добавьте кнопкой «+ позиция», если в закупке несколько товаров.</td></tr>';
+  h+=A.map(function(x,i){
+    var sm=(+x.q||0)*(+x.p||0);
+    return '<tr><td>'+(i+1)+'</td>'
+    +'<td><input style="width:44px" value="'+esc(x.lot||'')+'" oninput="dItemCh('+i+',\'lot\',this.value)" placeholder="1"></td>'
+    +'<td><input list="dGoodsList" style="min-width:150px" value="'+esc(x.n)+'" oninput="dItemCh('+i+',\'n\',this.value)"></td>'
+    +'<td><input type="number" step="any" min="0" style="width:62px" value="'+esc(x.q)+'" oninput="dItemCh('+i+',\'q\',this.value)"></td>'
+    +'<td><input style="width:52px" maxlength="10" value="'+esc(x.u)+'" oninput="dItemCh('+i+',\'u\',this.value)"></td>'
+    +'<td><input type="number" step="0.01" min="0" style="width:88px" value="'+esc(x.p)+'" oninput="dItemCh('+i+',\'p\',this.value)"></td>'
+    +'<td class="small" style="padding-top:10px" id="dSm'+i+'">'+(sm?fmt(sm):'—')+'</td>'
+    +'<td><input list="dWinList" style="min-width:130px;max-width:150px;width:150px" value="'+esc(x.win||'')+'" onchange="dItemCh('+i+',\'win\',this.value)" placeholder="начните вводить…"></td>'
+    +'<td><input type="number" step="0.01" min="0" style="width:88px" value="'+esc(x.wp||'')+'" oninput="dItemCh('+i+',\'wp\',this.value)" placeholder="0.00"></td>'
+    +'<td><button class="del" onclick="dItemDel('+i+')">✕</button></td></tr>';
+  }).join('');
+  document.getElementById('dItemsTbl').innerHTML=h;
+  var f=document.getElementById('dItemsFoot');if(f)f.innerHTML=dItemsFoot();
+  var ts=dItemsSum();
+  if(ts>0){document.getElementById('dSum').value=ts.toFixed(2);pointWarn();}
+};
+
+/* ---------- Состав закупки: комплект — только тема и сумма; спецификация — список позиций ---------- */
+function v55ComposeUI(){
+  var sp=document.getElementById('dSpec'),wrap=document.getElementById('dItemsWrap'),hint=document.getElementById('dComposeHint');
+  if(!sp)return;
+  var v=sp.value||'';
+  var isKit=/комплект/i.test(v),isSpec=/спецификац/i.test(v);
+  if(wrap)wrap.style.display=isKit?'none':'';
+  if(hint){
+    hint.className='v55-compose-hint';
+    hint.innerHTML=isKit?'📦 <b>Комплект.</b> Позиции не нужны: укажите только предмет закупки и общую сумму выше.'
+     :(isSpec?'📋 <b>По спецификации.</b> Добавьте позиции списком кнопкой «+ позиция» — сумма закупки посчитается автоматически.'
+     :'Выберите состав закупки: «комплект» — одна общая сумма без позиций; «по спецификации» — список позиций с количеством и ценой.');
+  }
+}
+var _v55OpenDeal=openDeal;
+openDeal=function(i,presetStage){
+  var r=_v55OpenDeal(i,presetStage);
+  var sp=document.getElementById('dSpec');if(sp)sp.onchange=v55ComposeUI;
+  v55ComposeUI();
+  return r;
+};
+
+/* ================================================================
+   v5.7 — аналоги по позициям, честное сохранение заметок,
+   гигиена хранилища, формы без длинных перечней, пометка «без НДС»
+   ================================================================ */
+
+/* ---------- Аналоги по позициям поставщика ----------
+   Данные: k.items[i].alt = {name, q, p}. Галочка «Аналог» в строке
+   позиции открывает ввод своего наименования, количества и цены. */
+function v56KeepAlt(old,row){if(old&&old.alt)row.alt=old.alt;return row}
+
+/* Базовые операции со строками КП не должны терять аналог. */
+v53KpAll=function(id,n,checked){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;var p=dealEnsureKp(d,n);p.items=p.items||[];
+  (d.items||[]).forEach(function(x,i){var old=p.items[i]||{};var row={n:x.n||'',q:x.q||'',u:x.u||'шт.',p:+old.p||0,offered:!!checked};p.items[i]=v56KeepAlt(old,row)});
+  p.sumAuto=true;if(checked)p.resp='kp';v53KpRecalc(d,n);v5RefreshAwardPrices(d);save();renderPipe();renderDash();dealView(id);toastInfo(checked?'Все позиции включены в счёт':'Позиции исключены из счёта');
+};
+v53KpOffer=function(id,n,i,checked){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;var p=dealEnsureKp(d,n),x=(d.items||[])[i]||{};p.items=p.items||[];
+  var old=p.items[i]||{};var row={n:x.n||'',q:x.q||'',u:x.u||'шт.',p:+old.p||0,offered:!!checked};p.items[i]=v56KeepAlt(old,row);p.sumAuto=true;if(checked)p.resp='kp';
+  v53KpRecalc(d,n);v5RefreshAwardPrices(d);save();renderPipe();renderDash();dealView(id);toastInfo(checked?'Позиция включена в счёт':'Позиция исключена из счёта');
+};
+dealKpItemField=function(id,n,i,value){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;var p=dealEnsureKp(d,n),x=(d.items||[])[i]||{};p.items=p.items||[];
+  var old=p.items[i]||{};var row={n:x.n||'',q:x.q||'',u:x.u||'шт.',p:+value||0,offered:+value>0};p.items[i]=v56KeepAlt(old,row);if(+value>0){p.resp='kp';p.sumAuto=true}
+  v53KpRecalc(d,n);v5RefreshAwardPrices(d);save();renderPipe();renderDash();dealView(id);toastInfo('Цена и сумма поставщика сохранены');
+};
+dealKpSave=function(id,silent){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return false;var items=d.items||[];d.kps=d.kps||{};
+  (d.sups||[]).forEach(function(n){
+    var hd=md5(n),p=dealEnsureKp(d,n),oldItems=p.items||[];
+    p.items=items.map(function(x,i){var el=$('dkpIt_'+hd+'_'+i),old=oldItems[i]||{};return v56KeepAlt(old,{n:x.n||'',q:x.q||'',u:x.u||'шт.',p:el?+el.value||0:(+old.p||0),offered:old.offered})});
+    var eS=$('dkpSum_'+hd),eT=$('dkpTerm_'+hd),eP=$('dkpPay_'+hd),eN=$('dkpNote_'+hd),eR=$('dkpResp_'+hd);
+    if(!items.length)p.sum=eS?+eS.value||0:(+p.sum||0);else if(eS&&!p.sumAuto)p.sum=+eS.value||0;
+    p.term=eT?eT.value.trim():p.term||'';p.pay=eP?eP.value.trim():p.pay||'';p.note=eN?eN.value.trim():p.note||'';p.resp=eR?eR.value:p.resp||'';
+    var aN=$('dkpAnName_'+hd),aS=$('dkpAnSum_'+hd),aT=$('dkpAnTerm_'+hd);if(aN||aS||aT){var an={name:aN?aN.value.trim():'',sum:aS?+aS.value||0:0,term:aT?aT.value.trim():''};p.analog=(an.name||an.sum||an.term)?an:p.analog||null}
+    v53KpRecalc(d,n);
+  });
+  v5RefreshAwardPrices(d);if(!save())return false;renderPipe();renderDash();if(!silent){dealView(id);toastInfo('Ответы и КП сохранены')}return true;
+};
+
+function v56KpAltToggle(id,n,i,on){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;var p=dealEnsureKp(d,n),x=(d.items||[])[i]||{};p.items=p.items||[];
+  var old=p.items[i]||{};var row={n:x.n||'',q:x.q||'',u:x.u||'шт.',p:+old.p||0,offered:old.offered};
+  if(on)row.alt=old.alt||{name:'',q:x.q||'',p:''};
+  p.items[i]=row;
+  save();renderPipe();renderDash();dealView(id);
+  toastInfo(on?'Аналог позиции: введите наименование, количество и цену':'Аналог по позиции убран');
+}
+function v56KpAltField(id,n,i,f,v){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;var p=dealEnsureKp(d,n);p.items=p.items||[];
+  var old=p.items[i]||{};var row={n:old.n,q:old.q,u:old.u,p:old.p,offered:old.offered,alt:old.alt||{name:'',q:'',p:''}};
+  if(f==='q'||f==='p')v=+v||0;
+  row.alt[f]=v;p.items[i]=row;
+  save();renderPipe();renderDash();dealView(id);
+}
+function v56KpAnalogClear(id,n){
+  var d=deals.filter(function(x){return x.id===id})[0];if(!d)return;var k=dealEnsureKp(d,n);k.analog=null;
+  save();renderPipe();renderDash();dealView(id);toastInfo('Общее предложение-аналог убрано');
+}
+
+/* Подсказка по минимальным ценам учитывает и предложения-аналоги. */
+v52BestAdvice=function(d){
+  var items=d.items||[],parts=[],total=0;items.forEach(function(x,i){var best=null;(d.sups||[]).forEach(function(n){var k=(d.kps||{})[n]||{},ki=k.items&&k.items[i];
+    if(['noreal','otkaz','molch'].indexOf(k.resp)>=0)return;
+    if(v53Offered(ki)&&(!best||+ki.p<best.p))best={n:n,p:+ki.p};
+    if(ki&&ki.alt&&+ki.alt.p>0&&(!best||+ki.alt.p<best.p))best={n:n+' (аналог)',p:+ki.alt.p};
+  });if(best){parts.push('«'+String(x.n||'позиция '+(i+1))+'» — '+best.n+' ('+fmt(best.p)+' за ед.)');total+=v5round((+x.q||0)*best.p)}});
+  if(!parts.length)return '';return '<div class="v52-advice"><b>Подсказка по минимальным ценам:</b> '+esc(parts.join('; '))+'. Минимальный итог: <b>'+fmt(v5round(total))+'</b>. Окончательное решение принимаете вы.</div>';
+};
+
+/* Панель ответа поставщика: галочка «Аналог» в каждой строке позиций,
+   галочка НДС, заметки поставщика — всё в одном окне. */
+dealKpBlock=function(d){
+  var names=v53KpNames(d);d.sups=names;if(!names.length)return '<div class="dv-note-compact">Пока нет поставщиков. Добавьте одного или нескольких через строку выше.</div>';
+  d.kps=d.kps||{};var items=d.items||[],selected=v53KpSelected(d),awardStage=d.stage==='sravn'||d.stage==='oplata';
+  var h=(awardStage?dealPositionAwardBlock(d):'')+'<div class="v53-kp-layout"><div class="v53-supplier-list">'+names.map(function(nm){
+    var kk=d.kps[nm]||{},sum=v53KpRecalc(d,nm),status=kk.resp==='kp'?'КП получено':(kk.resp?dkpRespTxt(kk):'ожидается'),win=dealWinInfo(d).list.indexOf(nm)>=0;
+    return '<button class="v53-supplier-tab '+(nm===selected?'on':'')+'" onclick="v53KpSelect(\''+d.id+'\',\''+v5escAttr(nm)+'\')"><b>'+esc(nm)+'</b><span>'+esc(status)+' · '+fmt(sum)+'</span>'+(win?'<em>★ победитель</em>':'')+'</button>';
+  }).join('')+'</div><div class="v53-response-panel">';
+  var n=selected,k=dealEnsureKp(d,n),hd=md5(n),rq=(d.supReq||{})[n]||{},s=supByName(n),an=k.analog||{};
+  h+='<div class="v53-response-head"><div><h3>'+esc(n)+'</h3><div class="mini">'+esc((s&&s.email&&s.email[0])||'e-mail не указан')+' · ответ и цены только этого поставщика</div></div><button class="btn ghost sm" onclick="openSupByName(\''+v5escAttr(n)+'\')">Карточка поставщика</button></div>'
+   +'<div class="v53-response-controls"><div><label>Ответ поставщика</label><select id="dkpResp_'+hd+'" onchange="dealKpField(\''+d.id+'\',\''+v5escAttr(n)+'\',\'resp\',this.value)">'
+   +[['','ожидается'],['kp','КП / счёт получен'],['noreal','нет в наличии / не можем помочь'],['otkaz','отказался высылать / не участвует'],['molch','нет ответа']].map(function(o){return '<option value="'+o[0]+'"'+(String(k.resp||'')===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div>'
+   +'<div><label>Сумма КП / счёта, руб.</label><input type="number" step="0.01" min="0" id="dkpSum_'+hd+'" value="'+(k.sum||'')+'" '+(items.length?'readonly title="Сумма считается только по отмеченным позициям"':'')+' onchange="dealKpField(\''+d.id+'\',\''+v5escAttr(n)+'\',\'sum\',this.value)"></div>'
+   +'<div><label>Срок поставки</label><input id="dkpTerm_'+hd+'" value="'+esc(k.term||'')+'" onchange="dealKpField(\''+d.id+'\',\''+v5escAttr(n)+'\',\'term\',this.value)"></div>'
+   +'<div><label>Условия оплаты</label><input id="dkpPay_'+hd+'" value="'+esc(k.pay||'')+'" onchange="dealKpField(\''+d.id+'\',\''+v5escAttr(n)+'\',\'pay\',this.value)"></div></div>'
+   +'<div class="v53-request-row"><button class="btn sm" onclick="dealSupMail(\''+d.id+'\',\''+v5escAttr(n)+'\')">✉ Отправить запрос</button><button class="btn sm ghost" onclick="dealSupForm(\''+d.id+'\',\''+v5escAttr(n)+'\')">📄 Запрос КП</button><button class="btn sm ghost" title="Сохранить запрос в Word" onclick="dealSupFormSave(\''+d.id+'\',\''+v5escAttr(n)+'\')">💾 Word</button>'
+   +'<label><input type="checkbox" '+(rq.lastCall?'checked':'')+' onchange="dealSupCheck(\''+d.id+'\',\''+v5escAttr(n)+'\',\'call\',this.checked)">Звонил</label><label><input type="checkbox" '+(rq.sent?'checked':'')+' onchange="dealSupCheck(\''+d.id+'\',\''+v5escAttr(n)+'\',\'sent\',this.checked)">Отправлен</label><label><input type="checkbox" '+(rq.lastMail?'checked':'')+' onchange="dealSupCheck(\''+d.id+'\',\''+v5escAttr(n)+'\',\'mail\',this.checked)">Почта проверена</label><button class="del" title="Убрать поставщика из закупки" onclick="dealSupRemove(\''+d.id+'\','+names.indexOf(n)+')">✕</button></div>'
+   +(rq.requestDoc?'<div class="mini">✔ Сохранённый запрос от '+esc(rq.requestDoc.date)+'</div>':'');
+  if(items.length){
+    var allOffered=items.every(function(x,i){var ki=k.items&&k.items[i];return ki&&ki.offered===true});
+    var cols=7+(awardStage?1:0);
+    h+='<div class="v53-offer-head"><label class="v53-all-invoice"><input type="checkbox" '+(allOffered?'checked':'')+' onchange="v53KpAll(\''+d.id+'\',\''+v5escAttr(n)+'\',this.checked)"><b>Весь счёт — все позиции</b></label><span class="mini">Если счёт неполный, снимите общую галочку и отметьте только присланные позиции. Цена вводится за единицу.</span></div>'
+     +'<div class="dv-table-wrap"><table class="dv-items-compact v53-offer-table"><thead><tr><th>В счёте</th><th>№</th><th>Позиция</th><th>Кол-во</th><th>Цена за ед.</th><th>Сумма</th><th title="Поставщик предложил аналог этой позиции">Аналог</th>'+(awardStage?'<th>Победитель</th>':'')+'</tr></thead><tbody>'
+     +items.map(function(x,i){var ki=(k.items&&k.items[i])||{},included=ki.offered===true||(!ki.hasOwnProperty('offered')&&+ki.p>0),pv=+ki.p||'',line=included&&pv?fmt((+x.q||0)*(+pv||0)):'—',winner=x.win===n;
+       var row='<tr class="'+(included?'v53-included':'v53-excluded')+'"><td><input type="checkbox" '+(included?'checked':'')+' onchange="v53KpOffer(\''+d.id+'\',\''+v5escAttr(n)+'\','+i+',this.checked)"></td><td>'+(i+1)+'</td><td><span class="v51-pos-link" onclick="document.getElementById(\'dkpIt_'+hd+'_'+i+'\').focus()">'+esc(x.n||'')+'</span></td><td>'+esc(x.q||'')+' '+esc(x.u||'шт.')+'</td><td><input type="number" step="0.01" min="0" id="dkpIt_'+hd+'_'+i+'" value="'+pv+'" onchange="dealKpItemField(\''+d.id+'\',\''+v5escAttr(n)+'\','+i+',this.value)"></td><td>'+line+'</td>'
+        +'<td style="text-align:center"><input type="checkbox" title="Поставщик предложил аналог этой позиции — ввести своё наименование, количество и цену" '+(ki.alt?'checked':'')+' onchange="v56KpAltToggle(\''+d.id+'\',\''+v5escAttr(n)+'\','+i+',this.checked)"></td>'
+        +(awardStage?'<td><input type="checkbox" title="'+(v53Offered(ki)?'Выбрать эту позицию у поставщика':'Сначала включите позицию в счёт и укажите цену')+'" '+(winner?'checked':'')+(v53Offered(ki)?'':' disabled')+' onchange="dealKpWinItem(\''+d.id+'\','+i+',this.checked?\''+v5escAttr(n)+'\':\'\')"></td>':'')+'</tr>';
+       if(ki.alt){var al=ki.alt,asum=v5round((+al.q||+x.q||0)*(+al.p||0));
+         row+='<tr class="v56-alt-row"><td colspan="'+cols+'"><span class="v56-alt-lbl">↳ аналог:</span>'
+          +'<input class="v56-alt-name" value="'+esc(al.name||'')+'" placeholder="наименование аналога" onchange="v56KpAltField(\''+d.id+'\',\''+v5escAttr(n)+'\','+i+',\'name\',this.value)">'
+          +' × <input type="number" class="v56-alt-q" min="0" step="1" value="'+esc(al.q!==undefined&&al.q!==''?al.q:(x.q||''))+'" title="количество" onchange="v56KpAltField(\''+d.id+'\',\''+v5escAttr(n)+'\','+i+',\'q\',this.value)">'
+          +' × <input type="number" class="v56-alt-p" min="0" step="0.01" value="'+(+al.p||'')+'" title="цена за единицу" onchange="v56KpAltField(\''+d.id+'\',\''+v5escAttr(n)+'\','+i+',\'p\',this.value)">'
+          +' = <b>'+(asum?fmt(asum):'—')+'</b></td></tr>';
+       }
+       return row}).join('')+'</tbody></table></div>'
+     +'<div class="v53-offer-total">Итого по отмеченным позициям'+(k.vat?' (с НДС 20 %)':'')+': <b>'+fmt(v53KpRecalc(d,n))+'</b>'+(awardStage?' <button class="btn sm win-action" onclick="dealKpWin(\''+d.id+'\',\''+v5escAttr(n)+'\')">★ Выбрать все его предложенные позиции</button>':'')+'</div>'
+     +'<div class="v55-vat-row"><label><input type="checkbox" '+(k.vat?'checked':'')+' onchange="v55KpVat(\''+d.id+'\',\''+v5escAttr(n)+'\',this.checked)"><span>Цены этого поставщика введены <b>без НДС</b> — считать итог и победные цены <b>с НДС 20 %</b></span></label></div>';
+  }else h+='<div class="dv-note-compact">Товарных позиций нет. Укажите общую сумму КП выше или добавьте позиции через «Редактировать всё».</div>';
+  h+='<div class="v53-response-controls v53-response-bottom"><div><label>Примечание / наличие / другой ответ</label><input id="dkpNote_'+hd+'" value="'+esc(k.note||'')+'" onchange="dealKpField(\''+d.id+'\',\''+v5escAttr(n)+'\',\'note\',this.value)"></div></div>'
+   +((an&&(an.name||+an.sum>0||an.term))?'<div class="mini v56-legacy-analog">Общее предложение-аналог: '+esc(an.name||'—')+(+an.sum>0?' — '+fmt(an.sum):'')+(an.term?' · '+esc(an.term):'')+' <button class="del" title="Убрать старый общий аналог" onclick="v56KpAnalogClear(\''+d.id+'\',\''+v5escAttr(n)+'\')">✕</button></div>':'')
+   +v55DealSupNotes(d,n)
+   +'</div></div><div class="dv-note-compact">Один поставщик открыт за раз. Отмечены только его позиции и цены; изменения сохраняются автоматически. Аналог вводится галочкой в строке позиции.</div>';
+  return h;
+};
+
+/* ---------- Заметка поставщика: честная ошибка при сбое сохранения ---------- */
+v55SupNoteAdd=function(dealId,n){
+  var d=deals.filter(function(x){return x.id===dealId})[0];if(!d)return;
+  var el=document.getElementById('v55sn_'+md5(n)),txt=(el&&el.value||'').trim();
+  if(!txt){toastInfo('Введите текст заметки');return}
+  var t={id:uid('t'),t:txt,due:'',sup:n,done:false,type:'note',color:'blue',prio:'normal',repeat:'',pinned:false,dealId:d.id,docKind:'',created:today(),_v54:1};
+  tasks.unshift(t);d.hist=d.hist||[];var hh={d:today(),t:'Заметка по поставщику '+n+': '+txt,toSup:true};d.hist.unshift(hh);
+  if(save()===false){var ti=tasks.indexOf(t);if(ti>=0)tasks.splice(ti,1);var hi=d.hist.indexOf(hh);if(hi>=0)d.hist.splice(hi,1);return}
+  renderTasks();renderDash();dealView(d.id);toastInfo('Заметка сохранена у поставщика');
+};
+
+/* ---------- Хранилище: перенос вложений в IDB, индикатор и очистка ---------- */
+function v56StorageBytes(){var t=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i)||'';t+=(k.length+(localStorage.getItem(k)||'').length)*2}}catch(e){}return t}
+var V56_KNOWN_KEY=/^(crm2_|qreports$|srz_|zlog$|comm$|lastscore$)/;
+function v56StaleKeys(){var out=[];try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i)||'';if(!V56_KNOWN_KEY.test(k))out.push({k:k,sz:(localStorage.getItem(k)||'').length})}}catch(e){}return out.sort(function(a,b){return b.sz-a.sz})}
+function v56StorageBanner(){
+  var bytes=v56StorageBytes(),pct=Math.round(bytes/10000000*100);
+  var el=document.getElementById('v56StoreBanner');
+  if(pct<80){if(el&&el.parentNode)el.parentNode.removeChild(el);return}
+  if(!el){el=document.createElement('div');el.id='v56StoreBanner';el.className='v56-store-banner';document.body.appendChild(el)}
+  el.innerHTML='⚠ Хранилище браузера заполнено на '+pct+'% — новые данные могут НЕ сохраняться. <button onclick="go(\'data\')">Открыть очистку</button> <button onclick="this.parentNode.style.display=\'none\'">Скрыть</button>';
+}
+function v56StorageCard(){
+  var sec=document.getElementById('data');if(!sec)return;
+  var host=sec.querySelector('.card');if(!host||!host.parentNode)return;
+  var old=document.getElementById('v56StoreCard');if(old&&old.parentNode)old.parentNode.removeChild(old);
+  var bytes=v56StorageBytes(),pct=Math.round(bytes/10000000*100),stale=v56StaleKeys();
+  var div=document.createElement('div');div.id='v56StoreCard';div.className='card';
+  div.innerHTML='<h2>Хранилище браузера</h2><div>Занято примерно <b>'+(bytes/1000000).toFixed(1)+' МБ</b> из ~10 МБ ('+pct+'%). '+(pct>=80?'<b style="color:#b42318">Критично: сохранение может не срабатывать — удалите устаревшие ключи ниже.</b>':'Запас есть.')+'</div>'
+   +(stale.length?'<div style="margin-top:8px"><b>Устаревшие ключи</b> (их создавали старые версии, текущая их не использует): '+stale.slice(0,12).map(function(x){return '<label style="display:block;margin-top:3px"><input type="checkbox" class="v56st" value="'+esc(x.k)+'"> '+esc(x.k)+' — '+(x.sz/1000).toFixed(0)+' тыс. симв.</label>'}).join('')+'<button class="btn sm" style="margin-top:6px" onclick="v56StorageClean()">🗑 Удалить отмеченные</button></div>':'<div class="mini" style="margin-top:6px">Устаревших ключей не найдено.</div>');
+  host.parentNode.insertBefore(div,host.nextSibling);
+}
+function v56StorageClean(){
+  var boxes=document.querySelectorAll('.v56st:checked'),n=0;
+  boxes.forEach(function(b){try{localStorage.removeItem(b.value);n++}catch(e){}});
+  toastInfo(n?('Удалено устаревших ключей: '+n):'Ничего не отмечено');
+  v56StorageCard();v56StorageBanner();
+}
+function v56StorageBoot(){
+  /* вложения реестра/документов не должны лежать в localStorage — только в IndexedDB */
+  try{var rg=localStorage.getItem('crm2_reg');if(rg){var o=JSON.parse(rg);if(o&&o.data){try{idbPut('reg',o.data)}catch(e){}delete o.data;localStorage.setItem('crm2_reg',JSON.stringify(o))}}}catch(e){}
+  try{var dsr=localStorage.getItem('crm2_docs');if(dsr){var arr=JSON.parse(dsr),ch=false;(arr||[]).forEach(function(x){if(x&&x.data){try{idbPut(x.id,x.data)}catch(e){}delete x.data;ch=true}});if(ch)localStorage.setItem('crm2_docs',JSON.stringify(arr))}}catch(e){}
+  setTimeout(function(){try{v56StorageBanner()}catch(e){}},1500);
+}
+var _v56Go=go;
+go=function(t){var r=_v56Go(t);if(t==='data')setTimeout(function(){try{v56StorageCard()}catch(e){}},60);return r};
+
+/* ---------- Формы: короткий предмет, даты ДД.ММ.ГГГГ, пометка НДС ---------- */
+function v56Items(d){return (d.items||[]).filter(function(x){return (x.n||'').trim()})}
+function v56Enum(items){return items.map(function(x,i){return (i+1)+') '+x.n+(x.q?' — '+x.q+' '+(x.u||'шт.'):'')}).join('; ')}
+/* Много позиций (больше трёх) в документе не перечисляем; служебный
+   признак «комплект / по спецификации» в текст документа не выводим. */
+function v56SubjTxt(d){var items=v56Items(d);if(items.length&&items.length<=3)return (d.subj||'')+': '+v56Enum(items);return d.subj||''}
+function v56QtyTxt(d){var items=v56Items(d);if(!items.length)return ((d.qty||'')+(d.unit?' '+d.unit:''))||'';if(items.length<=3)return v56Enum(items);return String(items.length)+' поз.'}
+var _v56DocsText=v5DocsText;
+v5DocsText=function(d){return _v56DocsText(d).replace(/(\d{4})-(\d{2})-(\d{2})/g,'$3.$2.$1')};
+function v56RowSet(h,label,val){
+  var safe=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var re=new RegExp('(<td style="[^"]*background:#dcebe2[^"]*"><strong>'+safe+'<\\/strong><\\/td><td style="[^"]*">)[\\s\\S]*?(<\\/td>)');
+  return h.replace(re,'$1'+esc(String(val))+'$2');
+}
+var _v56FormFill=formFillDeal;
+formFillDeal=function(fid,d){
+  var h=_v56FormFill(fid,d);if(!h)return h;
+  var est=(typeof v52Estimate==='function')?v52Estimate(d):(+d.estimateSum||+d.amount||+d.sum||0);
+  if(fid==='f1'){
+    h=h.replace(/(Предмет закупки[^<]*:\s*)<u>&nbsp;[\s\S]*?&nbsp;<\/u>/,'$1<u>&nbsp;'+esc(v56SubjTxt(d))+'&nbsp;</u>');
+    h=h.replace(/(Количество \(объем\):\s*)<u>&nbsp;[\s\S]*?&nbsp;<\/u>/,'$1<u>&nbsp;'+esc(v56QtyTxt(d)||'—')+'&nbsp;</u>');
+    if(est>0)h=h.replace(/(<p>3\. Ориентировочная стоимость, руб\.:\s*)<u>&nbsp;[\s\S]*?&nbsp;<\/u>(\s*<\/p>)/,'$1<u>&nbsp;'+esc(fmt(est))+'&nbsp;</u>$2');
+    else h=h.replace(/(<p>3\. Ориентировочная стоимость, руб\.:\s*)<u>&nbsp;[\s\S]*?&nbsp;<\/u>(\s*<\/p>)/,'$1______________________________________________$2');
+  }
+  if(fid==='f2'){
+    h=h.replace(/(1\. Провести закупку:\s*)<u>&nbsp;[\s\S]*?&nbsp;<\/u>/,'$1<u>&nbsp;'+esc(v56SubjTxt(d)+(est>0?' — ориент. '+fmt(est)+' руб.':''))+'&nbsp;</u>');
+  }
+  if(fid==='f12'){
+    h=h.replace(/(Предмет закупки:\s*)<u>&nbsp;[\s\S]*?&nbsp;<\/u>/,'$1<u>&nbsp;'+esc(v56SubjTxt(d))+'&nbsp;</u>');
+  }
+  if(fid==='f19'){
+    h=v56RowSet(h,'Предмет закупки (наименование, характеристика, количество)',v56SubjTxt(d));
+    h=v56RowSet(h,'Ориентировочная стоимость, руб. (с НДС)',est>0?fmt(est):'');
+    var cs=d.contractSum||d.sum||0;
+    h=v56RowSet(h,'Сумма договора, руб. (с НДС)',+cs>0?fmt(cs):'');
+    h=v56RowSet(h,'Договор: №, дата / счета (№, дата, сумма)',v5DocsText(d)||'Документы не внесены');
+    /* участники: цена считается с НДС, когда у поставщика включён флаг */
+    var marker='<strong>ПОСТУПИВШИЕ ПРЕДЛОЖЕНИЯ / ПОСТАВЩИКИ</strong>',mp=h.indexOf(marker),ts=mp>=0?h.indexOf('<table',mp):-1,te=ts>=0?h.indexOf('</table>',ts)+8:-1;
+    if(ts>=0&&te>ts){
+      var table=h.slice(ts,te),first=table.indexOf('<tr>'),headEnd=table.indexOf('</tr>',first)+5,open=table.slice(0,first),head=table.slice(first,headEnd);
+      var names=v52F19Participants(d),wi=dealWinInfo(d).list;
+      var rows=names.map(function(nm,i){var kk=(d.kps||{})[nm]||{},ss=supByName(nm);
+        var sum=v53KpRecalc(d,nm),price=+sum>0?esc(fmt(sum))+(kk.vat?' (в т.ч. НДС 20 %)':''):'—';
+        var alts=(kk.items||[]).filter(function(r){return r&&r.alt&&(r.alt.name||+r.alt.p>0)});
+        if(alts.length)price+='<br><span style="font-size:8pt">аналог: '+esc(alts.map(function(r){return (r.alt.name||'позиция')+(+r.alt.p>0?' '+fmt(r.alt.p):'')}).join('; ').slice(0,90))+'</span>';
+        var docs=+sum>0||kk.resp==='kp'?'КП':(dkpRespTxt(kk)||'—');
+        return '<tr><td style="border:1px solid #000;padding:4px 6px;text-align:center">'+(i+1)+'</td><td style="border:1px solid #000;padding:4px 6px">'+esc(nm)+(ss&&ss.unp?'<br>УНП '+esc(ss.unp):'')+'</td><td style="border:1px solid #000;padding:4px 6px">'+esc(kk.manufacturer||d.manufacturer||'—')+'</td><td style="border:1px solid #000;padding:4px 6px">'+esc(kk.importer||'—')+'</td><td style="border:1px solid #000;padding:4px 6px">'+esc(kk.country||d.country||'—')+'</td><td style="border:1px solid #000;padding:4px 6px">'+price+'</td><td style="border:1px solid #000;padding:4px 6px">'+esc([kk.term,kk.pay].filter(Boolean).join(' / ')||'—')+'</td><td style="border:1px solid #000;padding:4px 6px">'+esc(docs)+'</td><td style="border:1px solid #000;padding:4px 6px;text-align:center">'+(wi.indexOf(nm)>=0?'☑':'☐')+'</td></tr>'}).join('');
+      h=h.slice(0,ts)+open+'<thead>'+head+'</thead><tbody>'+rows+'</tbody></table>'+h.slice(te);
+    }
+    if(dealWinInfo(d).list.length)h=h.split('☐ наименьшая цена').join('☑ наименьшая цена');
+  }
+  return h;
+};
+
+/* Универсальная карточка дела: длинный перечень позиций не печатаем. */
+var _v56Card=flCardFillHtml;
+flCardFillHtml=function(d){
+  var h=_v56Card(d);
+  if((d.items||[]).length>3)h=h.replace(/<br><span style="font-size:8pt">позиции: [\s\S]*?<\/span>/,'');
+  return h;
+};
+
+/* ---------- Старт ---------- */
+try{v56StorageBoot()}catch(e){try{console.log('v56-storage',e)}catch(_){}}
+
+/* ================================================================
+   v5.7 — реестр и поиск документов: договоры, счета, накладные,
+   запросы КП. Вкладка «Документы» в карточке поставщика и общий
+   поиск с подсветкой и переходом к поставщику.
+   ================================================================ */
+
+/* Все документы всех закупок: финдокументы + накладные (ТТН) + запросы КП. */
+function v57AllDocs(){
+  var out=[];
+  deals.forEach(function(d){
+    var docs=v5DealDocs(d),byId={};
+    docs.forEach(function(x){byId[x.id]=x});
+    docs.forEach(function(x){
+      out.push({deal:d,id:x.id,kind:x.kind,label:v5DocLabel(x.kind),no:v5DocNo(x),date:x.date||'',sum:+x.sum||0,
+        paid:!!x.paid,payDate:x.payDate||'',sup:x.sup||'',parent:x.parentId?byId[x.parentId]||null:null,pseudo:false});
+    });
+    var winners=dealWinInfo(d).list;
+    if(d.ttnNo)winners.forEach(function(w){
+      out.push({deal:d,id:'ttn_'+d.id+'_'+w,kind:'ttn',label:'Накладная / ТТН',no:d.ttnNo,date:d.ttnDate||d.gotDate||'',sum:+d.sum||0,
+        paid:true,payDate:'',sup:w,parent:null,pseudo:true});
+    });
+    Object.keys(d.supReq||{}).forEach(function(n){
+      var rq=d.supReq[n]||{};if(!rq.requestDoc&&!rq.sent)return;
+      out.push({deal:d,id:'req_'+d.id+'_'+md5(n),kind:'request',label:'Запрос КП',no:'',date:(rq.requestDoc&&rq.requestDoc.date)||rq.sent||'',sum:0,
+        paid:false,payDate:'',sup:n,parent:null,pseudo:true});
+    });
+  });
+  return out;
+}
+
+/* Контексты поиска раздельно: вкладка поставщика и общее окно не мешают друг другу. */
+window._v57DocCtx=window._v57DocCtx||{tab:{sup:null},modal:{sup:null}};
+
+function v57DocSearchHtml(supName,scope){
+  scope=scope||'tab';
+  window._v57DocCtx[scope]={sup:supName||null};
+  var p=scope==='modal'?'v57m':'v57d';
+  return '<div class="v57-doc-bar"><input id="'+p+'q" placeholder="Поиск: № договора или счёта, сумма, дата, предмет закупки…" oninput="v57DocRender(\''+scope+'\')">'
+   +(supName?'<label class="inline-check"><input type="checkbox" id="'+p+'Only" checked onchange="v57DocRender(\''+scope+'\')"> только этот поставщик</label>':'')
+   +'</div><div id="'+p+'Out"></div>';
+}
+
+function v57DocRender(scope){
+  scope=scope||'tab';
+  var ctx=window._v57DocCtx[scope]||{sup:null};
+  var p=scope==='modal'?'v57m':'v57d';
+  var qEl=document.getElementById(p+'q'),out=document.getElementById(p+'Out');if(!out)return;
+  var q=(qEl&&qEl.value||'').trim().toLowerCase();
+  var onlyEl=document.getElementById(p+'Only');
+  var onlySup=ctx.sup&&(!onlyEl||onlyEl.checked);
+  var list=v57AllDocs().filter(function(r){
+    if(onlySup&&r.sup!==ctx.sup)return false;
+    if(!q)return true;
+    var hay=[r.label,r.no,r.date,r.payDate,fmt(r.sum),String(r.sum),r.sup,r.deal.subj||'',r.parent?r.parent.no:''].join(' ').toLowerCase();
+    return hay.indexOf(q)>=0;
+  });
+  list.sort(function(a,b){return (b.date||'')<(a.date||'')?-1:((b.date||'')>(a.date||'')?1:0)});
+  var sum=list.reduce(function(a,r){return a+(+r.sum||0)},0);
+  var h='<div class="small" style="margin:6px 0">Найдено документов: <b>'+list.length+'</b>'+(sum?' на <b>'+fmt(v5round(sum))+'</b>':'')+(ctx.sup&&onlySup?' — поставщик «'+esc(ctx.sup)+'»':' — все поставщики')+'</div>';
+  if(!list.length){out.innerHTML=h+'<div class="dv-note-compact">Документов нет. Добавляются на вкладке «Оплата и поставка» в карточке закупки; накладные и запросы КП подтягиваются автоматически.</div>';return}
+  h+=list.map(function(r,i){
+    var key='v57dd_'+i;
+    var supHtml=r.sup?'<a href="#" class="v57-sup-hl" title="Открыть карточку поставщика" onclick="openSupByName(\''+v5escAttr(r.sup)+'\');return false">'+esc(r.sup)+'</a>':'<span class="mini">поставщик не указан</span>';
+    return '<div class="v57-doc-row">'
+     +'<div class="v57-doc-main" onclick="var e=document.getElementById(\''+key+'\');e.style.display=e.style.display===\'none\'?\'block\':\'none\'">'
+     +'<span class="v57-doc-toggle">▸</span> <b>'+esc(r.label)+'</b> '+(r.no?'№ '+esc(r.no)+' ':'')+(r.date?'от '+esc(r.date):'')+(+r.sum>0?' · <b>'+fmt(r.sum)+'</b>':'')
+     +(r.kind==='invoice'||r.kind==='contract_invoice'?(r.paid?' · <span class="tag g">оплачен</span>':' · <span class="tag y">не оплачен</span>'):'')
+     +(r.pseudo?' <span class="mini">(авто)</span>':'')
+     +'<div class="v57-doc-sub">'+supHtml+' · закупка: <a href="#" onclick="openDealById(\''+r.deal.id+'\');return false">'+esc(String(r.deal.subj||'').slice(0,60))+'</a></div>'
+     +'</div>'
+     +'<div class="v57-doc-details" id="'+key+'" style="display:none">'
+     +'<div class="kv"><b>Тип:</b> '+esc(r.label)+'</div>'
+     +'<div class="kv"><b>Номер:</b> '+esc(r.no||'—')+'</div>'
+     +'<div class="kv"><b>Дата:</b> '+esc(r.date||'—')+'</div>'
+     +(+r.sum>0?'<div class="kv"><b>Сумма:</b> '+fmt(r.sum)+'</div>':'')
+     +(r.kind==='invoice'||r.kind==='contract_invoice'?'<div class="kv"><b>Оплата:</b> '+(r.paid?'оплачен'+(r.payDate?' '+esc(r.payDate):''):'не оплачен')+'</div>':'')
+     +(r.parent?'<div class="kv"><b>Связан с договором:</b> '+esc(v5DocLabel(r.parent.kind))+' № '+esc(r.parent.no?v5DocNo(r.parent):'б/н')+(r.parent.date?' от '+esc(r.parent.date):'')+'</div>':'')
+     +'<div class="kv"><b>Поставщик:</b> '+supHtml+'</div>'
+     +'<div class="kv"><b>Закупка:</b> <a href="#" onclick="openDealById(\''+r.deal.id+'\');return false">'+esc(r.deal.subj||'')+'</a> · этап: '+esc((STAGES.filter(function(x){return x[0]===r.deal.stage})[0]||[])[1]||r.deal.stage)+'</div>'
+     +'</div></div>';
+  }).join('');
+  out.innerHTML=h;
+}
+
+/* Вкладка «Документы» в карточке поставщика. */
+var _v57SmTab=smTab;
+smTab=function(t){
+  if(t==='docs'){
+    smCur.tab=t;
+    document.querySelectorAll('#smTabs button').forEach(function(b){b.classList.toggle('on',b.dataset.tab===t)});
+    var s=sup[smCur.id];if(!s)return;
+    document.getElementById('smBody').innerHTML='<h3>Документы поставщика: договоры, счета, накладные, запросы</h3>'+v57DocSearchHtml(s.name,'tab');
+    v57DocRender('tab');
+    return;
+  }
+  return _v57SmTab(t);
+};
+
+/* Общий поиск документов по всем поставщикам (кнопка в разделе «Поставщики»). */
+var _v57DocModalReady=false;
+function v57DocModalOpen(){
+  /* общий поиск всегда начинается без фильтра по поставщику */
+  window._v57DocCtx.modal={sup:null};
+  if(!document.body||typeof document.body.insertAdjacentHTML!=='function')return;
+  if(!_v57DocModalReady){
+    _v57DocModalReady=true;
+    document.body.insertAdjacentHTML('beforeend','<div class="modal" id="v57DocModal"><div class="box" style="max-width:900px">'
+     +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h2 style="margin:0">🔎 Документы: договоры, счета, накладные, запросы</h2><button class="del" onclick="closeModal(\'v57DocModal\')">✕</button></div>'
+     +'<div class="mini" style="margin-bottom:6px">Поиск по всем поставщикам. Поставщик подсвечен — клик открывает его карточку; предмет закупки — клик открывает закупку.</div>'
+     +v57DocSearchHtml(null,'modal')+'</div></div>');
+  }
+  document.getElementById('v57DocModal').classList.add('open');
+  v57DocRender('modal');
+}
 
 /* ================= СТАРТ ================= */
 /* миграция вложений в IndexedDB — освобождает localStorage */
