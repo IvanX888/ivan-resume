@@ -8977,7 +8977,7 @@ dealContractHtml = function(d){
 };
 
 /* ---------- 4. PWA: установка как приложение + автоматическое обновление ---------- */
-var V58_SW_VER = 'pz-v59-4';
+var V58_SW_VER = 'pz-v59-5';
 function v58InstallEnsure(){
   try{
     if(document.getElementById('v58InstallBtn')) return;
@@ -9313,8 +9313,9 @@ dealKpBlock = function(d){
      + '<td><input id="dkpNote_' + hd + '" value="' + esc(k.note || '') + '" placeholder="наличие, особенности, другой ответ…" onchange="dealKpField(\'' + d.id + '\',\'' + v5escAttr(n) + '\',\'note\',this.value)"></td>'
      + '<td><label class="inline-check v59-cons" title="Отметить, что это предложение допущено к рассмотрению. Пока отмечено хотя бы одно — только они участвуют в сравнении"><input type="checkbox" ' + (k.cons ? 'checked' : '') + ' onchange="v59SupCons(\'' + d.id + '\',\'' + v5escAttr(n) + '\',this.checked)"> допущен</label>'
      + (canWin ? '<button class="btn sm win-action" title="Выбрать все цены этого поставщика; позиции без его цены не изменятся" onclick="dealKpWin(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">★ его цены</button>' : '') + (dealWinInfo(d).list.indexOf(n) >= 0 || (dealWinInfo(d).list.indexOf(v59Base(n)) >= 0 && n !== v59Base(n)) ? '<span class="tag g">выбран</span>' : '') + '</td></tr>';
-    /* --- детали: счета + ручной ввод + позиции + аналог --- */
-    h += '<tr class="dv-positions' + (k.off ? ' v59-off' : '') + '"><td colspan="7"><details><summary>Позиции, цены и аналог' + (items.length ? ' (' + items.length + ')' : '') + (k.manual ? ' · ✎ свой вариант' : '') + '</summary>';
+    /* --- детали: счета + ручной ввод + позиции + аналог. Блок всегда раскрыт:
+       цены по позициям видны сразу, иначе пользователи видят только поле общей суммы --- */
+    h += '<tr class="dv-positions' + (k.off ? ' v59-off' : '') + '"><td colspan="7"><details open><summary>Позиции и цены' + (items.length ? ' (' + items.length + ')' : '') + (k.manual ? ' · ✎ свой вариант' : '') + '</summary>';
     h += '<div class="v59-invs"><div class="mini"><b>Счета поставщика</b>: принято ' + invs.length + (consN ? ' · к рассмотрению ' + consN : ' · к рассмотрению не отмечено') + '</div>';
     if(invs.length){
       h += '<table><thead><tr><th>№ счёта</th><th>Дата</th><th>Сумма</th><th>К рассмотрению</th><th></th></tr></thead><tbody>'
@@ -9327,6 +9328,7 @@ dealKpBlock = function(d){
      + '<div class="mini">Все счета сохраняются в закупке. В сравнение и итоги идут только отмеченные «к рассмотрению».</div></div>';
     h += '<label class="inline-check" style="margin:8px 0 4px;display:inline-block"><input type="checkbox" ' + (k.manual ? 'checked' : '') + ' onchange="v59Manual(\'' + d.id + '\',\'' + v5escAttr(n) + '\',this.checked)"> ✎ Свой вариант (аналог): редактируются наименование, количество и цена</label>';
     if(items.length){
+      h += '<div class="mini" style="margin:4px 0">Цены по строкам вводите в колонке «Цена поставщика» — общая сумма КП посчитается сама.</div>';
       h += '<table><thead><tr><th>№</th><th>Позиция</th><th>Количество</th><th>Цена поставщика</th><th>Сумма</th></tr></thead><tbody>';
       h += items.map(function(x, i){
         var ki = (k.items && k.items[i]) || {};
