@@ -8977,7 +8977,7 @@ dealContractHtml = function(d){
 };
 
 /* ---------- 4. PWA: установка как приложение + автоматическое обновление ---------- */
-var V58_SW_VER = 'pz-v59-7';
+var V58_SW_VER = 'pz-v59-8';
 function v58InstallEnsure(){
   try{
     if(document.getElementById('v58InstallBtn')) return;
@@ -9086,6 +9086,25 @@ try{renderLog()}catch(e){console.log('log init',e)}
 .v59-sup-card.on{border-color:var(--acc2);box-shadow:0 0 0 2px rgba(46,125,99,.18);background:#f3f8f6}
 .v59-sup-card.off{opacity:.55;background:#f7f7f7}
 .v59-sup-name{font-weight:700;font-size:13px;line-height:1.25}
+.v59-sup-sum{font-size:14.5px;font-weight:700;margin-top:3px}
+.v59-md-form{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+.v59-frow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.v59-frow label{font-size:12.5px;white-space:nowrap}
+@media (max-width:920px){
+  .v59-md{flex-direction:column}
+  .v59-md-list{flex:none;width:100%;max-height:180px}
+}
+
+/* ---------- мастер-деталь: список поставщиков слева, форма активного справа ---------- */
+.v59-md{display:flex;gap:10px;align-items:flex-start;margin-top:6px}
+.v59-md-list{flex:0 0 255px;max-height:72vh;overflow:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px}
+.v59-sup-card{border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:pointer;background:#fff}
+.v59-sup-card:hover{border-color:var(--acc2)}
+.v59-sup-card.on{border-color:var(--acc2);box-shadow:0 0 0 2px rgba(46,125,99,.18);background:#f3f8f6}
+.v59-sup-card.off{opacity:.55;background:#f7f7f7}
+.v59-sup-name{font-weight:700;font-size:13px;line-height:1.25}
+.v59-sup-name a{color:inherit;text-decoration:none;border-bottom:1px dashed var(--acc2)}
+.v59-card-info{margin-top:3px;color:#6a5a1e;background:#fbf7e6;border-radius:4px;padding:2px 5px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .v59-sup-sum{font-size:14.5px;font-weight:700;margin-top:3px}
 .v59-md-form{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
 .v59-frow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
@@ -9434,7 +9453,7 @@ dealKpBlock = function(d){
       + (k.cons ? '<span class="tag g">допущен</span> ' : '');
     var inf = tasks.filter(function(t){ return t.type === 'info' && t.sup && normKey(t.sup) === normKey(v59Base(n)) && !t.done })[0];
     h += '<div class="v59-sup-card' + (act ? ' on' : '') + (k.off ? ' off' : '') + '" onclick="v59KpSel(\'' + d.id + '\',\'' + v5escAttr(n) + '\')" title="Нажмите — форма ввода справа переключится на этого поставщика">'
-      + '<div class="v59-sup-name"><a href="#" title="Карточка поставщика: реквизиты, контакты, история, заметки. Можно править прямо здесь, не уходя из закупки" onclick="event.stopPropagation();openSupByName(\'' + v5escAttr(v59Base(n)) + '\');return false">' + esc(n) + '</a>' + (n !== v59Base(n) ? ' <span class="v59-badge-dup">дубль</span>' : '') + '</div>'
+      + '<div class="v59-sup-name"><a href="#" title="Карточка поставщика: реквизиты, контакты, история, заметки. Править можно прямо здесь, не уходя из закупки. У дубля это та же карточка, что у оригинала: правки видны в обоих" onclick="event.stopPropagation();openSupByName(\'' + v5escAttr(v59Base(n)) + '\');return false">' + esc(n) + '</a>' + (n !== v59Base(n) ? ' <span class="v59-badge-dup">дубль</span>' : '') + '</div>'
       + (badges ? '<div style="margin-top:2px">' + badges + '</div>' : '')
       + '<div class="v59-sup-sum">' + (e ? fmt(e) + (k.vatNo ? ' <span class="mini" style="font-weight:400">(с НДС)</span>' : '') + (valid.length > 1 && e === min ? ' <span class="mini" style="color:#2e7d32">★ лучшая</span>' : '') : '<span class="mini">цена не введена</span>') + '</div>'
       + '<div class="mini">' + esc(respTxt[String(k.resp || '')] || 'ожидается') + (s && s.email && s.email[0] ? ' · ' + esc(s.email[0]) : '') + '</div>'
@@ -9449,7 +9468,7 @@ dealKpBlock = function(d){
   var canWin = valid.indexOf(n) >= 0 && (d.stage === 'otvety' || d.stage === 'sravn' || d.stage === 'oplata');
   var e = v59Eff(k);
   h += '<div class="v59-md-form">'
-   + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px"><a href="#" style="font-size:15px;font-weight:700" title="Открыть карточку поставщика — править можно прямо здесь" onclick="openSupByName(\'' + v5escAttr(v59Base(n)) + '\');return false">' + esc(n) + '</a>' + supReportBadge(n)
+   + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px"><a href="#" style="font-size:15px;font-weight:700" title="Открыть карточку поставщика — править можно прямо здесь. Дубль и оригинал — одна карточка" onclick="openSupByName(\'' + v5escAttr(v59Base(n)) + '\');return false">' + esc(n) + '</a>' + supReportBadge(n)
    + '<span style="flex:1"></span>'
    + '<button class="icon-action" title="' + (k.off ? 'Снова учитывать в сравнении' : 'Не учитывать в этой закупке: останется в истории, в расчёт не пойдёт') + '" onclick="v59SupOff(\'' + d.id + '\',\'' + v5escAttr(n) + '\',' + (k.off ? 'false' : 'true') + ')">' + (k.off ? '▶' : '⏸') + '</button>'
    + '<button class="icon-action" title="Отправить запрос через рабочую почту; копия формы 5 сохранится" onclick="dealSupMail(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">✉</button>'
@@ -9533,7 +9552,7 @@ dealKpSave = function(id, silent){
     });
     var posSum = p.items.reduce(function(a, r){ return a + ((+r.q || 0) * (+r.p || 0)) }, 0);
     var eS = $('dkpSum_' + hd), eT = $('dkpTerm_' + hd), eP2 = $('dkpPay_' + hd), eN2 = $('dkpNote_' + hd), eR = $('dkpResp_' + hd);
-    p.sum = eS ? +eS.value || 0 : (+p.sum || 0); if(items.length) p.sum = v5round(posSum);
+    p.sum = eS ? +eS.value || 0 : (+p.sum || 0); if(items.length && posSum > 0) p.sum = v5round(posSum);
     p.term = eT ? eT.value.trim() : p.term || ''; p.pay = eP2 ? eP2.value.trim() : p.pay || '';
     p.note = eN2 ? eN2.value.trim() : p.note || ''; p.resp = eR ? eR.value : p.resp || '';
     var aN = $('dkpAnName_' + hd), aS = $('dkpAnSum_' + hd), aT = $('dkpAnTerm_' + hd);
@@ -9550,21 +9569,28 @@ dealKpWin = function(id, n){
   var d = v59D(id); if(!d) return;
   var k = (d.kps || {})[n]; if(!k || !(k.sum > 0)) return;
   if(k.off) return toastInfo('Поставщик отмечен «не учитывать» — сначала снимите отметку кнопкой ▶');
-  var items = d.items || [], assigned = 0;
+  var items = d.items || [], assigned = 0, byTotal = false;
   if(items.length){
     items.forEach(function(x, i){
       var ki = k.items && k.items[i];
       if(ki && +ki.p > 0){ v59ApplyKpItem(x, k, ki); x.win = n; assigned++; }
     });
-    if(!assigned) return toastInfo('У поставщика нет цен по позициям');
-    v5SyncAward(d);
-    try{ v59GoodsFromDeal(d, n) }catch(e){}
+    if(!assigned){
+      /* цен по строкам нет, но общая сумма КП введена: победитель по сумме.
+         Позиции остаются без распределения, договор идёт по сумме КП */
+      byTotal = true;
+      items.forEach(function(x){ delete x.win; delete x.wp; });
+      d.sup = v59Base(n); d.sum = v59Eff(k); d.multiWin = undefined;
+    }else{
+      v5SyncAward(d);
+      try{ v59GoodsFromDeal(d, n) }catch(e){}
+    }
   }else{ d.sup = v59Base(n); d.sum = v59Eff(k); d.multiWin = undefined; }
   d.hist = d.hist || [];
-  d.hist.unshift({ d: today(), t: 'Выбраны цены поставщика ' + n + (items.length ? ' по ' + assigned + ' позициям' : ' — ' + fmt(v59Eff(k))) + (k.vatNo ? ' (с НДС 20 %)' : '') + (d.winWhy ? ' — ' + d.winWhy : ''), toSup: true });
-  v59PushInter(n, 'Выбран победителем по «' + String(d.subj || '').slice(0, 50) + '»' + (items.length ? '' : ' — ' + fmt(v59Eff(k))));
+  d.hist.unshift({ d: today(), t: 'Выбран победителем поставщик ' + n + (byTotal ? ' по общей сумме КП — ' + fmt(v59Eff(k)) : (items.length ? ' по ' + assigned + ' позициям' : ' — ' + fmt(v59Eff(k)))) + (k.vatNo ? ' (с НДС 20 %)' : '') + (d.winWhy ? ' — ' + d.winWhy : ''), toSup: true });
+  v59PushInter(n, 'Выбран победителем по «' + String(d.subj || '').slice(0, 50) + '»' + ' — ' + fmt(v59Eff(k)));
   save(); renderPipe(); renderDash(); dealView(id);
-  toastInfo(items.length ? 'Цены поставщика выбраны. Позиции без его цены не изменены.' : 'Победитель: ' + n);
+  toastInfo(byTotal ? 'Победитель по сумме КП: ' + n + ' — ' + fmt(v59Eff(k)) + '. Позиции без цен остались без распределения.' : (items.length ? 'Цены поставщика выбраны. Позиции без его цены не изменены.' : 'Победитель: ' + n));
 };
 
 /* ---------- Поиск поставщика для закупки: видны сведения и история товаров ---------- */
