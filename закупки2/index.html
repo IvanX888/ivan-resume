@@ -8977,7 +8977,7 @@ dealContractHtml = function(d){
 };
 
 /* ---------- 4. PWA: установка как приложение + автоматическое обновление ---------- */
-var V58_SW_VER = 'pz-v59-1';
+var V58_SW_VER = 'pz-v59-3';
 function v58InstallEnsure(){
   try{
     if(document.getElementById('v58InstallBtn')) return;
@@ -9348,6 +9348,7 @@ dealKpSave = function(id, silent){
   v5RefreshAwardPrices(d);
   save(); renderPipe(); renderDash();
   if(!silent){ dealView(id); toastInfo('Ответы и КП сохранены'); }
+  return true; /* обязательно: dealQuickMove и dealSetTab прерываются, если сохранение не подтверждено */
 };
 
 /* ---------- Победитель: отключённого не выбрать ---------- */

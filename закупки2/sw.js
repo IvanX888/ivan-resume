@@ -1,16 +1,19 @@
-/* Service Worker, Помощник закупок v5.8 */
-var CACHE = 'pz-v59-1';
-var ASSETS = [
+/* Service Worker, Помощник закупок v5.9.
+   Страницы (html) — network-first: обновления приходят сразу, офлайн — из кэша.
+   Статика (иконки, манифест) — cache-first. */
+var CACHE = 'pz-v59-3';
+var SHELL = [
   './',
-  './Помощник_закупок_КАРКАС_v5.8.html',
+  './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-512-maskable.png'
 ];
 
 self.addEventListener('install', function(e){
   e.waitUntil(
-    caches.open(CACHE).then(function(c){ return c.addAll(ASSETS); })
+    caches.open(CACHE).then(function(c){ return c.addAll(SHELL); })
       .then(function(){ return self.skipWaiting(); })
   );
 });
@@ -27,18 +30,37 @@ self.addEventListener('activate', function(e){
 
 self.addEventListener('fetch', function(e){
   if(e.request.method !== 'GET') return;
-  e.respondWith(
-    caches.match(e.request, {ignoreSearch: true}).then(function(hit){
-      if(hit) return hit;
-      return fetch(e.request).then(function(resp){
-        if(resp && resp.ok && e.request.url.indexOf(location.origin) === 0){
+  var url = new URL(e.request.url);
+  if(url.origin !== location.origin) return;
+  var isPage = e.request.mode === 'navigate' || /\.html?$/i.test(url.pathname) || url.pathname.endsWith('/');
+
+  if(isPage){
+    /* network-first для страниц: новая версия — сразу, без кэша */
+    e.respondWith(
+      fetch(e.request).then(function(resp){
+        if(resp && resp.ok){
           var copy = resp.clone();
           caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
         }
         return resp;
       }).catch(function(){
-        return caches.match('./Помощник_закупок_КАРКАС_v5.8.html');
-      });
-    })
-  );
+        return caches.match(e.request).then(function(hit){
+          return hit || caches.match('./index.html');
+        });
+      })
+    );
+  }else{
+    /* cache-first для статики */
+    e.respondWith(
+      caches.match(e.request).then(function(hit){
+        return hit || fetch(e.request).then(function(resp){
+          if(resp && resp.ok){
+            var copy = resp.clone();
+            caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+          }
+          return resp;
+        });
+      })
+    );
+  }
 });
