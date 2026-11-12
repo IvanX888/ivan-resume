@@ -9066,8 +9066,10 @@ try{renderLog()}catch(e){console.log('log init',e)}
 .v59-off td{opacity:.5;background:#f7f7f7}
 .v59-off td:first-child{opacity:1;background:#f7f7f7}
 .v59-badge-off{display:inline-block;background:#fdeceb;color:#a52a2a;border:1px solid #f5c6c0;border-radius:4px;padding:0 6px;font-size:11px;margin-top:3px}
+.v59-badge-dup{display:inline-block;background:#e8f0fe;color:#1d4f91;border:1px solid #c6dafc;border-radius:4px;padding:0 6px;font-size:11px;margin-top:3px}
 .v59-verbar{display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap}
 .v59-verbar select{padding:2px 4px;font-size:12px;max-width:150px}
+.v59-cons{display:block;margin-bottom:4px;font-size:12px;white-space:nowrap}
 .v59-invs{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
 .v59-invs table{width:100%;font-size:12px;border-collapse:collapse}
 .v59-invs th,.v59-invs td{border:1px solid var(--line);padding:2px 5px;text-align:left}
@@ -9105,50 +9107,53 @@ function v59SupOff(id, n, on){
   save(); renderPipe(); renderDash(); dealView(id);
 }
 
-/* ---------- 1б. Раздвоение предложения (варианты одного поставщика) ---------- */
-function v59VerData(k){
-  return { sum: +k.sum || 0, term: k.term || '', pay: k.pay || '', note: k.note || '', resp: k.resp || '',
-    items: JSON.parse(JSON.stringify(k.items || [])),
-    analog: k.analog ? JSON.parse(JSON.stringify(k.analog)) : null,
-    manual: !!k.manual, invs: JSON.parse(JSON.stringify(k.invs || [])) };
-}
-function v59VerApply(k, v){
-  k.sum = +v.sum || 0; k.term = v.term || ''; k.pay = v.pay || ''; k.note = v.note || ''; k.resp = v.resp || '';
-  k.items = JSON.parse(JSON.stringify(v.items || []));
-  k.analog = v.analog ? JSON.parse(JSON.stringify(v.analog)) : null;
-  k.manual = !!v.manual; k.invs = JSON.parse(JSON.stringify(v.invs || []));
-}
+/* ---------- 1б. Дубль предложения: отдельная строка как у отдельного поставщика.
+   Один поставщик прислал несколько счетов (разные производители, разные цены) —
+   каждое предложение живёт своей строкой со своей суммой. ---------- */
+function v59Base(n){ return String(n || '').replace(/ \(предл\. \d+\)$/, '') }
 function v59SupDup(id, n){
   var d = v59D(id); if(!d) return;
-  var k = dealEnsureKp(d, n);
-  k.vers = k.vers || [v59VerData(k)];          /* слот 0 — исходное предложение */
-  k.vers[k.verI || 0] = v59VerData(k);          /* сохранить текущее в его слот */
-  k.vers.push(v59VerData(k));                   /* копия как новый вариант */
-  k.verI = k.vers.length - 1;
+  var base = v59Base(n);
+  d.sups = d.sups || []; d.kps = d.kps || {};
+  var i = 2;
+  while(d.sups.indexOf(base + ' (предл. ' + i + ')') >= 0) i++;
+  var key = base + ' (предл. ' + i + ')';
+  var src = dealEnsureKp(d, n);
+  d.kps[key] = JSON.parse(JSON.stringify(src));
+  d.kps[key].cons = false;
+  d.sups.push(key);
+  d.hist = d.hist || [];
+  d.hist.unshift({ d: today(), t: 'Добавлен дубль предложения: «' + key + '»', toSup: true });
   save(); renderPipe(); dealView(id);
-  toastInfo('Создан вариант ' + k.vers.length + '. Отредактируйте его — прежнее предложение сохранено и переключается в списке вариантов.');
+  toastInfo('Создан дубль «' + key + '». Заполните его сумму и позиции — это отдельное предложение.');
 }
-function v59VerSwitch(id, n, idx){
+/* ---------- 1в. «Допущено к рассмотрению»: отметка на строке предложения ---------- */
+function v59SupCons(id, n, on){
   var d = v59D(id); if(!d) return;
   var k = dealEnsureKp(d, n);
-  idx = +idx || 0;
-  if(!k.vers || !k.vers[idx]) return;
-  k.vers[k.verI || 0] = v59VerData(k);
-  k.verI = idx;
-  v59VerApply(k, k.vers[idx]);
+  k.cons = !!on;
   save(); renderPipe(); renderDash(); dealView(id);
-  toastInfo('Показан вариант ' + (idx + 1));
+  toastInfo(on ? 'Предложение «' + v59Base(n) + '» допущено к рассмотрению' : 'Отметка «допущен» снята');
 }
-function v59VerDel(id, n){
-  var d = v59D(id); if(!d) return;
-  var k = dealEnsureKp(d, n);
-  if(!k.vers || k.vers.length < 2){ toastInfo('Вариант один, удалять нечего'); return }
-  k.vers.splice(k.verI || 0, 1);
-  k.verI = 0;
-  v59VerApply(k, k.vers[0]);
-  save(); renderPipe(); renderDash(); dealView(id);
-  toastInfo('Вариант удалён, показан первый');
-}
+/* удаление строки: для дубля заодно чистим его КП; победителя не даём удалить */
+dealSupRemove = function(id, li){
+  var d = v59D(id); if(!d || !d.sups) return;
+  var n = d.sups[li]; if(n == null) return;
+  if(dealWinInfo(d).list.indexOf(n) >= 0 || (d.items || []).some(function(x){ return x.win === n }))
+    return toastInfo('Это предложение выбрано победителем — сначала снимите выбор');
+  if(!confirm('Убрать «' + n + '» из закупки? (Сам поставщик из базы не удаляется.)')) return;
+  d.sups.splice(li, 1);
+  if(n !== v59Base(n) && d.kps) delete d.kps[n];
+  save(); renderPipe(); dealView(id);
+};
+/* победителем в закупке считается сам поставщик, без пометки «(предл. N)» */
+var _v59SyncAward = v5SyncAward;
+v5SyncAward = function(d){
+  var w = _v59SyncAward(d);
+  if(d.sup) d.sup = v59Base(d.sup);
+  if(d.multiWin) d.multiWin = d.multiWin.map(v59Base).filter(function(x, i, a){ return a.indexOf(x) === i });
+  return w;
+};
 
 /* ---------- 3. Счета поставщика: принять все, к рассмотрению — отдельно ---------- */
 function v59InvAdd(id, n){
@@ -9224,11 +9229,12 @@ function v59KpItemField(id, n, i, field, value){
 /* ---------- Распределение по позициям: не даём выбрать отключённого ---------- */
 dealPositionAwardBlock = function(d){
   var items = d.items || []; if(!items.length) return '';
+  var anyCons = (d.sups || []).some(function(n){ return ((d.kps || {})[n] || {}).cons });
   var unassigned = 0, groups = {};
   var rows = items.map(function(x, i){
     var options = (d.sups || []).filter(function(n){
       var k = (d.kps || {})[n] || {}, ki = k.items && k.items[i];
-      return ki && +ki.p > 0 && ['noreal', 'otkaz', 'molch'].indexOf(k.resp) < 0 && !k.off;
+      return ki && +ki.p > 0 && ['noreal', 'otkaz', 'molch'].indexOf(k.resp) < 0 && !k.off && (!anyCons || k.cons);
     });
     if(!x.win) unassigned++; else groups[x.win] = v5round((groups[x.win] || 0) + (+x.wp || ((+x.q || 0) * (+x.p || 0))));
     return '<tr><td>' + (i + 1) + '</td><td>' + esc(x.n || '') + '</td><td>' + esc(x.q || '') + ' ' + esc(x.u || 'шт.') + '</td><td><select onchange="dealKpWinItem(\'' + d.id + '\',' + i + ',this.value)"><option value="">— выбрать поставщика —</option>' + options.map(function(n){ var p = (d.kps[n].items[i] || {}).p; return '<option value="' + v5escAttr(n) + '"' + (x.win === n ? ' selected' : '') + '>' + esc(n + ' — ' + fmt(p) + ' за ед.') + '</option>' }).join('') + '</select></td><td>' + (x.win ? fmt(x.wp || ((+x.q || 0) * (+x.p || 0))) : '—') + '</td></tr>';
@@ -9243,24 +9249,18 @@ dealKpBlock = function(d){
   var list = d.sups || []; if(!list.length) return '<div class="dv-note-compact">Пока нет поставщиков. Добавьте одного или нескольких через строку выше.</div>';
   d.kps = d.kps || {};
   var items = d.items || [];
-  var valid = list.filter(function(n){ var k = d.kps[n] || {}; return k.sum > 0 && (!k.resp || k.resp === 'kp') && !k.off });
+  var anyCons = list.some(function(n){ return (d.kps[n] || {}).cons });
+  var valid = list.filter(function(n){ var k = d.kps[n] || {}; return k.sum > 0 && (!k.resp || k.resp === 'kp') && !k.off && (!anyCons || k.cons) });
   var min = valid.length ? Math.min.apply(null, valid.map(function(n){ return d.kps[n].sum })) : 0;
   var h = ((d.stage === 'sravn' || d.stage === 'oplata') ? dealPositionAwardBlock(d) : '')
    + '<div class="dv-table-wrap"><table class="crm-sup-table"><colgroup><col style="width:19%"><col style="width:17%"><col style="width:15%"><col style="width:10%"><col style="width:13%"><col style="width:17%"><col style="width:9%"></colgroup>'
    + '<thead><tr><th>Поставщик</th><th>Запрос и контроль</th><th>Ответ</th><th>Сумма КП, руб.</th><th>Срок / оплата</th><th>Примечание</th><th>Итог</th></tr></thead><tbody>';
   list.forEach(function(n, li){
-    var k = dealEnsureKp(d, n), hd = md5(n), rq = (d.supReq || {})[n] || {}, s = supByName(n);
+    var k = dealEnsureKp(d, n), hd = md5(n), rq = (d.supReq || {})[n] || {}, s = supByName(v59Base(n));
     var canWin = valid.indexOf(n) >= 0 && (d.stage === 'otvety' || d.stage === 'sravn' || d.stage === 'oplata');
     var invs = k.invs || [], consN = invs.filter(function(x){ return x.cons }).length;
-    var verBar = '';
-    if(k.vers && k.vers.length){
-      verBar = '<div class="v59-verbar">вариант: <select onchange="v59VerSwitch(\'' + d.id + '\',\'' + v5escAttr(n) + '\',this.value)">'
-       + k.vers.map(function(v, i){ return '<option value="' + i + '"' + (i === (k.verI || 0) ? ' selected' : '') + '>№' + (i + 1) + (v.sum ? ' · ' + fmt(+v.sum || 0) : '') + '</option>' }).join('') + '</select>'
-       + '<button class="btn sm ghost" title="Ещё один вариант предложения этого поставщика" onclick="v59SupDup(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">＋</button>'
-       + '<button class="del" title="Удалить текущий вариант" onclick="v59VerDel(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">✕</button></div>';
-    }else{
-      verBar = '<div class="mini"><button class="btn sm ghost" title="Если у поставщика несколько предложений: сохранить это и создать ещё один вариант" onclick="v59SupDup(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">⑂ раздвоить предложение</button></div>';
-    }
+    var verBar = (n !== v59Base(n) ? '<div><span class="v59-badge-dup">дубль предложения того же поставщика</span></div>' : '')
+     + '<div class="mini"><button class="btn sm ghost" title="Поставщик прислал ещё одно предложение (другой производитель, другая цена): создать отдельную строку" onclick="v59SupDup(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">＋ дубль предложения</button></div>';
     h += '<tr class="main-row' + (k.off ? ' v59-off' : '') + '"><td><div class="supplier-name" onclick="openSupByName(\'' + v5escAttr(n) + '\')">' + esc(n) + '</div>' + supReportBadge(n)
      + (k.off ? '<div><span class="v59-badge-off">⏸ не учитывается</span></div>' : '')
      + '<div class="mini">' + esc((s && s.email && s.email[0]) || 'e-mail не указан') + '</div>' + verBar + '</td>'
@@ -9281,7 +9281,8 @@ dealKpBlock = function(d){
      + '<td><input id="dkpTerm_' + hd + '" value="' + esc(k.term || '') + '" placeholder="срок поставки" onchange="dealKpField(\'' + d.id + '\',\'' + v5escAttr(n) + '\',\'term\',this.value)">'
      + '<input id="dkpPay_' + hd + '" value="' + esc(k.pay || '') + '" placeholder="условия оплаты" style="margin-top:3px" onchange="dealKpField(\'' + d.id + '\',\'' + v5escAttr(n) + '\',\'pay\',this.value)"></td>'
      + '<td><input id="dkpNote_' + hd + '" value="' + esc(k.note || '') + '" placeholder="наличие, особенности, другой ответ…" onchange="dealKpField(\'' + d.id + '\',\'' + v5escAttr(n) + '\',\'note\',this.value)"></td>'
-     + '<td>' + (canWin ? '<button class="btn sm win-action" title="Выбрать все цены этого поставщика; позиции без его цены не изменятся" onclick="dealKpWin(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">★ его цены</button>' : '') + (dealWinInfo(d).list.indexOf(n) >= 0 ? '<span class="tag g">выбран</span>' : '') + '</td></tr>';
+     + '<td><label class="inline-check v59-cons" title="Отметить, что это предложение допущено к рассмотрению. Пока отмечено хотя бы одно — только они участвуют в сравнении"><input type="checkbox" ' + (k.cons ? 'checked' : '') + ' onchange="v59SupCons(\'' + d.id + '\',\'' + v5escAttr(n) + '\',this.checked)"> допущен</label>'
+     + (canWin ? '<button class="btn sm win-action" title="Выбрать все цены этого поставщика; позиции без его цены не изменятся" onclick="dealKpWin(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">★ его цены</button>' : '') + (dealWinInfo(d).list.indexOf(n) >= 0 || (dealWinInfo(d).list.indexOf(v59Base(n)) >= 0 && n !== v59Base(n)) ? '<span class="tag g">выбран</span>' : '') + '</td></tr>';
     /* --- детали: счета + ручной ввод + позиции + аналог --- */
     h += '<tr class="dv-positions' + (k.off ? ' v59-off' : '') + '"><td colspan="7"><details><summary>Позиции, цены и аналог' + (items.length ? ' (' + items.length + ')' : '') + (k.manual ? ' · ✎ свой вариант' : '') + '</summary>';
     h += '<div class="v59-invs"><div class="mini"><b>Счета поставщика</b>: принято ' + invs.length + (consN ? ' · к рассмотрению ' + consN : ' · к рассмотрению не отмечено') + '</div>';
@@ -9316,7 +9317,7 @@ dealKpBlock = function(d){
     h += '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:5px;margin-top:6px"><input id="dkpAnName_' + hd + '" value="' + esc(an.name || '') + '" placeholder="Аналог: наименование и характеристики" onchange="dealKpAnalog(\'' + d.id + '\',\'' + v5escAttr(n) + '\')"><input type="number" id="dkpAnSum_' + hd + '" value="' + (an.sum || '') + '" placeholder="цена" onchange="dealKpAnalog(\'' + d.id + '\',\'' + v5escAttr(n) + '\')"><input id="dkpAnTerm_' + hd + '" value="' + esc(an.term || '') + '" placeholder="срок" onchange="dealKpAnalog(\'' + d.id + '\',\'' + v5escAttr(n) + '\')"></div>'
      + '</details></td></tr>';
   });
-  h += '</tbody></table></div><div class="dv-note-compact">Все изменения сохраняются автоматически. ⏸ — поставщик без расчёта (история), ⑂ — несколько предложений одного поставщика, счета принимаются все, считаются отмеченные «к рассмотрению».</div>';
+  h += '</tbody></table></div><div class="dv-note-compact">Все изменения сохраняются автоматически. ⏸ — без расчёта (история). «＋ дубль предложения» — отдельная строка для каждого счёта одного поставщика. Галочка «допущен» — пока отмечено хотя бы одно предложение, в сравнении и выборе победителя участвуют только отмеченные. Счета принимаются все, сумма КП — отмеченные «к рассмотрению».</div>';
   return h;
 };
 
@@ -9362,7 +9363,7 @@ dealKpWin = function(id, n){
     });
     if(!assigned) return toastInfo('У поставщика нет цен по позициям');
     v5SyncAward(d);
-  }else{ d.sup = n; d.sum = k.sum; d.multiWin = undefined; }
+  }else{ d.sup = v59Base(n); d.sum = k.sum; d.multiWin = undefined; }
   d.hist = d.hist || [];
   d.hist.unshift({ d: today(), t: 'Выбраны цены поставщика ' + n + (items.length ? ' по ' + assigned + ' позициям' : ' — ' + fmt(k.sum)), toSup: true });
   save(); renderPipe(); renderDash(); dealView(id);
