@@ -8977,7 +8977,7 @@ dealContractHtml = function(d){
 };
 
 /* ---------- 4. PWA: установка как приложение + автоматическое обновление ---------- */
-var V58_SW_VER = 'pz-v59-3';
+var V58_SW_VER = 'pz-v59-4';
 function v58InstallEnsure(){
   try{
     if(document.getElementById('v58InstallBtn')) return;
@@ -9155,6 +9155,35 @@ v5SyncAward = function(d){
   return w;
 };
 
+/* ---------- Дублирование записей в таймлайн поставщика ----------
+   Записи с toSup:true в истории закупки помечались «продублировано в карточку»,
+   но реально в s.inter попадали немногие. Делаем честно: пуш по известному
+   имени + ленивая синхронизация всей истории при открытии закупки. ---------- */
+function v59PushInter(name, txt){
+  var s = supByName(v59Base(name)); if(!s) return false;
+  s.inter = s.inter || [];
+  var hit = s.inter.some(function(x){ return x.d === today() && x.text === txt });
+  if(hit) return false;
+  s.inter.push({ d: today(), type: 'заметка', text: txt });
+  return true;
+}
+var _v59BaseHistHtml = dealHistHtml;
+dealHistHtml = function(d){ v59SyncHist(d); return _v59BaseHistHtml(d); };
+/* синхронизируем при каждом открытии закупки, а не только на вкладке истории */
+var _v59BaseDealView = dealView;
+dealView = function(id){ v59SyncHist(v59D(id)); return _v59BaseDealView(id); };
+function v59SyncHist(d){
+  var changed = false;
+  if(d && d.sup){
+    (d.hist || []).forEach(function(x){
+      if(!x.toSup) return;
+      var txt = 'Сделка «' + String(d.subj || '').slice(0, 50) + '»: ' + x.t;
+      if(v59PushInter(d.sup, txt)) changed = true;
+    });
+    if(changed) save();
+  }
+}
+
 /* ---------- 3. Счета поставщика: принять все, к рассмотрению — отдельно ---------- */
 function v59InvAdd(id, n){
   var d = v59D(id); if(!d) return;
@@ -9166,6 +9195,7 @@ function v59InvAdd(id, n){
   k.invs.push({ id: uid('iv'), no: no, date: dt, sum: v5round(sm), cons: false });
   d.hist = d.hist || [];
   d.hist.unshift({ d: today(), t: 'Счёт от ' + n + (no ? ' №' + no : '') + (dt ? ' от ' + dt : '') + ' на сумму ' + fmt(sm) + ' принят', toSup: true });
+  v59PushInter(n, 'Счёт по «' + String(d.subj || '').slice(0, 50) + '»' + (no ? ' №' + no : '') + (dt ? ' от ' + dt : '') + ' на сумму ' + fmt(sm) + ' принят');
   save(); renderPipe(); renderDash(); dealView(id);
   toastInfo('Счёт принят и хранится в истории. Отметьте «к рассмотрению», если он участвует в сравнении.');
 }
@@ -9367,6 +9397,7 @@ dealKpWin = function(id, n){
   }else{ d.sup = v59Base(n); d.sum = k.sum; d.multiWin = undefined; }
   d.hist = d.hist || [];
   d.hist.unshift({ d: today(), t: 'Выбраны цены поставщика ' + n + (items.length ? ' по ' + assigned + ' позициям' : ' — ' + fmt(k.sum)), toSup: true });
+  v59PushInter(n, 'Выбран победителем по «' + String(d.subj || '').slice(0, 50) + '»' + (items.length ? '' : ' — ' + fmt(k.sum)));
   save(); renderPipe(); renderDash(); dealView(id);
   toastInfo(items.length ? 'Цены поставщика выбраны. Позиции без его цены не изменены.' : 'Победитель: ' + n);
 };
@@ -9477,7 +9508,6 @@ renderDash = function(){
      + '<div class="v55-dash-scroll">' + (parts.length ? parts.join('') : '<div class="small">Ничего нет. Добавьте заметку кнопкой выше — из любого места: главная, поставщик, закупка.</div>') + '</div>';
   }catch(e){ console.log('v59-dash', e) }
 };
-
 </script>
 </body>
 </html>
