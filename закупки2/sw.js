@@ -1,12 +1,11 @@
 /* Service Worker, Помощник закупок v5.8 */
-var CACHE = 'pz-v58-1';
+var CACHE = 'pz-v59-1';
 var ASSETS = [
   './',
-  './index.html',
+  './Помощник_закупок_КАРКАС_v5.8.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png'
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', function(e){
@@ -38,7 +37,7 @@ self.addEventListener('fetch', function(e){
         }
         return resp;
       }).catch(function(){
-        return caches.match('./index.html');
+        return caches.match('./Помощник_закупок_КАРКАС_v5.8.html');
       });
     })
   );
