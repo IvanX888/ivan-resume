@@ -10455,6 +10455,7 @@ delSupplier = function(){
 
 
 
+
 /* ================= v6.0.3 patch ================= */
 /* ================================================================
    v6.0.3 — уточнение фильтра печати по аудиту пользователя:
@@ -10499,9 +10500,19 @@ function v603PrintView(d){
   var fin = wi.length ? v5DealDocs(d).filter(function(x){
     return wi.indexOf(x.sup) >= 0 || (!x.sup && wi.length === 1);
   }) : [];
+  /* итог по победителям: выигранные доли важнее сохранённой суммы («последние правки главные») */
+  var winSum = +d.winSum || 0;
+  if(!winSum && typeof v60WinnerShares === 'function'){
+    try{
+      var sh = v60WinnerShares(d).shares, s = 0, any = false;
+      Object.keys(sh).forEach(function(n){ s += sh[n]; any = true });
+      if(any) winSum = v5round(s);
+    }catch(e){}
+  }
+  if(!winSum) winSum = +d.sum || 0;
   return Object.assign({}, d, {
     kps: kps, sups: sups, fin: fin, finDocs: fin,
-    winners: wi, winner: wi.join('; '),
+    winners: wi, winner: wi.join('; '), winSum: winSum,
     multiWin: wi.length > 1 ? wi : d.multiWin,
     sup: wi.length === 1 ? wi[0] : d.sup
   });
