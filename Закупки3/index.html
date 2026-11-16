@@ -10369,14 +10369,14 @@ flCardFillHtml = function(d){
         return '<b>' + esc(n) + '</b>: ' + arr.map(function(x){
           var lbl = (typeof v5DocLabel === 'function') ? v5DocLabel(x.kind) : (x.kind || 'документ');
           return esc(lbl) + ' ' + esc((typeof v5DocNo === 'function' ? v5DocNo(x) : (x.no || '—')))
-            + (x.date ? ' от ' + esc(x.date) : '') + ' — ' + (typeof fmtH === 'function' ? fmtH(+x.sum || 0) : (+x.sum || 0)) + ' руб.';
+            + (x.date ? ' от ' + esc(x.date) : '') + ' — ' + (typeof fmtH === 'function' ? fmtH(+x.sum || 0) : (+x.sum || 0) + ' руб.');
         }).join('; ');
       });
       Object.keys(bySup).forEach(function(n){
         if(wi.indexOf(n) < 0) lines.push('<b>' + esc(n) + '</b>: ' + bySup[n].map(function(x){
           var lbl = (typeof v5DocLabel === 'function') ? v5DocLabel(x.kind) : (x.kind || 'документ');
           return esc(lbl) + ' ' + esc((typeof v5DocNo === 'function' ? v5DocNo(x) : (x.no || '—')))
-            + (x.date ? ' от ' + esc(x.date) : '') + ' — ' + (typeof fmtH === 'function' ? fmtH(+x.sum || 0) : (+x.sum || 0)) + ' руб.';
+            + (x.date ? ' от ' + esc(x.date) : '') + ' — ' + (typeof fmtH === 'function' ? fmtH(+x.sum || 0) : (+x.sum || 0) + ' руб.');
         }).join('; '));
       });
       var fill = lines.join('<br>');
@@ -10454,6 +10454,7 @@ delSupplier = function(){
 
 
 
+
 /* ================= v6.0.3 patch ================= */
 /* ================================================================
    v6.0.3 — уточнение фильтра печати по аудиту пользователя:
@@ -10500,6 +10501,7 @@ function v603PrintView(d){
   }) : [];
   return Object.assign({}, d, {
     kps: kps, sups: sups, fin: fin, finDocs: fin,
+    winners: wi, winner: wi.join('; '),
     multiWin: wi.length > 1 ? wi : d.multiWin,
     sup: wi.length === 1 ? wi[0] : d.sup
   });
