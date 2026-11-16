@@ -446,7 +446,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
 <body>
 <header>
   <div>
-    <h1>Помощник специалиста по закупкам <span class="badge">v5.9</span></h1>
+    <h1>Помощник специалиста по закупкам <span class="badge">v6.0</span></h1>
     <div class="sub">CRM закупок · единый реестр, поставщики, КП, документы, заметки, фактические поставки и отчёты · данные загружаются отдельным бэкапом</div>
   </div>
   <div id="gsWrap"><input id="gsQ" autocomplete="off" placeholder="🔍 Поиск везде: сделка, поставщик, товар, форма, пункт Порядка… (Ctrl+K)"><div id="gsDrop" style="display:none"></div></div>
@@ -1058,7 +1058,7 @@ footer{font-size:11.5px;color:var(--muted);text-align:center;padding:14px;border
   </div>
 </section>
 </main>
-<footer>CRM закупок v5.9 · пустой каркас · данные организации только в отдельном локальном бэкапе</footer>
+<footer>CRM закупок v6.0 · пустой каркас · данные организации только в отдельном локальном бэкапе</footer>
 
 <!-- ============ МОДАЛКА: СДЕЛКА ============ -->
 <div class="modal" id="dealView"><div class="box">
@@ -1794,7 +1794,7 @@ function dealSupSearch(id){
     return;
   }
   res.innerHTML=_dealSupFound.map(function(s,i){
-    return '<div style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;margin:3px 0;background:#fff;cursor:pointer" onclick="dealSupAddByName(\''+id+'\','+i+')">'+supDot(s)+'<b>'+esc(dispName(s))+'</b> <span class="small" style="color:var(--muted)">'+esc(s.group||'')+(s.unp?' · УНП '+esc(s.unp):'')+'</span></div>';
+    return '<div style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;margin:3px 0;background:#fff;cursor:pointer" onclick="dealSupAddByName(\''+id+'\','+i+')">'+supDot(s)+'<b>'+dispName(s)+'</b> <span class="small" style="color:var(--muted)">'+esc(s.group||'')+(s.unp?' · УНП '+esc(s.unp):'')+'</span></div>';
   }).join('');
 }
 function dealSupCreate(id){
@@ -2832,7 +2832,7 @@ function backupAll(){
     if(reg&&regB)reg=Object.assign({},reg,{data:regB});
     var docsOut=docs.map(function(x,k){var y=Object.assign({},x);if(blobs[k])y.data=blobs[k];return y;});
     var data={
-      app:'Pomoshchnik zakupok CRM', ver:'5.9', date:new Date().toISOString(),
+      app:'Pomoshchnik zakupok CRM', ver:'6.0', date:new Date().toISOString(),
       reg:reg, docs:docsOut, goods:goods,
       sup:sup, deals:deals, tasks:tasks, checks:checks, verlog:verlog,
            org:JSON.parse(localStorage.getItem('crm2_org')||'null'), sign:JSON.parse(localStorage.getItem('crm2_sign')||'null'),
@@ -7677,7 +7677,7 @@ function v54NoteHtml(t){
   if(t.due)meta.push('<span class="v54-badge'+(over?' overdue':'')+'">срок: '+esc(t.due)+(over?' — ПРОСРОЧЕНО':'')+'</span>');
   if(t.repeat)meta.push('<span class="v54-badge">🔁 '+esc((V54_NOTE_REPEAT.filter(function(r){return r[0]===t.repeat})[0]||[])[1]||t.repeat)+'</span>');
   if(t.docKind)meta.push('<span class="v54-badge">📄 '+esc(v5DocLabel(t.docKind))+'</span>');
-  if(t.sup)meta.push('<a href="#" onclick="openSupByName(\''+v5escAttr(t.sup)+'\');return false">'+esc(dispName(supByName(t.sup)))+'</a>');
+  if(t.sup)meta.push('<a href="#" onclick="openSupByName(\''+v5escAttr(t.sup)+'\');return false">'+dispName(supByName(t.sup))+'</a>');
   var deal=t.dealId?deals.filter(function(d){return d.id===t.dealId})[0]:null;
   if(deal)meta.push('<span class="v54-open-deal" onclick="dealView(\''+deal.id+'\')">📂 '+esc(String(deal.subj||'закупка').slice(0,45))+'</span>');
   return '<div class="task v54-note v54-color-'+color+(t.done?' done':'')+(t.pinned?' pinned':'')+'">'
@@ -9062,7 +9062,7 @@ try{loadCommission()}catch(e){console.log('comm init',e)}
 try{renderLog()}catch(e){console.log('log init',e)}
 </script>
 <style>
-/* ================= v5.9 ================= */
+/* ================= v6.0 ================= */
 .v59-off td{opacity:.5;background:#f7f7f7}
 .v59-off td:first-child{opacity:1;background:#f7f7f7}
 .v59-badge-off{display:inline-block;background:#fdeceb;color:#a52a2a;border:1px solid #f5c6c0;border-radius:4px;padding:0 6px;font-size:11px;margin-top:3px}
@@ -9134,7 +9134,7 @@ try{renderLog()}catch(e){console.log('log init',e)}
 }
 </style>
 <script>
-/* ================= v5.9: поставщики «не учитывать»/раздвоение, счета поставщика,
+/* ================= v6.0: поставщики «не учитывать»/раздвоение, счета поставщика,
    ручной ввод позиций (аналог), заметки: группы и тип «Сведения» ================= */
 
 function v59D(id){ return deals.filter(function(x){ return x.id === id })[0] }
@@ -9611,7 +9611,7 @@ dealSupSearch = function(id){
   res.innerHTML = _dealSupFound.map(function(s, i){
     var inf = tasks.filter(function(t){ return t.type === 'info' && t.sup && normKey(t.sup) === normKey(s.name) && !t.done })[0];
     var gc = supGoods(s.name).length;
-    return '<div style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;margin:3px 0;background:#fff;cursor:pointer" onclick="dealSupAddByName(\'' + id + '\',' + i + ')">' + supDot(s) + '<b>' + esc(dispName(s)) + '</b> <span class="small" style="color:var(--muted)">' + esc(s.group || '') + (s.unp ? ' · УНП ' + esc(s.unp) : '') + (gc ? ' · позиций в истории: ' + gc : '') + '</span>'
+    return '<div style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;margin:3px 0;background:#fff;cursor:pointer" onclick="dealSupAddByName(\'' + id + '\',' + i + ')">' + supDot(s) + '<b>' + dispName(s) + '</b> <span class="small" style="color:var(--muted)">' + esc(s.group || '') + (s.unp ? ' · УНП ' + esc(s.unp) : '') + (gc ? ' · позиций в истории: ' + gc : '') + '</span>'
      + (inf ? '<div class="mini" title="' + esc(inf.t) + '">ℹ ' + esc(String(inf.t).slice(0, 90)) + '</div>' : '')
      + '</div>';
   }).join('');
