@@ -10576,6 +10576,34 @@ if(typeof printCase === 'function'){
   };
 }
 
+
+/* ================= v6.0.4 patch ================= */
+/* ================================================================
+   v6.0.4 — живой прогон v6.0.3 (сделка «Пневмоцилиндр», 3 участника):
+   отчёт брал «основной договор» первым по списку — им оказался
+   договор-счёт ПРОИГРАВШЕГО (СМАРТ, 10 200 руб.), и в отчёт ИС
+   «Тендеры» уходила чужая сумма от имени победителя.
+   Исправление: на время построения отчёта «основной договор»
+   выбирается только среди документов победителей.
+   ================================================================ */
+var _v604Rows = v5DealReportRows;
+v5DealReportRows = function(y, q, half){
+  var _origPrimary = (typeof v5PrimaryContract === 'function') ? v5PrimaryContract : null;
+  if(_origPrimary){
+    v5PrimaryContract = function(d){
+      var docs = v5DealDocs(d);
+      var wi = (typeof v603WinnersOf === 'function') ? v603WinnersOf(d) : [];
+      var pool = (wi.length ? docs.filter(function(x){
+        // документ поставщика-победителя ИЛИ общий (без sup — не привязан к проигравшему)
+        return wi.indexOf(x.sup) >= 0 || !x.sup;
+      }) : docs);
+      return pool.filter(function(x){ return x.kind === 'contract' || x.kind === 'contract_invoice' })[0] || null;
+    };
+  }
+  try{ return _v604Rows(y, q, half); }
+  finally{ if(_origPrimary) v5PrimaryContract = _origPrimary; }
+};
+
 </script>
 </body>
 </html>
