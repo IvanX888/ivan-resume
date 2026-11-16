@@ -9941,7 +9941,7 @@ flFinish = function(){
   var win = wins[0];
   var posAll = (CYC.winPos || []).filter(function(wp){ return wp.sup && +wp.price > 0 });
   var total = posAll.length ? posAll.reduce(function(a, wp){ return a + (+wp.price || 0) }, 0)
-    : wins.reduce(function(a, n){ return a + ((kps[n] || {}).sum || 0) }, 0);
+    : wins.reduce(function(a, n){ var k = kps[n] || {}; return a + v5round((+k.sum || 0) * (k.vatNo ? 1.2 : 1)) }, 0);
   total = v5round(total);
   var _names = Object.keys(kps).filter(flKpOk);
   var _min = _names.length ? Math.min.apply(null, _names.map(function(n){ return kps[n].sum })) : 0;
@@ -10128,7 +10128,7 @@ flCardFillHtml = function(d){
         function(m, lot, pos, rest){
           var q = '';
           for(var j = 0; j < items.length; j++){
-            if(String(items[j].n || '') === pos){ q = items[j].q || ''; break }
+            if(esc(items[j].n || '') === pos){ q = items[j].q || ''; break }
           }
           return '<tr><td style="border:1px solid #000;padding:3px 5px">' + lot + '</td><td style="border:1px solid #000;padding:3px 5px">' + pos + '</td><td style="border:1px solid #000;padding:3px 5px">' + esc(q) + '</td>' + rest;
         });
@@ -10318,6 +10318,137 @@ dealKpWinItem = function(id, i, n){
 var _v60Protocol = flProtocolHtml;
 flProtocolHtml = function(){
   return _v60Protocol().split('<th>Цена, руб.</th>').join('<th>Сумма, руб.</th>');
+};
+
+
+/* ================= v6.0.1 patch ================= */
+/* ================================================================
+   v6.0.1 — аудит целостности (итоги аудита «Закупки v6.0»):
+   A. Форма 19: таблица участников больше не зависит от глобального
+      CYC (при печати из дела не терялись участники, кроме победителей).
+   B. Лимит победителей: максимум 3 (снятие лишней отметки + подсказка).
+   C. Финиш цикла: позиция с назначенным победителем, но без суммы,
+      больше не молча выпадает из итога — запрос на заполнение/снятие.
+   D. Форма 19: строка «Договор/счета» заполняется реальными документами
+      по каждому победителю + счётчик «N победителей · N счетов · N договоров»
+      (в заполненной карточке и в официальном шаблоне f19).
+   E. Удаление поставщика: карточка с историей уходит в архив
+      (localStorage «srz_sup_archive») вместо бесследного исчезновения.
+   ================================================================ */
+
+/* A. formFillDeal/flCardFillHtml: локальный фильтр КП вместо flKpOk(CYC) */
+var _v601Card = flCardFillHtml;
+flCardFillHtml = function(d){
+  var _k = (d && d.kps) || {};
+  var _origKpOk = (typeof flKpOk === 'function') ? flKpOk : null;
+  if(_origKpOk){
+    flKpOk = function(n){ var k = _k[n]; return !!(k && k.sum > 0 && (!k.resp || k.resp === 'kp')); };
+  }
+  var h;
+  try{ h = _v601Card(d); }
+  finally{ if(_origKpOk) flKpOk = _origKpOk; }
+  /* D. счётчики + договоры/счета в карточку дела */
+  try{
+    if(!d) return h;
+    var wi = dealWinInfo(d).list;
+    var docs = (typeof v5DealDocs === 'function') ? v5DealDocs(d) : [];
+    var invN = docs.filter(function(x){ return x.kind === 'invoice' || x.kind === 'contract_invoice' }).length;
+    var conN = docs.filter(function(x){ return x.kind === 'contract' || x.kind === 'contract_invoice' }).length;
+    if(wi.length){
+      var cnt = ' <span style="font-weight:bold">Победителей: ' + wi.length + ' · счетов: ' + invN + ' · договоров: ' + conN + '</span>';
+      h = h.replace(/(ИТОГО: [^<]*)<\/b>/, '$1' + cnt + '</b>');
+      /* строка «Договор/счета» — реальные документы по каждому победителю */
+      var bySup = {};
+      docs.forEach(function(x){
+        var key = x.sup || (wi.length === 1 ? wi[0] : '— без привязки —');
+        (bySup[key] = bySup[key] || []).push(x);
+      });
+      var lines = wi.map(function(n){
+        var arr = bySup[n] || [];
+        if(!arr.length) return '<b>' + esc(n) + '</b>: <span style="color:#666">документов нет</span>';
+        return '<b>' + esc(n) + '</b>: ' + arr.map(function(x){
+          var lbl = (typeof v5DocLabel === 'function') ? v5DocLabel(x.kind) : (x.kind || 'документ');
+          return esc(lbl) + ' ' + esc((typeof v5DocNo === 'function' ? v5DocNo(x) : (x.no || '—')))
+            + (x.date ? ' от ' + esc(x.date) : '') + ' — ' + (typeof fmtH === 'function' ? fmtH(+x.sum || 0) : (+x.sum || 0)) + ' руб.';
+        }).join('; ');
+      });
+      Object.keys(bySup).forEach(function(n){
+        if(wi.indexOf(n) < 0) lines.push('<b>' + esc(n) + '</b>: ' + bySup[n].map(function(x){
+          var lbl = (typeof v5DocLabel === 'function') ? v5DocLabel(x.kind) : (x.kind || 'документ');
+          return esc(lbl) + ' ' + esc((typeof v5DocNo === 'function' ? v5DocNo(x) : (x.no || '—')))
+            + (x.date ? ' от ' + esc(x.date) : '') + ' — ' + (typeof fmtH === 'function' ? fmtH(+x.sum || 0) : (+x.sum || 0)) + ' руб.';
+        }).join('; '));
+      });
+      var fill = lines.join('<br>');
+      h = h.replace(/(<strong>Договор: №, дата \/ счета \(№, дата, сумма\)<\/strong><\/td><td style="border:1px solid #000;padding:3px 5px">)<\/td>/,
+        '$1' + fill + '</td>');
+    }
+  }catch(e){ console.log('v601-card', e); }
+  return h;
+};
+/* тот же счётчик — в официальный шаблон формы 19 (только автозаполнение) */
+var _v601FormFill = (typeof formFillDeal === 'function') ? formFillDeal : null;
+if(_v601FormFill){
+  formFillDeal = function(fid, d){
+    var h = _v601FormFill(fid, d);
+    if(!h || fid !== 'f19' || !d) return h;
+    try{
+      var wi = dealWinInfo(d).list;
+      if(!wi.length) return h;
+      var docs = (typeof v5DealDocs === 'function') ? v5DealDocs(d) : [];
+      var invN = docs.filter(function(x){ return x.kind === 'invoice' || x.kind === 'contract_invoice' }).length;
+      var conN = docs.filter(function(x){ return x.kind === 'contract' || x.kind === 'contract_invoice' }).length;
+      h = h.split('. Итого: ').join('. Победителей: ' + wi.length + ', счетов: ' + invN + ', договоров: ' + conN + '. Итого: ');
+    }catch(e){ console.log('v601-f19', e); }
+    return h;
+  };
+}
+
+/* B. не больше 3 победителей */
+var _v601WinTgl = flWinTgl;
+flWinTgl = function(){
+  _v601WinTgl();
+  try{
+    var boxes = document.querySelectorAll('input[name="flWin"]:checked');
+    if(boxes.length > 3){
+      for(var i = 3; i < boxes.length; i++) boxes[i].checked = false;
+      if(typeof flAlert === 'function') flAlert('Победителей может быть максимум 3 — лишние отметки сняты.');
+      _v601WinTgl();
+    }
+  }catch(e){ console.log('v601-wintgl', e); }
+};
+
+/* C. позиции с победителем, но без суммы, не выпадают из итога молча */
+var _v601Finish = flFinish;
+flFinish = function(){
+  try{
+    var bad = (CYC.winPos || []).filter(function(wp){ return wp.sup && !(+wp.price > 0) });
+    if(bad.length){
+      if(typeof flAlert === 'function')
+        flAlert('Позиции без суммы: ' + bad.map(function(wp){ return '«' + String(wp.n).slice(0, 40) + '»' }).join(', ')
+          + '. Укажите сумму по каждой позиции с победителем или снимите победителя — иначе они не попадут в итог.');
+      return;
+    }
+  }catch(e){ console.log('v601-finish', e); }
+  _v601Finish();
+};
+
+/* E. архив удаляемых поставщиков (карточка + история — не пропадают) */
+var _v601DelSup = delSupplier;
+delSupplier = function(){
+  try{
+    var i = +(document.getElementById('eId').value);
+    if(i >= 0 && sup[i]){
+      var s = sup[i];
+      var A = lsGet('srz_sup_archive', []) || [];
+      A.unshift({ d: today(), name: s.name, unp: s.unp || '', group: s.group || '',
+        contact: s.contact || '', phone: s.phone || [], email: s.email || [], site: s.site || [],
+        inter: s.inter || [], check: s.check || '' });
+      lsSet('srz_sup_archive', A.slice(0, 200));
+      logVer('Поставщик «' + s.name + '» перенесён в архив (карточка + история сохранены)');
+    }
+  }catch(e){ console.log('v601-del', e); }
+  _v601DelSup();
 };
 
 </script>

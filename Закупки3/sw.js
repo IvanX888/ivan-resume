@@ -1,14 +1,13 @@
 /* Service Worker, Помощник закупок v6.0.
    Страницы (html) — network-first: обновления приходят сразу, офлайн — из кэша.
    Статика (иконки, манифест) — cache-first. */
-var CACHE = 'pz-v60-1';
+var CACHE = 'pz-v60-2';
 var SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/icon-512-maskable.png'
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', function(e){
