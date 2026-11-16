@@ -10453,20 +10453,22 @@ delSupplier = function(){
 
 
 
-/* ================= v6.0.2 patch ================= */
+
+/* ================= v6.0.3 patch ================= */
 /* ================================================================
-   v6.0.2 — печать только победителей + валидация галочек этапов:
-   1) Печатные формы (заполненная карточка дела, форма 19, пакет
-      документов): участники, счётчики «N счетов / N договоров» и
-      строка «Договор/счета» — строго по победителям. Документы,
-      КП и суммы отключённых («не учитывать»), отказавшихся и
-      проигравших в печать не попадают. Цифровая история закупки
-      (карточка сделки, таймлайны) по-прежнему хранит всё.
-   2) Галочки подтверждают этапы: «Выполнено» без отметки
-      «Получено» не сохраняется; печать карточки дела требует
-      хотя бы одного отмеченного победителя.
+   v6.0.3 — уточнение фильтра печати по аудиту пользователя:
+   · Таблица «Поступившие предложения / поставщики» в карточке дела
+     и форме 19 — ВСЕ допущенные участники с их КП (как в закупке).
+     Исключаются только: отключённые «не учитывать» (k.off),
+     отказавшиеся/молчащие (resp: noreal/otkaz/molch) и записи
+     без суммы КП.
+   · Строка «Договор: №, дата / счета» и счётчики «N счетов /
+     N договоров» — строго документы победителей: номера договоров
+     и счетов проигравших в карточку дела не попадают.
+   · Цифровая история закупки (внутри системы) хранит всё без изменений.
+   · Валидация галочек этапов (из v6.0.2) сохранена.
    ================================================================ */
-function v602WinnersOf(d){
+function v603WinnersOf(d){
   if(!d) return [];
   if(d.winners && d.winners.length) return d.winners.slice();
   var wi = (typeof dealWinInfo === 'function') ? dealWinInfo(d).list : [];
@@ -10474,39 +10476,52 @@ function v602WinnersOf(d){
   if(d.winner) return String(d.winner).split(';').map(function(s){ return s.trim() }).filter(Boolean);
   return [];
 }
-/* вид дела для ПЕЧАТИ: только победители и их документы */
-function v602PrintView(d){
-  var wi = v602WinnersOf(d);
-  if(!wi.length) return null;
+/* признак: предложение допущено и участвует в печати */
+function v603KpPrintable(k){
+  if(!k) return false;
+  if(k.off) return false;
+  if(k.resp === 'noreal' || k.resp === 'otkaz' || k.resp === 'molch') return false;
+  return +k.sum > 0;
+}
+/* вид дела для ПЕЧАТИ: участники — все допущенные; документы — только победителей */
+function v603PrintView(d){
+  var wi = v603WinnersOf(d);
+  var kpsAll = d.kps || {};
   var kps = {};
-  wi.forEach(function(n){ kps[n] = (d.kps || {})[n] || { sum: 0 }; });
-  var fin = v5DealDocs(d).filter(function(x){
-    return wi.indexOf(x.sup) >= 0 || (!x.sup && wi.length === 1);
+  Object.keys(kpsAll).forEach(function(n){
+    if(v603KpPrintable(kpsAll[n])) kps[n] = kpsAll[n];
   });
+  /* победитель без КП (редкая ситуация) остаётся видимым */
+  wi.forEach(function(n){ if(!kps[n]) kps[n] = kpsAll[n] || { sum: 0 }; });
+  var sups = Object.keys(kps);
+  wi.forEach(function(n){ if(sups.indexOf(n) < 0) sups.push(n); });
+  var fin = wi.length ? v5DealDocs(d).filter(function(x){
+    return wi.indexOf(x.sup) >= 0 || (!x.sup && wi.length === 1);
+  }) : [];
   return Object.assign({}, d, {
-    kps: kps, sups: wi.slice(), fin: fin, finDocs: fin,
+    kps: kps, sups: sups, fin: fin, finDocs: fin,
     multiWin: wi.length > 1 ? wi : d.multiWin,
     sup: wi.length === 1 ? wi[0] : d.sup
   });
 }
-var _v602Card = flCardFillHtml;
+var _v603Card = flCardFillHtml;
 flCardFillHtml = function(d){
-  var pv = v602PrintView(d);
-  return _v602Card(pv || d);
+  var pv = v603PrintView(d);
+  return _v603Card(pv || d);
 };
 if(typeof formFillDeal === 'function'){
-  var _v602Fill = formFillDeal;
+  var _v603Fill = formFillDeal;
   formFillDeal = function(fid, d){
     if(fid === 'f19' && d){
-      var pv = v602PrintView(d);
+      var pv = v603PrintView(d);
       if(pv) d = pv;
     }
-    return _v602Fill(fid, d);
+    return _v603Fill(fid, d);
   };
 }
-/* 2) валидация галочек */
+/* валидация галочек этапов (сохранено из v6.0.2) */
 if(typeof saveDeal === 'function'){
-  var _v602SaveDeal = saveDeal;
+  var _v603SaveDeal = saveDeal;
   saveDeal = function(){
     try{
       var stEl = document.getElementById('dStage'), gotEl = document.getElementById('dGot');
@@ -10514,12 +10529,12 @@ if(typeof saveDeal === 'function'){
         alert('Этап «Выполнено» не подтверждён: поставьте галочку «Получено» (товар получен и принят по акту) — без неё сделка не считается завершённой.');
         return;
       }
-    }catch(e){ console.log('v602-save', e); }
-    _v602SaveDeal();
+    }catch(e){ console.log('v603-save', e); }
+    _v603SaveDeal();
   };
 }
 if(typeof dealQuickMove === 'function'){
-  var _v602Quick = dealQuickMove;
+  var _v603Quick = dealQuickMove;
   dealQuickMove = function(id, st){
     try{
       if(st === 'done'){
@@ -10530,21 +10545,21 @@ if(typeof dealQuickMove === 'function'){
           return;
         }
       }
-    }catch(e){ console.log('v602-move', e); }
-    _v602Quick(id, st);
+    }catch(e){ console.log('v603-move', e); }
+    _v603Quick(id, st);
   };
 }
 if(typeof printCase === 'function'){
-  var _v602PrintCase = printCase;
+  var _v603PrintCase = printCase;
   printCase = function(){
     try{
       var parts = (window.__caseParts || []).filter(function(p){ return p.sup || p.sum });
       if(!parts.some(function(p){ return p.win })){
-        alert('Победитель не отмечен. Поставьте галочку «Победитель» хотя бы одному участнику — в карточку дела и форму 19 попадают только победители и их документы.');
+        alert('Победитель не отмечен. Поставьте галочку «Победитель» хотя бы одному участнику — иначе итоговый блок карточки дела будет пустым.');
         return;
       }
-    }catch(e){ console.log('v602-case', e); }
-    _v602PrintCase();
+    }catch(e){ console.log('v603-case', e); }
+    _v603PrintCase();
   };
 }
 
