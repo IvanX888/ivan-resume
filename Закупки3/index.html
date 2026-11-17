@@ -7993,7 +7993,7 @@ dealKpBlock=function(d){
   var h=_v55KpBlock(d),n=v53KpSelected(d),k=(d.kps||{})[n]||{};
   var vatBox='<div class="v55-vat-row"><label><input type="checkbox" '+(k.vat?'checked':'')+' onchange="v55KpVat(\''+d.id+'\',\''+v5escAttr(n)+'\',this.checked)"><span>Цены этого поставщика введены <b>без НДС</b> — считать итог и победные цены <b>с НДС 20 %</b></span></label></div>';
   if(h.indexOf('<div class="v53-response-controls v53-response-bottom">')>=0)h=h.replace('<div class="v53-response-controls v53-response-bottom">',vatBox+'<div class="v53-response-controls v53-response-bottom">');
-  if(k.vat)h=h.split('Итого по отмеченным позициям:').join('Итого по отмеченным позициям (с НДС 20 %):');
+  if(k.vat||k.vatNo)h=h.split('Итого по отмеченным позициям:').join('Итого по отмеченным позициям (с НДС 20 %):');
   var notes=v55DealSupNotes(d,n);
   if(h.indexOf('<div class="dv-note-compact">Один поставщик открыт за раз')>=0)h=h.replace('<div class="dv-note-compact">Один поставщик открыт за раз',notes+'<div class="dv-note-compact">Один поставщик открыт за раз');
   return h;
@@ -8301,7 +8301,7 @@ dealKpBlock=function(d){
           +' = <b>'+(asum?fmt(asum):'—')+'</b></td></tr>';
        }
        return row}).join('')+'</tbody></table></div>'
-     +'<div class="v53-offer-total">Итого по отмеченным позициям'+(k.vat?' (с НДС 20 %)':'')+': <b>'+fmt(v53KpRecalc(d,n))+'</b>'+(awardStage?' <button class="btn sm win-action" onclick="dealKpWin(\''+d.id+'\',\''+v5escAttr(n)+'\')">★ Выбрать все его предложенные позиции</button>':'')+'</div>'
+     +'<div class="v53-offer-total">Итого по отмеченным позициям'+((k.vat||k.vatNo)?' (с НДС 20 %)':'')+': <b>'+fmt(v53KpRecalc(d,n))+'</b>'+(awardStage?' <button class="btn sm win-action" onclick="dealKpWin(\''+d.id+'\',\''+v5escAttr(n)+'\')">★ Выбрать все его предложенные позиции</button>':'')+'</div>'
      +'<div class="v55-vat-row"><label><input type="checkbox" '+(k.vat?'checked':'')+' onchange="v55KpVat(\''+d.id+'\',\''+v5escAttr(n)+'\',this.checked)"><span>Цены этого поставщика введены <b>без НДС</b> — считать итог и победные цены <b>с НДС 20 %</b></span></label></div>';
   }else h+='<div class="dv-note-compact">Товарных позиций нет. Укажите общую сумму КП выше или добавьте позиции через «Редактировать всё».</div>';
   h+='<div class="v53-response-controls v53-response-bottom"><div><label>Примечание / наличие / другой ответ</label><input id="dkpNote_'+hd+'" value="'+esc(k.note||'')+'" onchange="dealKpField(\''+d.id+'\',\''+v5escAttr(n)+'\',\'note\',this.value)"></div></div>'
@@ -8400,7 +8400,7 @@ formFillDeal=function(fid,d){
       var table=h.slice(ts,te),first=table.indexOf('<tr>'),headEnd=table.indexOf('</tr>',first)+5,open=table.slice(0,first),head=table.slice(first,headEnd);
       var names=v52F19Participants(d),wi=dealWinInfo(d).list;
       var rows=names.map(function(nm,i){var kk=(d.kps||{})[nm]||{},ss=supByName(nm);
-        var sum=v53KpRecalc(d,nm),price=+sum>0?esc(fmt(sum))+(kk.vat?' (в т.ч. НДС 20 %)':''):'—';
+        var sum=v53KpRecalc(d,nm),price=+sum>0?esc(fmt(sum))+((kk.vat||kk.vatNo)?' (в т.ч. НДС 20 %)':''):'—';
         var alts=(kk.items||[]).filter(function(r){return r&&r.alt&&(r.alt.name||+r.alt.p>0)});
         if(alts.length)price+='<br><span style="font-size:8pt">аналог: '+esc(alts.map(function(r){return (r.alt.name||'позиция')+(+r.alt.p>0?' '+fmt(r.alt.p):'')}).join('; ').slice(0,90))+'</span>';
         var docs=+sum>0||kk.resp==='kp'?'КП':(dkpRespTxt(kk)||'—');
@@ -10852,6 +10852,77 @@ if(typeof openCase === 'function'){
     }catch(e){ console.log('v605-opencase', e); }
   };
 }
+
+
+/* ================= v6.0.6 patch ================= */
+/* ================================================================
+   v6.0.6 — единый НДС в карточке дела (по скриншоту пользователя
+   17.11.2026): в таблице «Поступившие предложения» цена КП с
+   галочкой «цены без НДС» (флаг v59 k.vatNo) печаталась как введена
+   (2 483,34), хотя заголовок колонки — «Цена предложения, руб.
+   (с НДС)», а сумма договора и строка победителя уже с НДС
+   (2 980,00): в одном документе две разные суммы с одной подписью.
+   1. v53KpRecalc понимает флаг vatNo так же, как v55-флаг vat:
+      итог КП возвращается с НДС 20 % (однократно, даже если стоят
+      обе галочки). Не применяется, когда карточка переведена в режим
+      «без НДС» (v6.0.5, d.vatMode='novat').
+   2. Заполненная карточка (flCardFillHtml): печатный вид сделки
+      приводит цены «без НДС» к виду «с НДС» (сумма КП, цены позиций,
+      предложение-аналог) — копиями, исходные данные закупки и
+      цифровая история не меняются.
+   3. Примечания «(в т.ч. НДС 20 %)» в таблице формы 19 и
+      «(с НДС 20 %)» в панели КП показываются и для флага vatNo
+      (точечные правки условий в блоках v56/v55 выше по файлу).
+   ================================================================ */
+function v606Novat(d){ return (typeof v605VatMode === 'function') ? v605VatMode(d) === 'novat' : (!!d && d.vatMode === 'novat'); }
+function v606Mult(){ return (typeof V55_VAT !== 'undefined') ? V55_VAT : 1.2; }
+/* итог КП «без НДС» → с НДС: по позициям с округлением цены (как в договоре),
+   чтобы копейки сходились с суммой договора; без позиций — от общей суммы */
+function v606EffSum(d, n, k, rawSum){
+  var M = v606Mult(), items = (d && d.items) || [], ki = (k && k.items) || [];
+  var offered = function(r){ return (typeof v53Offered === 'function') ? v53Offered(r) : !!(r && +r.p > 0); };
+  if(items.length && ki.some(offered)){
+    var t = 0;
+    ki.forEach(function(r, i){
+      if(!offered(r)) return;
+      var q = +r.q || +(items[i] && items[i].q) || 0;
+      t += q * v5round((+r.p || 0) * M);
+    });
+    if(t > 0) return v5round(t);
+  }
+  return v5round((+rawSum || 0) * M);
+}
+var _v606Recalc = v53KpRecalc;
+v53KpRecalc = function(d, n){
+  var s = _v606Recalc(d, n), k = (d && d.kps || {})[n];
+  if(k && k.vatNo && !k.vat && +s > 0 && !v606Novat(d)) s = v606EffSum(d, n, k, s);
+  return s;
+};
+/* печатный вид: цены «без НДС» → «с НДС» копиями (исходник не трогаем) */
+function v606VatFix(d){
+  if(!d || !d.kps || v606Novat(d)) return d;
+  var M = v606Mult(), kps = {}, ch = false;
+  Object.keys(d.kps).forEach(function(n){
+    var k = d.kps[n];
+    if(k && (k.vat || k.vatNo)){
+      var c = Object.assign({}, k);
+      if(c.items) c.items = c.items.map(function(r){
+        if(!r) return r;
+        var q = Object.assign({}, r);
+        if(+q.p > 0) q.p = v5round(q.p * M);
+        if(q.alt && +q.alt.p > 0) q.alt = Object.assign({}, q.alt, { p: v5round(q.alt.p * M) });
+        return q;
+      });
+      c.sum = v606EffSum(d, n, k, c.sum);
+      if(c.analog && +c.analog.sum > 0) c.analog = Object.assign({}, c.analog, { sum: v5round(c.analog.sum * M) });
+      c.vat = false; c.vatNo = false; /* суммы уже с НДС — повторной конверсии быть не должно */
+      kps[n] = c; ch = true;
+    } else kps[n] = k;
+  });
+  return ch ? Object.assign({}, d, { kps: kps }) : d;
+}
+var _v606Card = flCardFillHtml;
+flCardFillHtml = function(d){ return _v606Card(v606VatFix(d)); };
 
 </script>
 </body>
