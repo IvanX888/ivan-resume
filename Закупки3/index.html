@@ -11031,6 +11031,46 @@ if(typeof formFillDeal === 'function'){
   };
 }
 
+
+/* ================= v6.0.8 patch ================= */
+/* ================================================================
+   v6.0.8 — правило «один счёт у победителя» (по замечанию
+   пользователя 17.11.2026): у победителя может быть один счёт,
+   один договор, пара «договор + счёт» или один счёт-договор —
+   два счёта в карточке дела быть не может.
+   · Счёт из блока «Счета поставщика» (k.invs) попадает в печатный
+     вид, только если у этого победителя ещё нет счёта или
+     счёта-договора (внесённого через «Оплату и поставку»).
+   · Из принятых счетов берётся ОДИН: отмеченный «к рассмотрению»
+     (последний, если отмечено несколько), иначе последний принятый.
+   · Счета проигравших — только история закупки: ни в карточку дела,
+     ни в отчёт не попадают (как и прежде).
+   ================================================================ */
+v607WinnerInvs = function(d){
+  var out = [];
+  if(!d) return out;
+  var wi = (typeof v603WinnersOf === 'function') ? v603WinnersOf(d) : [];
+  var docs = (typeof v5DealDocs === 'function') ? v5DealDocs(d) : (d.finDocs || []);
+  wi.forEach(function(n){
+    var k = (d.kps || {})[n] || {};
+    var invs = (k.invs || []).filter(function(x){ return +x.sum > 0; });
+    if(!invs.length) return;
+    /* у победителя уже есть счёт или счёт-договор — второй не добавляем */
+    var hasInv = docs.some(function(y){
+      return (y.kind === 'invoice' || y.kind === 'contract_invoice')
+        && (y.sup === n || (!y.sup && wi.length === 1));
+    });
+    if(hasInv) return;
+    var pool = invs.filter(function(x){ return x.cons; });
+    if(!pool.length) pool = invs;
+    var iv = pool[pool.length - 1]; /* самый свежий */
+    out.push({ id: 'ivp_' + (iv.id || (n + '_' + iv.no + '_' + iv.sum)), kind: 'invoice',
+      no: iv.no || '', noNumber: !iv.no, date: iv.date || '', sum: +iv.sum || 0,
+      paid: false, payDate: '', parentId: '', sup: n, _fromKp: true });
+  });
+  return out;
+};
+
 </script>
 </body>
 </html>
