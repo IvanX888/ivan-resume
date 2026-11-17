@@ -10604,6 +10604,255 @@ v5DealReportRows = function(y, q, half){
   finally{ if(_origPrimary) v5PrimaryContract = _origPrimary; }
 };
 
+
+/* ================= v6.0.5 patch ================= */
+/* ================================================================
+   v6.0.5 — по замечаниям пользователя (17.11.2026):
+   1. ОПИСЬ ФОРМЫ 19. Галочки описи (служебка, распоряжение, решение,
+      запросы КП, КП участников, справка конъюнктуры, договор, счета,
+      накладные/акты) теперь явно хранятся на сделке (d.opis) и
+      проставляются в карточке сделки (вкладка «Документы») с самого
+      начала закупки. Карточка дела показывает отметки СТРОГО по d.opis:
+      не отметил — в карточку отметка не попадает. Пока d.opis нет,
+      действуют прежние авто-правила (старые закупки печатаются как раньше).
+   2. НДС В КАРТОЧКЕ. Подпись сумм переключается: «(с НДС)» или
+      «(без НДС)» — по выбору на сделке (d.vatMode) и в редакторе дела.
+      Раньше текст «(с НДС)» стоял всегда, даже когда суммы без НДС.
+   3. СЧЁТ/ДОГОВОР ДОЖИВАЕТ ДО КАРТОЧКИ. Карточка дела больше не
+      «замораживается» при завершении цикла: печать и скачивание
+      формы 19 строятся ЖИВЬЁМ из связанной сделки (поиск по dealId,
+      затем предмет+дата, затем предмет). Счёт/договор, внесённые
+      на любом этапе (хоть в середине), попадают в карточку дела.
+      Победители и итог — из сделки; реквизиты дела (номер, дата,
+      пункт, составитель) — из редактора дела.
+   ================================================================ */
+var V605_OPIS = [
+  ['sluzhka', 'служебная записка'],
+  ['rasp', 'распоряжение'],
+  ['reshenie', 'решение/обоснование (формы 3, 4)'],
+  ['zaprosy', 'запросы КП'],
+  ['kp', 'КП участников'],
+  ['spravka', 'справка конъюнктуры рынка'],
+  ['dogovor', 'договор'],
+  ['scheta', 'счета'],
+  ['nakl', 'накладные/акты']
+];
+/* прежние авто-правила — используются как значения по умолчанию */
+function v605OpisDefaults(d){
+  var kps = (d && d.kps) || {};
+  var names = Object.keys(kps).filter(function(n){
+    var k = kps[n]; return k && +k.sum > 0 && (!k.resp || k.resp === 'kp');
+  });
+  var docs = (typeof v5DealDocs === 'function' && d) ? v5DealDocs(d) : [];
+  /* документы проигравших в дело не входят — опись считаем по победителям */
+  if(docs.length && typeof v603WinnersOf === 'function' && d){
+    var wi = v603WinnersOf(d);
+    if(wi.length) docs = docs.filter(function(x){ return wi.indexOf(x.sup) >= 0 || !x.sup });
+  }
+  return {
+    sluzhka: true,
+    rasp: false,
+    reshenie: (typeof flPackType === 'function' && d) ? flPackType(d.point, d.mKey) === 'min' : false,
+    zaprosy: ((d && d.sups) || []).length > 0,
+    kp: names.length > 1,
+    spravka: false,
+    dogovor: docs.some(function(x){ return x.kind === 'contract' || x.kind === 'contract_invoice' }),
+    scheta: docs.some(function(x){ return x.kind === 'invoice' || x.kind === 'contract_invoice' }),
+    nakl: !!(d && d.got)
+  };
+}
+function v605Opis(d){ return (d && (d.opis ? d.opis : v605OpisDefaults(d))) || {}; }
+function v605VatMode(d){ return (d && d.vatMode === 'novat') ? 'novat' : 'vat'; }
+
+/* --- карточка дела: опись строго по d.opis, приставка НДС по d.vatMode --- */
+var _v605Card = flCardFillHtml;
+flCardFillHtml = function(d){
+  var h = _v605Card(d);
+  if(!h || !d) return h;
+  try{
+    var op = v605Opis(d);
+    var cell = V605_OPIS.map(function(x){ return (op[x[0]] ? '☑' : '☐') + ' ' + x[1] }).join('&nbsp;');
+    h = h.replace(/(<strong>Опись приложенных документов \(отметить наличие\)<\/strong><\/td><td[^>]*>)[\s\S]*?(<\/td>)/,
+      '$1' + cell + '$2');
+    if(v605VatMode(d) === 'novat'){
+      h = h.split('Ориентировочная стоимость, руб. (с НДС)').join('Ориентировочная стоимость, руб. (без НДС)');
+      h = h.split('Сумма договора, руб. (с НДС)').join('Сумма договора, руб. (без НДС)');
+      h = h.split('Цена предложения, руб. (с НДС)').join('Цена предложения, руб. (без НДС)');
+      h = h.split('Цена, руб. (с НДС)').join('Цена, руб. (без НДС)');
+    }
+  }catch(e){ console.log('v605-card', e); }
+  return h;
+};
+/* та же приставка — при автозаполнении официальной формы 19 */
+if(typeof formFillDeal === 'function'){
+  var _v605Form = formFillDeal;
+  formFillDeal = function(fid, d){
+    var h = _v605Form(fid, d);
+    if(h && fid === 'f19' && d && v605VatMode(d) === 'novat'){
+      h = h.split('Ориентировочная стоимость, руб. (с НДС)').join('Ориентировочная стоимость, руб. (без НДС)');
+      h = h.split('Сумма договора, руб. (с НДС)').join('Сумма договора, руб. (без НДС)');
+      h = h.split('Цена предложения, руб. (с НДС)').join('Цена предложения, руб. (без НДС)');
+      h = h.split('Цена, руб. (с НДС)').join('Цена, руб. (без НДС)');
+    }
+    return h;
+  };
+}
+
+/* --- управление галочками и НДС из карточки сделки (вкладка «Документы») --- */
+function v605OpisTgl(id, key, on){
+  var d = deals.filter(function(x){ return x.id === id })[0]; if(!d) return;
+  if(!d.opis) d.opis = v605OpisDefaults(d);
+  d.opis[key] = !!on; save();
+  if(typeof toastInfo === 'function') toastInfo('Опись документов дела обновлена');
+}
+function v605VatSet(id, mode){
+  var d = deals.filter(function(x){ return x.id === id })[0]; if(!d) return;
+  d.vatMode = (mode === 'novat') ? 'novat' : 'vat'; save();
+  if(typeof toastInfo === 'function') toastInfo(d.vatMode === 'novat' ? 'В карточке дела суммы будут «без НДС»' : 'В карточке дела суммы будут «с НДС»');
+}
+function v605DealDocsBlock(d){
+  var op = v605Opis(d);
+  return '<div class="dv-panel" style="margin-bottom:8px"><h3>Опись документов дела (форма 19)</h3>'
+   + '<div class="mini">Отметьте, что реально приложено к делу, — отметки попадут в карточку дела. Не отметили — в карточке останется пустая клетка. Менять можно на любом этапе закупки.</div>'
+   + '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px">'
+   + V605_OPIS.map(function(x){
+       return '<label class="inline-check"><input type="checkbox" ' + (op[x[0]] ? 'checked' : '')
+        + ' onchange="v605OpisTgl(\'' + d.id + '\',\'' + x[0] + '\',this.checked)"> ' + x[1] + '</label>';
+     }).join('')
+   + '</div>'
+   + '<div style="margin-top:8px;border-top:1px dashed var(--line);padding-top:8px">'
+   + '<label style="display:inline-flex;gap:8px;align-items:center">Суммы в карточке дела: '
+   + '<select onchange="v605VatSet(\'' + d.id + '\',this.value)">'
+   + '<option value="vat"' + (v605VatMode(d) === 'vat' ? ' selected' : '') + '>с НДС</option>'
+   + '<option value="novat"' + (v605VatMode(d) === 'novat' ? ' selected' : '') + '>без НДС</option>'
+   + '</select></label></div></div>';
+}
+if(typeof dealDocsHtml === 'function'){
+  var _v605Docs = dealDocsHtml;
+  dealDocsHtml = function(d){ return v605DealDocsBlock(d) + _v605Docs(d); };
+}
+
+/* --- связь дело ↔ сделка и ЖИВАЯ карточка --- */
+function v605CaseDeal(c){
+  if(!c) return null;
+  var d = null;
+  if(c.dealId) d = deals.filter(function(x){ return x.id === c.dealId })[0] || null;
+  if(!d && c.subj && c.date) d = deals.filter(function(x){ return x.subj === c.subj && x.date === c.date })[0] || null;
+  if(!d && c.subj) d = deals.filter(function(x){ return x.subj === c.subj })[0] || null;
+  return d;
+}
+/* данные для печати: живые КП/позиции/счёта из сделки + реквизиты дела */
+function v605CaseData(c){
+  var d = v605CaseDeal(c); if(!d) return null;
+  var pv = (typeof v603PrintView === 'function') ? v603PrintView(d) : d;
+  return Object.assign({}, pv, {
+    num: c.num || pv.num,
+    date: c.date || pv.date,
+    point: c.point || pv.point,
+    subj: c.subj || pv.subj,
+    fio: c.fio || pv.fio,
+    dept: c.dept || pv.dept,
+    respFio: c.respFio || pv.respFio,
+    justif: (c.note != null && c.note !== '') ? c.note : pv.justif,
+    vatMode: c.vatMode || pv.vatMode,
+    winSum: +c.total || pv.winSum || pv.sum
+  });
+}
+/* скачивание карточки (.doc) — живьём из сделки, замороженный HTML — запасной вариант */
+if(typeof caseCardDoc === 'function'){
+  var _v605CardDoc = caseCardDoc;
+  caseCardDoc = function(){
+    try{
+      var i = +document.getElementById('ceId').value;
+      var c = cases[i];
+      var data = c ? v605CaseData(c) : null;
+      if(data){
+        var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>@page{size:A4 landscape;margin:1.2cm}body{font-family:"Times New Roman",serif;font-size:10pt;line-height:1.3}table{border-collapse:collapse;width:100%}</style></head><body>'
+         + flCardFillHtml(data) + '</body></html>';
+        download('kartochka_dela_' + (c.num || today()) + '.doc', html, 'application/msword');
+        if(typeof logVer === 'function') logVer('Карточка дела ' + c.num + ' сформирована из сделки «' + String(c.subj || '').slice(0, 50) + '»');
+        return;
+      }
+    }catch(e){ console.log('v605-carddoc', e); }
+    _v605CardDoc();
+  };
+}
+/* печать карточки из редактора дела — живьём из сделки */
+if(typeof printCase === 'function'){
+  var _v605PrintCase = printCase;
+  printCase = function(){
+    try{
+      var i = +document.getElementById('ceId').value;
+      var c = i < 0 ? null : cases[i];
+      if(c){
+        var ui = {
+          dealId: c.dealId, num: ceNum.value.trim(), date: ceDate.value, point: cePoint.value,
+          subj: ceSubj.value.trim(), fio: ceFio.value.trim(), dept: ceDept.value.trim(),
+          respFio: ceRespFio.value.trim(), total: +ceTotal.value || 0, note: ceNote.value.trim(),
+          vatMode: c.vatMode
+        };
+        var data = v605CaseData(ui);
+        if(data){
+          data.winSum = ui.total || data.winSum;
+          flPrint('Форма 19. Карточка дела закупки ' + (ui.num || ''), flCardFillHtml(data), { landscape: true, fit: 0.9 });
+          return;
+        }
+      }
+    }catch(e){ console.log('v605-printcase', e); }
+    _v605PrintCase();
+  };
+}
+/* привязка дела к сделке при сохранении и при завершении цикла */
+if(typeof saveCase === 'function'){
+  var _v605SaveCase = saveCase;
+  saveCase = function(){
+    _v605SaveCase();
+    try{
+      var i = +document.getElementById('ceId').value;
+      if(i >= 0 && cases[i] && !cases[i].dealId){
+        var d = v605CaseDeal({ subj: cases[i].subj, date: cases[i].date });
+        if(d){ cases[i].dealId = d.id; saveCases(); }
+      }
+    }catch(e){ console.log('v605-savecase', e); }
+  };
+}
+if(typeof flFinish === 'function'){
+  var _v605Finish = flFinish;
+  flFinish = function(){
+    _v605Finish();
+    try{
+      if(cases[0] && !cases[0].dealId){
+        var d = v605CaseDeal({ subj: cases[0].subj, date: cases[0].date });
+        if(d){ cases[0].dealId = d.id; saveCases(); }
+      }
+    }catch(e){ console.log('v605-finish', e); }
+  };
+}
+/* переключатель НДС в редакторе дела */
+if(typeof openCase === 'function'){
+  var _v605OpenCase = openCase;
+  openCase = function(i){
+    _v605OpenCase(i);
+    try{
+      var box = document.getElementById('ceDocs'); if(!box) return;
+      var old = document.getElementById('ceVatMode'); if(old) old.parentNode.removeChild(old);
+      var mode = (i >= 0 && cases[i] && cases[i].vatMode) || 'vat';
+      var el = document.createElement('div');
+      el.id = 'ceVatMode';
+      el.style.marginTop = '8px';
+      el.innerHTML = '<label style="display:inline-flex;gap:8px;align-items:center">Суммы в карточке дела: '
+       + '<select><option value="vat">с НДС</option><option value="novat">без НДС</option></select></label>';
+      box.appendChild(el);
+      var sel = el.querySelector('select');
+      sel.value = mode;
+      sel.onchange = function(){
+        var j = +document.getElementById('ceId').value;
+        if(j >= 0 && cases[j]){ cases[j].vatMode = sel.value; saveCases(); }
+      };
+    }catch(e){ console.log('v605-opencase', e); }
+  };
+}
+
 </script>
 </body>
 </html>
