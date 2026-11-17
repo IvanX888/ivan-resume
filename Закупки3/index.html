@@ -10924,6 +10924,113 @@ function v606VatFix(d){
 var _v606Card = flCardFillHtml;
 flCardFillHtml = function(d){ return _v606Card(v606VatFix(d)); };
 
+
+/* ================= v6.0.7 patch ================= */
+/* ================================================================
+   v6.0.7 — по живой проверке пользователя (17.11.2026):
+   1. ОПИСЬ В ОФИЦИАЛЬНОЙ ФОРМЕ 19. Шаблон f19 отмечал опись по
+      старым авто-правилам (v5.5) и игнорировал галочки из карточки
+      сделки: пользователь снял отметки, а в печати стояли прежние.
+      Теперь, когда на сделке есть явная опись (d.opis, v6.0.5),
+      форма 19 показывает строго её: не отметил — пустая клетка.
+   2. СЧЁТ ИЗ БЛОКА «СЧЕТА ПОСТАВЩИКА» ПОПАДАЕТ В КАРТОЧКУ.
+      Счета, принятые на вкладке «Поставщики и КП» (k.invs),
+      хранились отдельно от финдокументов (d.finDocs) и в карточку
+      дела / форму 19 не попадали. Теперь печатный вид закупки
+      включает счета победителей: отмеченные «к рассмотрению»,
+      а если ни один не отмечен — все принятые. Дубли (тот же счёт
+      внесён и через «Оплату и поставку») склеиваются по
+      № + сумме + поставщику. Опись по умолчанию отмечает «счета»,
+      когда у победителя есть принятые счета.
+   ================================================================ */
+/* счета победителей из блока «Счета поставщика» (k.invs) → как финдокументы */
+function v607WinnerInvs(d){
+  var out = [];
+  if(!d) return out;
+  var wi = (typeof v603WinnersOf === 'function') ? v603WinnersOf(d) : [];
+  wi.forEach(function(n){
+    var k = (d.kps || {})[n] || {};
+    var invs = (k.invs || []).filter(function(x){ return +x.sum > 0; });
+    var cons = invs.filter(function(x){ return x.cons; });
+    (cons.length ? cons : invs).forEach(function(iv){
+      out.push({ id: 'ivp_' + (iv.id || (n + '_' + iv.no + '_' + iv.sum)), kind: 'invoice',
+        no: iv.no || '', noNumber: !iv.no, date: iv.date || '', sum: +iv.sum || 0,
+        paid: false, payDate: '', parentId: '', sup: n, _fromKp: true });
+    });
+  });
+  return out;
+}
+/* печатный вид закупки дополняется счетами победителей (без дублей) */
+var _v607PV = v603PrintView;
+v603PrintView = function(d){
+  var pv = _v607PV(d);
+  if(!pv) return pv;
+  try{
+    var add = v607WinnerInvs(d);
+    if(add.length){
+      var fin = (pv.finDocs || []).slice();
+      add.forEach(function(x){
+        var dup = fin.some(function(y){
+          return y.id === x.id || (y.no && x.no && y.no === x.no && +y.sum === +x.sum && (y.sup || '') === (x.sup || ''));
+        });
+        if(!dup) fin.push(x);
+      });
+      pv = Object.assign({}, pv, { fin: fin, finDocs: fin });
+    }
+  }catch(e){ console.log('v607-pv', e); }
+  return pv;
+};
+/* опись по умолчанию: «счета» отмечаем и по принятым счетам победителей */
+if(typeof v605OpisDefaults === 'function'){
+  var _v607OpisDef = v605OpisDefaults;
+  v605OpisDefaults = function(d){
+    var o = _v607OpisDef(d);
+    try{
+      if(o && !o.scheta && d){
+        var wi = (typeof v603WinnersOf === 'function') ? v603WinnersOf(d) : [];
+        var has = wi.some(function(n){
+          var k = (d.kps || {})[n];
+          return k && (k.invs || []).some(function(x){ return +x.sum > 0; });
+        });
+        if(has) o.scheta = true;
+      }
+    }catch(e){ console.log('v607-opisdef', e); }
+    return o;
+  };
+}
+/* форма 19: опись строго по галочкам карточки сделки (когда d.opis задан) */
+var V607_F19_MARKS = [
+  ['sluzhka', 'служебная записка'],
+  ['rasp', 'распоряжение'],
+  ['reshenie', 'решение/обоснование (формы 3, 4)'],
+  ['zaprosy', 'запросы КП'],
+  ['kp', 'КП участников (3 шт.)'],
+  ['spravka', 'справка конъюнктуры рынка'],
+  ['dogovor', 'договор'],
+  ['scheta', 'счета'],
+  ['nakl', 'накладные/акты']
+];
+function v607SetTick(h, mark, on){
+  var to = (on ? '☑ ' : '☐ ') + mark;
+  h = h.split('☑ ' + mark).join(to);
+  h = h.split('☐ ' + mark).join(to);
+  return h;
+}
+function v607OpisApply(h, d){
+  var op = d && d.opis;
+  if(!h || !op) return h;
+  V607_F19_MARKS.forEach(function(x){ h = v607SetTick(h, x[1], !!op[x[0]]); });
+  return h;
+}
+if(typeof formFillDeal === 'function'){
+  var _v607Form = formFillDeal;
+  formFillDeal = function(fid, d){
+    var h = _v607Form(fid, d);
+    if(fid === 'f19') h = v607OpisApply(h, d);
+    return h;
+  };
+}
+
 </script>
 </body>
 </html>
