@@ -11071,6 +11071,429 @@ v607WinnerInvs = function(d){
   return out;
 };
 
+
+/* ================= v6.0.9 patch ================= */
+/* ================================================================
+   v6.0.9 — время в закупке (по просьбе пользователя 19.11.2026):
+   · при открытии карточки закупки запоминается d.visitedAt
+     («были здесь 19.11 21:35») — видно в шапке карточки;
+   · по каждому поставщику d.supTouch[name] — когда в последний раз
+     смотрели его предложение или помечали что-то о нём в этой закупке
+     (выбор карточки, «допущен», НДС, счета, ручной ввод, победитель,
+     звонок / отправлено / почта проверена);
+   · у отметки «Отправлен» появляется время отправки: rq.sentAt.
+   ================================================================ */
+v609Now = function(){
+  var d = new Date(), p = function(n){ return (n < 10 ? '0' : '') + n };
+  return p(d.getDate()) + '.' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+};
+v609D = function(id){
+  if(typeof v59D === 'function'){ try{ var x = v59D(id); if(x) return x; }catch(e){} }
+  return (typeof deals !== 'undefined' ? deals : []).filter(function(x){ return x.id === id })[0] || null;
+};
+v609Touch = function(id, n){
+  try{
+    var d = v609D(id); if(!d || !n) return;
+    d.supTouch = d.supTouch || {};
+    d.supTouch[n] = v609Now();
+    if(typeof save === 'function') save();
+  }catch(e){}
+};
+/* фиксируем заход в карточку */
+var _v609DealView = dealView;
+dealView = function(id){
+  var d = v609D(id);
+  if(d){ d.visitedAt = v609Now(); try{ if(typeof save === 'function') save(); }catch(e){} }
+  var r = _v609DealView(id);
+  try{
+    var el = document.querySelector('#dvBody .dv-summary .main');
+    if(el && d && d.visitedAt && !el.querySelector('.v609-visited')){
+      var sp = document.createElement('span');
+      sp.className = 'v609-visited mini';
+      sp.style.cssText = 'font-weight:400;color:var(--muted);margin-left:8px;font-size:11px';
+      sp.textContent = '🕐 были здесь ' + d.visitedAt;
+      el.appendChild(sp);
+    }
+  }catch(e){}
+  return r;
+};
+/* время у отметки «Отправлен» + touch на звонке и проверке почты */
+var _v609SupCheck = dealSupCheck;
+dealSupCheck = function(id, n, kind, on){
+  _v609SupCheck(id, n, kind, on);
+  try{
+    if(on){
+      if(kind === 'sent'){
+        var d = v609D(id); if(!d) return;
+        d.supReq = d.supReq || {}; var rq = d.supReq[n] || (d.supReq[n] = {});
+        rq.sentAt = v609Now();
+        if(typeof save === 'function') save();
+      }
+      v609Touch(id, n);
+    }
+  }catch(e){}
+};
+/* touch при работе с предложением */
+v609TouchWrap = function(name, argIdx){
+  try{
+    var orig = (new Function('return typeof ' + name + ' === "function" ? ' + name + ' : null'))();
+    if(!orig) return;
+    var wrapped = function(){
+      var a = arguments, r = orig.apply(null, a);
+      try{ v609Touch(a[0], a[argIdx || 1]); }catch(e){}
+      return r;
+    };
+    (new Function('fn', name + ' = fn'))(wrapped);
+  }catch(e){}
+};
+['v59KpSel', 'v53KpSelect', 'v59SupCons', 'v59Vat', 'v59InvAdd', 'v59InvCons', 'v59InvDel', 'v59Manual'].forEach(function(nm){ v609TouchWrap(nm, 1) });
+v609TouchWrap('dealKpWinItem', 2);
+v609TouchWrap('dealKpWin', 1);
+/* строка «по поставщику» в панели активного предложения */
+var _v609KpBlock = dealKpBlock;
+dealKpBlock = function(d){
+  var h = _v609KpBlock(d);
+  try{
+    if(!d) return h;
+    var list = d.sups || [], n = d.kpActive;
+    if(list.indexOf(n) < 0) n = list[0] || '';
+    if(!n) return h;
+    var t = (d.supTouch || {})[n], rq = (d.supReq || {})[n] || {};
+    var parts = [];
+    if(t) parts.push('предложение смотрели: ' + t);
+    if(rq.sentAt) parts.push('запрос отправлен: ' + rq.sentAt);
+    else if(rq.sent) parts.push('запрос отправлен: ' + rq.sent);
+    if(parts.length){
+      var row = '<div class="mini v609-touch" style="margin:2px 0 4px;color:var(--muted)">🕐 ' + parts.join(' · ') + '</div>';
+      var anchor = '<div class="v59-invs">';
+      if(h.indexOf(anchor) >= 0) h = h.replace(anchor, row + anchor);
+    }
+  }catch(e){}
+  return h;
+};
+
+/* ================= v6.1.0 patch ================= */
+/* ================================================================
+   v6.1.0 — счёт с НДС и без НДС (по просьбе пользователя 19.11.2026).
+   Поставщик присылает счёт то только с НДС, то обе суммы, то без цены
+   за единицу. В форме «Счета поставщика» теперь два связанных поля:
+   «сумма с НДС» и «без НДС» — заполнил одно, второе посчиталось само
+   (×1,2 или ÷1,2, округление как везде в программе). Принятый счёт
+   хранит iv.sum (итог счёта, с НДС) и iv.sumNoVat.
+   ================================================================ */
+v610D = function(id){
+  if(typeof v609D === 'function'){ try{ var x = v609D(id); if(x) return x; }catch(e){} }
+  return (typeof deals !== 'undefined' ? deals : []).filter(function(x){ return x.id === id })[0] || null;
+};
+/* пересчёт между полями счёта; fromSum=true — редактировали поле с НДС */
+v610InvCalc = function(hd, fromSum){
+  try{
+    if(typeof v5round !== 'function') return;
+    var sEl = document.getElementById('v59inS_' + hd), nEl = document.getElementById('v59inN_' + hd);
+    if(!sEl || !nEl) return;
+    if(fromSum){ var s = +sEl.value || 0; if(s > 0) nEl.value = v5round(s / 1.2); }
+    else{ var nv = +nEl.value || 0; if(nv > 0) sEl.value = v5round(nv * 1.2); }
+  }catch(e){}
+};
+/* второе поле рядом с суммой счёта */
+var _v610KpBlock = dealKpBlock;
+dealKpBlock = function(d){
+  var h = _v610KpBlock(d);
+  try{
+    h = h.replace(/<input type="number" step="0\.01" min="0" id="v59inS_([^"]+)" placeholder="сумма" style="width:110px">/g,
+      function(m0, hd){
+        return '<input type="number" step="0.01" min="0" id="v59inS_' + hd + '" placeholder="сумма с НДС" title="Итог счёта с НДС. Если счёт пришёл только без НДС — введите её в поле справа, здесь появится сумма с НДС" style="width:110px" oninput="v610InvCalc(\'' + hd + '\',true)">'
+         + '<input type="number" step="0.01" min="0" id="v59inN_' + hd + '" placeholder="без НДС" title="Сумма без НДС: заполнится сама из поля слева (÷1,2). Можно ввести вручную — с НДС посчитается сам (×1,2)" style="width:110px" oninput="v610InvCalc(\'' + hd + '\',false)">';
+      });
+  }catch(e){}
+  return h;
+};
+/* принятие счёта: введена только сумма без НДС — подставляем с НДС;
+   к принятому счёту дописываем sumNoVat */
+var _v610InvAdd = v59InvAdd;
+v59InvAdd = function(id, n){
+  var d0 = v610D(id), k0 = d0 && d0.kps && d0.kps[n];
+  var before = k0 && k0.invs ? k0.invs.length : 0;
+  try{
+    var hd = md5(n);
+    var sEl = (typeof $ === 'function') ? $('v59inS_' + hd) : document.getElementById('v59inS_' + hd);
+    var nEl = (typeof $ === 'function') ? $('v59inN_' + hd) : document.getElementById('v59inN_' + hd);
+    var sVal = sEl ? +sEl.value || 0 : 0, nVal = nEl ? +nEl.value || 0 : 0;
+    if(!sVal && nVal > 0 && sEl) sEl.value = v5round(nVal * 1.2);
+  }catch(e){}
+  _v610InvAdd(id, n);
+  try{
+    var d = v610D(id), k = d && d.kps && d.kps[n];
+    if(k && k.invs && k.invs.length > before){
+      var iv = k.invs[k.invs.length - 1];
+      if(iv && iv.sumNoVat == null){
+        iv.vat = true; /* iv.sum — итог счёта, с НДС */
+        iv.sumNoVat = v5round((+iv.sum || 0) / 1.2);
+        if(typeof save === 'function') save();
+      }
+    }
+  }catch(e){}
+};
+
+/* ================= v6.1.1 patch ================= */
+/* ================================================================
+   v6.1.1 — два победителя по комплекту (по просьбе пользователя
+   19.11.2026). Закупка БЕЗ позиций: итоговый заказ по служебной записке
+   может делить два (и более) поставщика с разными суммами (90 % + 10 %).
+   · ★ у другого поставщика НЕ затирает победителя, а добавляет его:
+     d.multiWin + d.winShares {имя: сумма с НДС}, d.sum = Σ долей;
+   · доли правятся в карточке вручную, есть кнопка «один победитель»;
+   · v60WinnerShares отдаёт winShares в отчётах в приоритете суммы КП.
+   ================================================================ */
+v611D = function(id){
+  if(typeof v610D === 'function'){ try{ var x = v610D(id); if(x) return x; }catch(e){} }
+  return (typeof deals !== 'undefined' ? deals : []).filter(function(x){ return x.id === id })[0] || null;
+};
+v611Base = function(n){ return (typeof v59Base === 'function') ? v59Base(n) : n; };
+v611Eff = function(d, n){
+  var k = (d.kps || {})[n] || {};
+  if(typeof v59Eff === 'function') return v59Eff(k);
+  var r = function(x){ return x };
+  return (typeof v5round === 'function' ? v5round : r)((+k.sum || 0) * (k.vatNo ? 1.2 : 1));
+};
+v611List = function(d){
+  if(typeof dealWinInfo === 'function'){ try{ return dealWinInfo(d).list.slice(); }catch(e){} }
+  return d.multiWin ? d.multiWin.slice() : (d.sup ? [d.sup] : []);
+};
+v611Recalc = function(d){
+  var t = 0;
+  Object.keys(d.winShares || {}).forEach(function(x){ t += +d.winShares[x] || 0 });
+  d.sum = (typeof v5round === 'function') ? v5round(t) : t;
+};
+/* ★ у второго поставщика добавляет его в победители, а не затирает */
+var _v611KpWin = dealKpWin;
+dealKpWin = function(id, n){
+  var d = v611D(id);
+  if(!d){ _v611KpWin(id, n); return; }
+  var hadItems = (d.items || []).length > 0;
+  var prevList = v611List(d), b = v611Base(n);
+  var prevShares = {}; try{ prevShares = Object.assign({}, d.winShares || {}); }catch(e){}
+  var prevSum = +d.sum || 0;
+  _v611KpWin(id, n);
+  try{
+    if(hadItems) return;
+    if(prevList.length && prevList.indexOf(b) < 0){
+      d.multiWin = prevList.concat([b]).filter(function(x, i, a){ return a.indexOf(x) === i });
+      d.winShares = prevShares;
+      if(prevList.length === 1 && d.winShares[prevList[0]] == null) d.winShares[prevList[0]] = prevSum;
+      if(d.winShares[b] == null) d.winShares[b] = v611Eff(d, b);
+      v611Recalc(d);
+      d.sup = d.multiWin[0];
+      if(typeof save === 'function') save();
+      if(typeof renderPipe === 'function') renderPipe();
+      if(typeof renderDash === 'function') renderDash();
+      if(typeof dealView === 'function') dealView(id);
+      if(typeof toastInfo === 'function') toastInfo('Победителей: ' + d.multiWin.join(' + ') + '. Доли можно поправить в блоке «Победители по комплекту».');
+    }else if(prevList.indexOf(b) >= 0 && d.winShares){
+      /* повторный ★ по уже победителю — выбор одного, доли больше не нужны */
+      delete d.winShares;
+      if(typeof save === 'function') save();
+    }
+  }catch(e){}
+};
+v611ShareSave = function(id, n, val){
+  var d = v611D(id); if(!d) return;
+  d.winShares = d.winShares || {};
+  var v = +val || 0;
+  if(v > 0) d.winShares[n] = (typeof v5round === 'function') ? v5round(v) : v;
+  else delete d.winShares[n];
+  v611Recalc(d);
+  if(typeof save === 'function') save();
+  if(typeof renderPipe === 'function') renderPipe();
+  if(typeof renderDash === 'function') renderDash();
+  if(typeof dealView === 'function') dealView(id);
+  if(typeof toastInfo === 'function') toastInfo('Доля «' + n + '»: ' + (typeof fmt === 'function' ? fmt(d.winShares[n] || 0) : (d.winShares[n] || 0)) + ' · итого ' + (typeof fmt === 'function' ? fmt(d.sum) : d.sum));
+};
+v611AddWinner = function(id, n){
+  var d = v611D(id); if(!d) return;
+  if((d.items || []).length){ if(typeof toastInfo === 'function') toastInfo('В закупке есть позиции — распределяйте их по позициям'); return; }
+  if(!(v611Eff(d, n) > 0)){ if(typeof toastInfo === 'function') toastInfo('Сначала введите сумму КП этого поставщика'); return; }
+  var b = v611Base(n), list = v611List(d);
+  if(list.indexOf(b) >= 0){ if(typeof toastInfo === 'function') toastInfo('Этот поставщик уже победитель'); return; }
+  d.multiWin = list.concat([b]);
+  if(!d.sup) d.sup = b;
+  d.winShares = d.winShares || {};
+  if(list.length === 1 && d.winShares[list[0]] == null) d.winShares[list[0]] = +d.sum || 0;
+  d.winShares[b] = v611Eff(d, n);
+  v611Recalc(d);
+  d.hist = d.hist || [];
+  d.hist.unshift({ d: (typeof today === 'function') ? today() : '', t: 'По комплекту добавлен второй победитель: ' + n + ' — ' + (typeof fmt === 'function' ? fmt(d.winShares[b]) : d.winShares[b]), toSup: true });
+  if(typeof save === 'function') save();
+  if(typeof renderPipe === 'function') renderPipe();
+  if(typeof renderDash === 'function') renderDash();
+  if(typeof dealView === 'function') dealView(id);
+  if(typeof toastInfo === 'function') toastInfo('Добавлен победитель: ' + b);
+};
+v611SingleWinner = function(id){
+  var d = v611D(id); if(!d) return;
+  var ws = d.winShares || {}, names = Object.keys(ws);
+  if(names.length){
+    var top = names.slice().sort(function(a, b){ return (+ws[b] || 0) - (+ws[a] || 0) })[0];
+    d.sup = top; d.sum = +ws[top] || 0; d.multiWin = undefined; delete d.winShares;
+  }else if(d.multiWin){ d.sup = d.multiWin[0]; d.multiWin = undefined; }
+  else return;
+  if(typeof save === 'function') save();
+  if(typeof renderPipe === 'function') renderPipe();
+  if(typeof renderDash === 'function') renderDash();
+  if(typeof dealView === 'function') dealView(id);
+  if(typeof toastInfo === 'function') toastInfo('Оставлен один победитель: ' + d.sup);
+};
+/* доли в отчётах в приоритете суммы КП */
+var _v611WinnerShares = v60WinnerShares;
+v60WinnerShares = function(d){
+  var r = _v611WinnerShares(d);
+  try{
+    if(d && d.winShares){
+      var wi = v611List(d), any = false;
+      wi.forEach(function(n){
+        if(d.winShares[n] != null && +d.winShares[n] > 0){
+          r.shares[n] = (typeof v5round === 'function') ? v5round(+d.winShares[n]) : +d.winShares[n];
+          any = true;
+        }
+      });
+      Object.keys(r.shares).forEach(function(n){ if(wi.indexOf(n) < 0) delete r.shares[n]; });
+      if(any) r.winners = wi;
+    }
+  }catch(e){}
+  return r;
+};
+/* блок «Победители по комплекту» в карточке */
+var _v611KpBlock = dealKpBlock;
+dealKpBlock = function(d){
+  var h = _v611KpBlock(d);
+  try{
+    if(!d || (d.items || []).length) return h;
+    var wi = v611List(d);
+    if(!wi.length) return h;
+    var ws = d.winShares || {};
+    var rows = wi.map(function(n){
+      var v = ws[n] != null ? +ws[n] : '';
+      var hid = (typeof md5 === 'function') ? md5(n) : n;
+      return '<div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin:3px 0"><b style="min-width:180px">' + esc(n) + '</b>'
+       + '<input type="number" step="0.01" min="0" id="v611sh_' + hid + '" value="' + v + '" placeholder="сумма с НДС" style="width:130px" title="Итоговая сумма по этому поставщику, с НДС. Пусто — берётся сумма КП">'
+       + '<button class="btn sm" onclick="v611ShareSave(\'' + d.id + '\',\'' + v5escAttr(n) + '\',(document.getElementById(\'v611sh_' + hid + '\')||{}).value)">💾 доля</button></div>';
+    }).join('');
+    var others = (d.sups || []).filter(function(n){
+      if(wi.indexOf(n) >= 0 || (wi.indexOf(v611Base(n)) >= 0 && n !== v611Base(n))) return false;
+      var k = (d.kps || {})[n] || {};
+      return v611Eff(d, n) > 0 && (!k.resp || k.resp === 'kp') && !k.off;
+    }).map(function(n){
+      return '<button class="btn sm ghost" onclick="v611AddWinner(\'' + d.id + '\',\'' + v5escAttr(n) + '\')">★ ' + esc(n) + ' — в победители</button>';
+    }).join(' ');
+    var total = 0;
+    Object.keys(ws).forEach(function(x){ total += +ws[x] || 0 });
+    if(!total) total = +d.sum || 0;
+    if(typeof v5round === 'function') total = v5round(total);
+    var box = '<div class="dv-panel" style="margin:6px 0"><h3>Победители по комплекту</h3>'
+     + '<div class="mini">Итоговый заказ по служебной записке может делить несколько поставщиков: укажите сумму каждого (с НДС). Поле пустое — берётся сумма КП.</div>'
+     + rows
+     + (others ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px">' + others + '</div>' : '')
+     + '<div style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>Итого по заказу: ' + fmt(total) + '</b>'
+     + (wi.length > 1 ? '<button class="btn sm ghost" onclick="v611SingleWinner(\'' + d.id + '\')">↩ Один победитель (крупнейшая доля)</button>' : '')
+     + '</div></div>';
+    var anchor = '<div class="v59-invs">';
+    if(h.indexOf(anchor) >= 0) h = h.replace(anchor, box + anchor);
+  }catch(e){}
+  return h;
+};
+
+/* ================= v6.1.2 patch ================= */
+/* ================================================================
+   v6.1.2 — чистка заметок (по просьбе пользователя 19.11.2026):
+   · выполненную заметку можно убрать в архив (🗂) — она исчезает из
+     всех списков, кроме нового фильтра «архив»;
+   · ✕ удаляет заметку НАВСЕГДА и теперь спрашивает подтверждение;
+   · из архива заметку можно вернуть (↩).
+   ================================================================ */
+try{
+  var st612 = document.createElement('style');
+  st612.textContent = '.v54-arch{opacity:.55}.v54-arch .v54-note-text{text-decoration:line-through}';
+  document.head.appendChild(st612);
+}catch(e){}
+/* удаление — только с подтверждением */
+var _v612DelTask = delTask;
+delTask = function(id){
+  if(!confirm('Удалить заметку навсегда? Восстановить будет нельзя.')) return;
+  _v612DelTask(id);
+};
+v612ArchiveTask = function(id){
+  var t = (typeof tasks !== 'undefined' ? tasks : []).filter(function(x){ return x.id === id })[0];
+  if(!t) return;
+  t.archived = true;
+  if(typeof save === 'function') save();
+  if(typeof renderTasks === 'function') renderTasks();
+  if(typeof renderDash === 'function') renderDash();
+  if(typeof toastInfo === 'function') toastInfo('Заметка убрана в архив');
+};
+v612UnarchiveTask = function(id){
+  var t = (typeof tasks !== 'undefined' ? tasks : []).filter(function(x){ return x.id === id })[0];
+  if(!t) return;
+  delete t.archived;
+  if(typeof save === 'function') save();
+  if(typeof renderTasks === 'function') renderTasks();
+  if(typeof renderDash === 'function') renderDash();
+  if(typeof toastInfo === 'function') toastInfo('Заметка возвращена из архива');
+};
+/* кнопки 🗂 / ↩ в карточке заметки */
+var _v612NoteHtml = v54NoteHtml;
+v54NoteHtml = function(t){
+  var h = _v612NoteHtml(t);
+  try{
+    var delBtn = '<button class="del" title="Удалить" onclick="delTask(\'' + t.id + '\')">✕</button>';
+    if(h.indexOf(delBtn) >= 0){
+      if(t.archived){
+        h = h.replace('class="task v54-note', 'class="task v54-note v54-arch');
+        h = h.replace(delBtn, '<button class="del" title="Вернуть из архива" onclick="v612UnarchiveTask(\'' + t.id + '\')">↩</button>' + delBtn);
+      }else if(t.done){
+        h = h.replace(delBtn, '<button class="del" title="Убрать в архив выполненных" onclick="v612ArchiveTask(\'' + t.id + '\')">🗂</button>' + delBtn);
+      }
+    }
+  }catch(e){}
+  return h;
+};
+/* список заметок: архив скрыт из обычных фильтров, «архив» показывает только его */
+renderTasks = function(){
+  try{ v51TaskSearchRender(); }catch(e){}
+  var q = normKey(document.getElementById('tQ').value), f = document.getElementById('tF').value;
+  var fType = (document.getElementById('v54fType') || {}).value || '', fColor = (document.getElementById('v54fColor') || {}).value || '';
+  try{
+    var sel = document.getElementById('tF');
+    if(sel && !sel.querySelector('option[value="arch"]')){
+      var o = document.createElement('option');
+      o.value = 'arch'; o.textContent = 'архив';
+      sel.appendChild(o);
+    }
+  }catch(e){}
+  var list = tasks.filter(function(t){
+    if(f === 'arch'){
+      if(!t.archived) return false;
+    }else{
+      if(t.archived) return false;
+      if(f === 'act' && t.done) return false;
+      if(f === 'done' && !t.done) return false;
+      if(f === 'overdue' && (t.done || !t.due || t.due >= today())) return false;
+      if(f === 'today' && (t.done || t.due !== today())) return false;
+      if(f === 'pinned' && !t.pinned) return false;
+    }
+    if(fType && (t.type || 'task') !== fType) return false;
+    if(fColor && (t.color || 'gray') !== fColor) return false;
+    if(q){
+      var deal = t.dealId ? deals.filter(function(d){ return d.id === t.dealId })[0] : null;
+      var hay = normKey(t.t + ' ' + (t.sup || '') + ' ' + (deal ? (deal.subj + ' ' + (deal.sup || '')) : '') + ' ' + v5DocLabel(t.docKind || ''));
+      if(hay.indexOf(q) < 0) return false;
+    }
+    return true;
+  }).sort(function(a, b){
+    return ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)) || ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || ((a.due || '9999') < (b.due || '9999') ? -1 : 1);
+  });
+  document.getElementById('taskList').innerHTML = list.length ? list.map(v54NoteHtml).join('') : '<div class="small">Ничего не найдено. Добавьте первую заметку выше.</div>';
+};
+
 </script>
 </body>
 </html>
