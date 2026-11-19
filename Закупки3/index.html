@@ -11191,8 +11191,8 @@ v610InvCalc = function(hd, fromSum){
     if(typeof v5round !== 'function') return;
     var sEl = document.getElementById('v59inS_' + hd), nEl = document.getElementById('v59inN_' + hd);
     if(!sEl || !nEl) return;
-    if(fromSum){ var s = +sEl.value || 0; if(s > 0) nEl.value = v5round(s / 1.2); }
-    else{ var nv = +nEl.value || 0; if(nv > 0) sEl.value = v5round(nv * 1.2); }
+    if(fromSum){ var s = +sEl.value || 0; nEl.value = s > 0 ? v5round(s / 1.2) : ''; }
+    else{ var nv = +nEl.value || 0; sEl.value = nv > 0 ? v5round(nv * 1.2) : ''; }
   }catch(e){}
 };
 /* второе поле рядом с суммой счёта */
@@ -11214,11 +11214,13 @@ var _v610InvAdd = v59InvAdd;
 v59InvAdd = function(id, n){
   var d0 = v610D(id), k0 = d0 && d0.kps && d0.kps[n];
   var before = k0 && k0.invs ? k0.invs.length : 0;
+  var nVal = 0;
   try{
     var hd = md5(n);
     var sEl = (typeof $ === 'function') ? $('v59inS_' + hd) : document.getElementById('v59inS_' + hd);
     var nEl = (typeof $ === 'function') ? $('v59inN_' + hd) : document.getElementById('v59inN_' + hd);
-    var sVal = sEl ? +sEl.value || 0 : 0, nVal = nEl ? +nEl.value || 0 : 0;
+    var sVal = sEl ? +sEl.value || 0 : 0;
+    nVal = nEl ? +nEl.value || 0 : 0;
     if(!sVal && nVal > 0 && sEl) sEl.value = v5round(nVal * 1.2);
   }catch(e){}
   _v610InvAdd(id, n);
@@ -11228,7 +11230,8 @@ v59InvAdd = function(id, n){
       var iv = k.invs[k.invs.length - 1];
       if(iv && iv.sumNoVat == null){
         iv.vat = true; /* iv.sum — итог счёта, с НДС */
-        iv.sumNoVat = v5round((+iv.sum || 0) / 1.2);
+        /* пользователь мог сам ввести «без НДС» — ему и доверяем, иначе считаем ÷1,2 */
+        iv.sumNoVat = nVal > 0 ? v5round(nVal) : v5round((+iv.sum || 0) / 1.2);
         if(typeof save === 'function') save();
       }
     }
@@ -11277,6 +11280,7 @@ dealKpWin = function(id, n){
   _v611KpWin(id, n);
   try{
     if(hadItems) return;
+    if(v611List(d).indexOf(b) < 0) return; /* оригинал не стал делать его победителем (нет суммы КП, отключён и т.п.) */
     if(prevList.length && prevList.indexOf(b) < 0){
       d.multiWin = prevList.concat([b]).filter(function(x, i, a){ return a.indexOf(x) === i });
       d.winShares = prevShares;
