@@ -1,7 +1,7 @@
 /* Service Worker, Помощник закупок v6.0.
    Страницы (html) — network-first: обновления приходят сразу, офлайн — из кэша.
    Статика (иконки, манифест) — cache-first. */
-var CACHE = 'pz-v60-8';
+var CACHE = 'pz-v60-9';
 var SHELL = [
   './',
   './index.html',
