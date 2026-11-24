@@ -1,7 +1,7 @@
 /* Service Worker, Помощник закупок v5.9.
    Страницы (html) — network-first: обновления приходят сразу, офлайн — из кэша.
    Статика (иконки, манифест) — cache-first. */
-var CACHE = 'pz-v59-8';
+var CACHE = 'pz2-v615-1';
 var SHELL = [
   './',
   './index.html',
@@ -22,7 +22,8 @@ self.addEventListener('activate', function(e){
   e.waitUntil(
     caches.keys().then(function(keys){
       return Promise.all(keys.map(function(k){
-        if(k !== CACHE) return caches.delete(k);
+        /* Кэши других приложений на этом домене не удаляем. */
+        if(k.indexOf('pz2-') === 0 && k !== CACHE) return caches.delete(k);
       }));
     }).then(function(){ return self.clients.claim(); })
   );
