@@ -11665,6 +11665,219 @@ dealHistHtml = function(d){
   return h;
 };
 
+/* ================= v6.1.4 patch ================= */
+/* ================================================================
+   v6.1.4 — по просьбам пользователя 24.11.2026:
+   1) АРХИВ закупок: d.archived прячет карточку с доски, кнопка
+      «🗂 Архив» в реестре показывает/прячет архивные, из карточки
+      закупки архивируется и возвращается. В отчётах и поиске
+      архивные остаются.
+   2) Поиск в реестре понимает № счёта и № договора (finDocs,
+      legacy-поля, счета поставщиков k.invs) — раньше искал только
+      поставщика, предмет и инициатора.
+   3) Подбор договора: на вкладке «Оплата и поставка» предлагаются
+      договоры из других закупок с тем же победителем — реквизиты
+      подставляются одним нажатием.
+   4) Поиск в «Делах закупок» тоже находит дело по № счёта/договора
+      из привязанной сделки.
+   ================================================================ */
+var _v614Arch = false;
+v614ToggleArchive = function(){ _v614Arch = !_v614Arch; renderPipe(); };
+v614ArchiveDeal = function(id, on){
+  var d = v609D(id); if(!d) return;
+  if(on){ d.archived = true; d.archivedAt = v609Now(); }
+  else{ delete d.archived; delete d.archivedAt; }
+  if(typeof v613Log === 'function') v613Log(id, on ? 'Закупка убрана в архив' : 'Закупка возвращена из архива');
+  save(); renderPipe(); renderDash();
+  try{ document.getElementById('dealView').classList.remove('open'); }catch(e){}
+  toastInfo(on ? 'Закупка в архиве. Показать: кнопка «🗂 Архив» в реестре.' : 'Закупка возвращена на доску');
+};
+/* haystack номеров документов закупки: договоры, счета, счета поставщиков */
+v614DocHay = function(d){
+  var parts = [];
+  try{
+    var docs = (typeof v5DealDocs === 'function') ? v5DealDocs(d) : (d.finDocs || []);
+    docs.forEach(function(x){ parts.push(x.no || ''); });
+    parts.push(d.contractNo || '', d.invoiceNo || '');
+    var kps = d.kps || {};
+    Object.keys(kps).forEach(function(n){ (kps[n].invs || []).forEach(function(iv){ parts.push(iv.no || ''); }); });
+  }catch(e){}
+  return parts.join(' ').toLowerCase();
+};
+/* --- доска: архив + поиск по номерам документов --- */
+renderPipe = function(){
+  var fqEl = document.getElementById('pipeFind');
+  var q = (fqEl && fqEl.value || '').trim().toLowerCase();
+  var total = 0;
+  var activeN = deals.filter(function(d){ return !d.archived }).length;
+  var archN = deals.length - activeN;
+  document.getElementById('pipeCols').innerHTML = STAGES.map(function(st){
+    var list = deals.filter(function(d){ return d.stage === st[0] && (_v614Arch ? !!d.archived : !d.archived) });
+    if(q) list = list.filter(function(d){
+      var hay = ((d.sup || '') + ' ' + (d.subj || '') + ' ' + (d.fio || '')).toLowerCase();
+      return hay.indexOf(q) >= 0 || v614DocHay(d).indexOf(q) >= 0;
+    });
+    total += list.length;
+    var sum = list.reduce(function(a, d){ return a + (+d.sum || 0) }, 0);
+    return '<div class="pcol"><h4>' + st[1] + ' <span class="cnt">' + list.length + ' · ' + fmt(sum) + '</span><button class="addcol" title="Действия на этапе: новая сделка, документы, перемещение" onclick="stageAdd(\'' + st[0] + '\')">＋</button></h4>'
+      + '<div class="hint">' + st[2] + '</div>'
+      + '<div class="plist" data-stage="' + st[0] + '" ondragover="event.preventDefault();this.classList.add(\'dragover\')" ondragleave="this.classList.remove(\'dragover\')" ondrop="dropDeal(event,this)">'
+      + list.map(function(d){
+        var s = supByName(d.sup);
+        var over = d.deadline && d.deadline < today() && d.stage !== 'done';
+        var soon = !over && d.deadline && d.stage !== 'done' && daysLeft(d.deadline) <= 3 && daysLeft(d.deadline) >= 0;
+        var needC = (d.stage === 'postavka' || d.stage === 'zakrytie' || d.stage === 'done') && (!d.got || !d.country);
+        var prN = d.prints ? Object.keys(d.prints).length : 0;
+        return '<div class="pcard' + (over ? ' overdue' : '') + '" style="' + dealColorStyle(d) + '" draggable="true" ondragstart="dragDeal(event,\'' + d.id + '\')" onclick="dealView(\'' + d.id + '\')">'
+          + '<div class="t">' + esc(d.subj) + '</div>'
+          + '<div class="s">' + supDot(s) + dispName(supByName(d.sup)) + '</div>'
+          + pointTagHtml(d)
+          + '<div class="amt">' + fmt(d.sum) + '</div>'
+          + ((d.items && d.items.length) ? '<div class="s">📦 позиций: ' + d.items.length + (d.spec ? ' · ' + esc(d.spec) : '') + '</div>' : (d.spec ? '<div class="s">📦 ' + esc(d.spec) + '</div>' : ''))
+          + respTagHtml(d.resp)
+          + pointWarnEl(d)
+          + (d.dogType ? '<div class="s">📄 ' + esc(d.dogType) + '</div>' : '')
+          + (prN ? '<div class="s">🖨 распечатано документов: ' + prN + '</div>' : '')
+          + (d.deadline ? '<div class="s">⏱ ' + d.deadline + (over ? ' <span class="tag r">просрочено</span>' : (soon ? ' <span class="tag y">осталось ' + daysLeft(d.deadline) + ' дн.</span>' : '')) + '</div>' : '')
+          + (needC ? '<div class="s"><span class="tag r">⚠ подтвердите получение товара и страну производства</span></div>' : '')
+          + (d.inRep ? '<div class="s"><span class="tag b">в отчёт ИС «Тендеры»</span></div>' : '')
+          + (d.partial ? '<div class="s"><span class="tag y">⚠ завершена не по всем шагам — верните и доделайте</span></div>' : '')
+          + (d.archived ? '<div class="s"><span class="tag">🗂 в архиве' + (d.archivedAt ? ' с ' + d.archivedAt : '') + '</span></div>' : '')
+          + (d.doneDate ? '<div class="s">✔ завершена: ' + d.doneDate + '</div>' : '')
+          + '</div>';
+      }).join('') + '</div></div>';
+  }).join('');
+  var cnt = document.getElementById('pipeFindCnt');
+  if(cnt) cnt.textContent = q ? ('найдено карточек: ' + total + ' (поиск: «' + q + '»)')
+    : (_v614Arch ? ('архивных карточек: ' + archN) : ('всего карточек: ' + activeN + (archN ? ' · в архиве: ' + archN : '')));
+  var ab = document.getElementById('pipeArchBtn');
+  if(ab) ab.textContent = _v614Arch ? ('← К доске (активных: ' + activeN + ')') : ('🗂 Архив (' + archN + ')');
+  /* легенда цветов, как в v52 */
+  var cols = document.getElementById('pipeCols');
+  if(cols && cols.parentNode && !document.getElementById('v52ColorLegend')){
+    var legend = document.createElement('div');
+    legend.id = 'v52ColorLegend'; legend.className = 'v52-color-legend';
+    legend.innerHTML = '<span>◼ Серый — в работе</span><span style="color:#c62828">◼ Красный — просрочено</span><span style="color:#2e7d32">◼ Зелёный — завершено</span><span>Свой цвет можно задать в редакторе</span>';
+    cols.parentNode.insertBefore(legend, cols);
+  }
+};
+/* кнопка архива в панели поиска реестра */
+try{
+  var cntEl614 = document.getElementById('pipeFindCnt');
+  if(cntEl614 && !document.getElementById('pipeArchBtn')){
+    var b614 = document.createElement('button');
+    b614.id = 'pipeArchBtn'; b614.className = 'btn sm ghost';
+    b614.onclick = function(){ v614ToggleArchive() };
+    cntEl614.parentNode.appendChild(b614);
+  }
+  var pf614 = document.getElementById('pipeFind');
+  if(pf614) pf614.placeholder = 'поставщик, предмет, инициатор или № счёта/договора';
+}catch(e){}
+/* кнопка «в архив / из архива» в карточке закупки */
+var _v614DealView = dealView;
+dealView = function(id){
+  var r = _v614DealView(id);
+  try{
+    var d = v609D(id);
+    var foot = document.querySelector('#dvBody .dv-footer');
+    if(d && foot && !foot.querySelector('.v614-arch-btn')){
+      var b = document.createElement('button');
+      b.className = 'btn ghost v614-arch-btn';
+      b.textContent = d.archived ? '↩ Вернуть из архива' : '🗂 В архив';
+      b.title = d.archived ? 'Вернуть закупку на доску реестра' : 'Убрать закупку с доски: она останется в системе и будет видна по кнопке «🗂 Архив» в реестре';
+      b.onclick = function(){ v614ArchiveDeal(id, !d.archived) };
+      foot.appendChild(b);
+    }
+  }catch(e){}
+  return r;
+};
+/* --- подбор договора из других закупок этого поставщика --- */
+v614SupContracts = function(d){
+  var out = [];
+  var wi = (typeof dealWinInfo === 'function') ? dealWinInfo(d).list : [];
+  if(!wi.length) return out;
+  var base = function(n){ return (typeof v59Base === 'function') ? v59Base(n) : n };
+  var bases = wi.map(base);
+  (deals || []).forEach(function(od){
+    if(!od || od.id === d.id) return;
+    var ow = ((typeof dealWinInfo === 'function') ? dealWinInfo(od).list : []).map(base);
+    var same = ow.some(function(n){ return bases.indexOf(n) >= 0 });
+    var docs = (typeof v5DealDocs === 'function') ? v5DealDocs(od) : (od.finDocs || []);
+    docs.forEach(function(x){
+      if(x.kind !== 'contract' && x.kind !== 'contract_invoice') return;
+      var bySup = x.sup && bases.indexOf(base(x.sup)) >= 0;
+      if(!same && !bySup) return;
+      if(!x.no && !x.sum) return;
+      out.push({ dealId: od.id, subj: od.subj || '', doc: x });
+    });
+  });
+  return out;
+};
+v614UseContract = function(id){
+  var d = v609D(id); if(!d) return;
+  var sel = document.getElementById('v614oldC'); if(!sel || sel.value === '') return;
+  var opt = v614SupContracts(d)[+sel.value]; if(!opt) return;
+  var x = opt.doc, docs = v5DealDocs(d);
+  docs.push({ id: 'fd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    kind: x.kind, no: x.no || '', noNumber: !!x.noNumber, date: x.date || '', sum: +x.sum || 0,
+    paid: false, payDate: '', parentId: '', sup: (typeof dealWinInfo === 'function' ? (dealWinInfo(d).list[0] || '') : '') });
+  v5SyncLegacyDocs(d);
+  if(typeof v613Log === 'function') v613Log(id, 'Подставлен договор ' + (x.no || 'б/н') + ' из закупки «' + String(opt.subj).slice(0, 40) + '»');
+  save(); renderPipe(); renderDash(); dealView(id);
+  toastInfo('Договор подставлен: ' + (x.no || 'б/н') + (x.date ? ' от ' + x.date : '') + '. Проверьте сумму и даты.');
+};
+var _v614ContractHtml = dealContractHtml;
+dealContractHtml = function(d){
+  var h = _v614ContractHtml(d);
+  try{
+    var old = v614SupContracts(d);
+    if(old.length){
+      var opts = old.map(function(o, i){
+        var x = o.doc;
+        return '<option value="' + i + '">' + esc(v5DocLabel(x.kind) + ' ' + (x.no || 'б/н') + (x.date ? ' от ' + x.date : '') + (+x.sum > 0 ? ' на ' + fmt(x.sum) : '') + ' — из «' + String(o.subj).slice(0, 40) + '»') + '</option>';
+      }).join('');
+      var box = '<div class="dv-panel" style="margin:8px 0"><h3>📎 Договор уже есть у этого поставщика</h3>'
+       + '<div class="mini">Это договоры из других закупок с тем же победителем. Подставьте реквизиты одним нажатием — сумму и даты потом поправьте.</div>'
+       + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px"><select id="v614oldC" style="min-width:320px;max-width:100%">' + opts + '</select>'
+       + '<button class="btn sm" onclick="v614UseContract(\'' + d.id + '\')">＋ Подставить этот договор</button></div></div>';
+      var anchor = '<div class="dv-panel" style="margin-top:8px"><h3>Страна и отчётность</h3>';
+      if(h.indexOf(anchor) >= 0) h = h.replace(anchor, box + anchor); else h += box;
+    }
+  }catch(e){}
+  return h;
+};
+/* --- поиск дел закупок по № счёта/договора привязанной сделки --- */
+renderCaseList = function(){
+  var q = normKey(cQ.value), fp = cF.value;
+  var list = cases.map(function(c, i){ return { c: c, i: i } }).filter(function(x){
+    if(fp && x.c.point !== fp) return false;
+    if(q){
+      var hay = normKey(x.c.num + ' ' + x.c.subj + ' ' + x.c.point + ' ' + (x.c.parts || []).map(function(p){ return p.sup }).join(' '));
+      if(hay.indexOf(q) < 0){
+        var ld = x.c.dealId ? deals.filter(function(d){ return d.id === x.c.dealId })[0] : null;
+        if(!ld || normKey(v614DocHay(ld)).indexOf(q) < 0) return false;
+      }
+    }
+    return true;
+  }).sort(function(a, b){ return a.c.date < b.c.date ? 1 : -1 });
+  var html = '<table><tr><th>№</th><th>Дата</th><th>Предмет</th><th>Пункт</th><th>Участники</th><th>Победитель</th><th>Сумма</th><th>Документы</th><th></th></tr>';
+  if(!list.length) html += '<tr><td colspan="9" class="small">Дел нет — создайте первое кнопкой «+ Новое дело» или из карточки сделки (кнопка «📁 Дело закупки»).</td></tr>';
+  html += list.map(function(x){
+    var c = x.c, wins = (c.parts || []).filter(function(p){ return p.win });
+    var docsOk = CASE_DOCS.filter(function(d){ return c.docs && c.docs[d] }).length;
+    var over = c.limit && +c.total > c.limit;
+    return '<tr><td><b>' + esc(c.num) + '</b></td><td style="white-space:nowrap">' + esc(c.date) + '</td>'
+     + '<td><a href="#" onclick="openCase(' + x.i + ');return false">' + esc(c.subj) + '</a></td>'
+     + '<td><span class="tag g">' + esc(c.point) + '</span></td>'
+     + '<td>' + (c.parts || []).length + ' шт.</td>'
+     + '<td>' + (wins.length ? wins.map(function(p){ return '<span class="tag g">★ ' + esc(p.sup) + '</span>' }).join(' ') + '<div class="small">' + fmt(wins.reduce(function(a, p){ return a + (+p.sum || 0) }, 0)) + '</div>' : '<span class="tag y">не выбран</span>') + '</td>'
+     + '<td>' + (wins.length ? fmt(wins.reduce(function(a, p){ return a + (+p.sum || 0) }, 0)) : '—') + (over ? ' <span class="tag r">⚠ лимит</span>' : '') + '</td>'
+     + '<td>' + docsOk + ' / ' + CASE_DOCS.length + '</td>'
+     + '<td style="white-space:nowrap"><button class="btn sm ghost" title="Открыть карточку дела для редактирования" onclick="openCase(' + x.i + ')">✎</button> <button class="del" title="Удалить дело" onclick="delCaseAt(' + x.i + ')">✕</button></td></tr>';
+  }).join('') + '</table>';
+  document.getElementById('caseTbl').innerHTML = html;
+};
+
 </script>
 </body>
 </html>
