@@ -11943,6 +11943,49 @@ go = function(t){
   _v615Go(t);
 };
 
+/* ================= v6.1.6 patch ================= */
+/* ================================================================
+   v6.1.6 — чистый рабочий стол:
+   1) Предупреждения НЕ удаляются и закупки НЕ изменяются. На рабочем
+      столе видны первые 10, остальные свернуты в «Показать ещё».
+   2) Неиспользуемый «Классификатор норм» скрыт из меню и общего
+      поиска. Справочники порогов и остальные нормы не затрагиваются.
+   ================================================================ */
+var V616_ATTENTION_VISIBLE = 10;
+v616CollapseAttention = function(){
+  var box = document.getElementById('dashAttention');
+  if(!box || box.querySelector('.v616-attention-more')) return;
+  var items = (box.innerHTML || '').split('<br>').filter(function(x){ return x.trim(); });
+  if(items.length <= V616_ATTENTION_VISIBLE) return;
+  var visible = items.slice(0, V616_ATTENTION_VISIBLE);
+  var rest = items.slice(V616_ATTENTION_VISIBLE);
+  box.innerHTML = visible.join('<br>')
+    + '<details class="v616-attention-more" style="margin-top:9px"><summary style="cursor:pointer;color:var(--accent);font-weight:600">Показать ещё '
+    + rest.length + ' предупреждений</summary><div style="margin-top:8px">' + rest.join('<br>') + '</div></details>'
+    + '<div class="mini" style="margin-top:6px">На столе показаны первые ' + V616_ATTENTION_VISIBLE
+    + '. Все предупреждения сохранены; закупки и договоры не удаляются.</div>';
+};
+var _v616RenderDash = renderDash;
+renderDash = function(){
+  var r = _v616RenderDash.apply(this, arguments);
+  try{ v616CollapseAttention(); }catch(e){}
+  return r;
+};
+try{
+  GROUPS.forEach(function(g){ g.items = g.items.filter(function(it){ return it[0] !== 'cls'; }); });
+  if(typeof buildNav === 'function') buildNav();
+  var cl616 = document.getElementById('cls'); if(cl616) cl616.style.display = 'none';
+  if(typeof CLS !== 'undefined') CLS = []; /* убрать классификатор и из общего поиска */
+}catch(e){}
+var _v616Go = go;
+go = function(t){
+  if(t === 'cls'){
+    toastInfo('Классификатор норм скрыт как неиспользуемый. Остальные нормы и справочники порогов доступны.');
+    return;
+  }
+  _v616Go(t);
+};
+
 </script>
 </body>
 </html>
